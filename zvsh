@@ -2,53 +2,316 @@
 import ConfigParser
 import argparse
 import os
+import pty
+import shutil
 import sys
 import re
-from tempfile import mkstemp
+from tempfile import mkstemp, mkdtemp
 from subprocess import Popen, PIPE
 import threading
 import tarfile
 
-env_match = re.compile(r'([_A-Z0-9]+)=(.*)')
-temp_files = []
+ENV_MATCH = re.compile(r'([_A-Z0-9]+)=(.*)')
+DEFAULT_MANIFEST = {
+    'Version': '20130611',
+    'Memory': '%d, 0' % (4 * 1024 * 1024 * 1024),
+    'Node': 1,
+    'Timeout': 50
+}
+DEFAULT_LIMITS = {
+    'reads': str(1024 * 1024 * 1024 * 4),
+    'rbytes': str(1024 * 1024 * 1024 * 4),
+    'writes': str(1024 * 1024 * 1024 * 4),
+    'wbytes': str(1024 * 1024 * 1024 * 4)
+}
+CHANNEL_SEQ_READ_TEMPLATE = 'Channel = %s,%s,0,0,%s,%s,0,0'
+CHANNEL_SEQ_WRITE_TEMPLATE = 'Channel = %s,%s,0,0,0,0,%s,%s'
+CHANNEL_RANDOM_RW_TEMPLATE = 'Channel = %s,%s,3,0,%s,%s,%s,%s'
+
+DEBUG_TEMPLATE = '''set confirm off
+b CreateSession
+r
+b main
+add-symbol-file %s 0x440a00020000
+shell clear
+c
+d br
+'''
 
 
-def create_manifest_channel(channels, chan_conf, file_name):
-    temp_files.append(file_name)
-    devname = '/dev/file%s' % len(temp_files)
-    channels.append('Channel = %s,%s,3,0,%s,%s,%s,%s'
-                    % (os.path.abspath(file_name), devname,
-                       chan_conf['reads'], chan_conf['rbytes'],
-                       chan_conf['writes'], chan_conf['wbytes']))
-    return devname
+def is_binary_string(byte_string):
+    textchars = ''.join(map(chr, [7, 8, 9, 10, 12, 13, 27] + range(0x20, 0x100)))
+    return bool(byte_string.translate(None, textchars))
 
 
-def stdin_reader(output):
-    if sys.stdin.isatty():
+class ZvArgs:
+
+    def __init__(self):
+        self.parser = argparse.ArgumentParser()
+        self.parser.add_argument('executable', help='ZeroVM executable')
+        self.parser.add_argument('--zvm-image', help='ZeroVM image file(s)', action='append')
+        self.parser.add_argument('--zvm-debug', help='Enable ZeroVM debug output into zvsh.log', action='store_true')
+        self.parser.add_argument('--zvm-trace', help='Enable ZeroVM trace output into zvsh.trace.log', action='store_true')
+        self.parser.add_argument('--zvm-verbosity', help='ZeroVM debug verbosity level', type=int)
+        self.parser.add_argument('cmd_args', help='command line arguments', nargs=argparse.REMAINDER)
+        self.args = None
+
+    def parse(self, zvsh_args):
+        self.args = self.parser.parse_args(args=zvsh_args)
+
+
+class DebugArgs(ZvArgs):
+
+    def parse(self, zvsh_args):
+        self.args = self.parser.parse_args(args=zvsh_args)
+        self.args.gdb_args = []
+        while self.args.cmd_args:
+            arg = self.args.cmd_args.pop(0)
+            if arg == '--args':
+                break
+            self.args.gdb_args.append(arg)
+        self.args.executable = self.args.cmd_args.pop(0)
+
+
+class ZvShell:
+
+    def __init__(self, config_file, use_fifo=True):
+        self.temp_files = []
+        self.nvram_env = {}
+        self.nvram_fstab = {}
+        self.nvram_args = None
+        self.program = None
+        self.manifest_conf = DEFAULT_MANIFEST
+        self.channel_conf = DEFAULT_LIMITS
+        config = ConfigParser.ConfigParser()
+        config.optionxform = str
+        config.read(config_file)
         try:
-            for l in sys.stdin:
-                output.write(l)
+            self.manifest_conf.update(dict(config.items('manifest')))
+        except ConfigParser.NoSectionError:
+            pass
+        try:
+            self.nvram_env.update(dict(config.items('env')))
+        except ConfigParser.NoSectionError:
+            pass
+        try:
+            self.channel_conf.update(dict(config.items('limits')))
+        except ConfigParser.NoSectionError:
+            pass
+        self.tmpdir = mkdtemp()
+        self.stdout = os.path.join(self.tmpdir, 'stdout')
+        self.stderr = os.path.join(self.tmpdir, 'stderr')
+        if use_fifo:
+            os.mkfifo(self.stdout)
+            os.mkfifo(self.stderr)
+        self.manifest_channels = [
+            CHANNEL_SEQ_READ_TEMPLATE
+            % ('/dev/stdin', '/dev/stdin', self.channel_conf['reads'], self.channel_conf['rbytes']),
+            CHANNEL_SEQ_WRITE_TEMPLATE
+            % (self.stdout, '/dev/stdout', self.channel_conf['writes'], self.channel_conf['wbytes']),
+            CHANNEL_SEQ_WRITE_TEMPLATE
+            % (self.stderr, '/dev/stderr', self.channel_conf['writes'], self.channel_conf['wbytes'])
+        ]
+        try:
+            for k, v in dict(config.items('fstab')).iteritems():
+                self.nvram_fstab[self.create_manifest_channel(k)] = v
+        except ConfigParser.NoSectionError:
+            pass
+
+    def create_manifest_channel(self, file_name):
+        self.temp_files.append(file_name)
+        devname = '/dev/file%s' % len(self.temp_files)
+        self.manifest_channels.append(CHANNEL_RANDOM_RW_TEMPLATE
+                                      % (os.path.abspath(file_name), devname,
+                                         self.channel_conf['reads'], self.channel_conf['rbytes'],
+                                         self.channel_conf['writes'], self.channel_conf['wbytes']))
+        return devname
+
+    def add_untrusted_args(self, program, cmdline):
+        self.program = program
+        untrusted_args = [os.path.basename(program)]
+        for arg in cmdline:
+            if arg.startswith('@'):
+                arg = arg[1:]
+                m = ENV_MATCH.match(arg)
+                if m:
+                    self.nvram_env[m.group(1)] = m.group(2)
+                else:
+                    dev_name = self.create_manifest_channel(arg)
+                    untrusted_args.append(dev_name)
+            else:
+                untrusted_args.append(arg)
+
+        self.nvram_args = {
+            'args': untrusted_args
+        }
+
+    def add_image_args(self, zvm_image):
+        if not zvm_image:
+            return
+        for img in zvm_image:
+            (imgpath, imgmp, imgacc) = (img.split(',') + [None] * 3)[:3]
+            dev_name = self.create_manifest_channel(imgpath)
+            self.nvram_fstab[dev_name] = '%s %s' % (imgmp or '/', imgacc or 'ro')
+            tar = tarfile.open(name=imgpath)
+            nexe = None
+            try:
+                nexe = tar.extractfile(self.program)
+            except KeyError:
+                pass
+            if nexe:
+                tmpnexe_fd, tmpnexe_fn = mkstemp()
+                read_iter = iter(lambda: nexe.read(65535), '')
+                for chunk in read_iter:
+                    os.write(tmpnexe_fd, chunk)
+                os.close(tmpnexe_fd)
+                self.program = tmpnexe_fn
+                return self.program
+        return None
+
+    def add_debug(self, zvm_debug):
+        if zvm_debug:
+            self.manifest_channels.append(CHANNEL_SEQ_WRITE_TEMPLATE
+                                          % (os.path.abspath('zvsh.log'), 'dev/debug',
+                                             self.channel_conf['writes'], self.channel_conf['wbytes']))
+
+    def create_nvram(self, verbosity):
+        nvram = '[args]\n'
+        nvram += 'args = %s\n' % ' '.join([a.replace(',', '\\x2c') for a in self.nvram_args['args']])
+        if len(self.nvram_env) > 0:
+            nvram += '[env]\n'
+            for k, v in self.nvram_env.iteritems():
+                nvram += 'name=%s,value=%s\n' % (k, v.replace(',', '\\x2c'))
+        if len(self.nvram_fstab) > 0:
+            nvram += '[fstab]\n'
+            for channel, mount in self.nvram_fstab.iteritems():
+                (mp, access) = mount.split()
+                nvram += 'channel=%s,mountpoint=%s,access=%s,removable=no\n' % (channel, mp, access)
+        if sys.stdin.isatty() or sys.stdout.isatty() or sys.stderr.isatty():
+            nvram += '[mapping]\n'
+            if sys.stdin.isatty():
+                nvram += 'channel=/dev/stdin,mode=char\n'
+            if sys.stdout.isatty():
+                nvram += 'channel=/dev/stdout,mode=char\n'
+            if sys.stderr.isatty():
+                nvram += 'channel=/dev/stderr,mode=char\n'
+        if verbosity:
+            nvram += '[debug]\nverbosity=%d\n' % verbosity
+        nvram_fd, nvram_fn = mkstemp()
+        os.write(nvram_fd, nvram)
+        os.close(nvram_fd)
+        return nvram_fn
+
+    def create_manifest(self, nvram_fn):
+        manifest = ''
+        for k, v in self.manifest_conf.iteritems():
+            manifest += '%s = %s\n' % (k, v)
+        manifest += 'Program = %s\n' % os.path.abspath(self.program)
+        self.manifest_channels.append(CHANNEL_RANDOM_RW_TEMPLATE
+                                      % (os.path.abspath(nvram_fn), '/dev/nvram',
+                                         self.channel_conf['reads'], self.channel_conf['rbytes'],
+                                         self.channel_conf['writes'], self.channel_conf['wbytes']))
+        manifest += '\n'.join(self.manifest_channels)
+        manifest_fd, manifest_fn = mkstemp()
+        os.write(manifest_fd, manifest)
+        os.close(manifest_fd)
+        return manifest_fn
+
+    def add_arguments(self, args):
+        self.add_debug(args.zvm_debug)
+        zvshell.add_untrusted_args(args.executable, args.cmd_args)
+        temp_prog_file = zvshell.add_image_args(args.zvm_image)
+        nvram_file = zvshell.create_nvram(args.zvm_verbosity)
+        manifest_file = zvshell.create_manifest(nvram_file)
+        return (manifest_file, nvram_file, temp_prog_file)
+
+    def cleanup(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+
+class ZvRunner:
+
+    def __init__(self, command_line, stdout, stderr, temp_files):
+        self.command = command_line
+        self.files = temp_files
+        self.reader = None
+        self.process = None
+        self.stdout = stdout
+        self.stderr = stderr
+        self.report = ''
+
+    def run(self):
+        try:
+            self.process = Popen(self.command, stdin=PIPE, stdout=PIPE)
+            self.spawn(self.stdin_reader)
+            self.spawn(self.stderr_reader)
+            self.spawn(self.report_reader)
+            self.stdout_write()
+        except (KeyboardInterrupt, Exception):
+            pass
+        finally:
+            if self.process:
+                self.process.wait()
+                if self.process.returncode > 0:
+                    self.print_error(self.process.returncode)
+            cleanup(self.files)
+
+    def stdin_reader(self):
+        if sys.stdin.isatty():
+            try:
+                for l in sys.stdin:
+                    self.process.stdin.write(l)
+            except IOError:
+                pass
+        else:
+            try:
+                for l in iter(lambda: sys.stdin.read(65535), ''):
+                    self.process.stdin.write(l)
+            except IOError:
+                pass
+        self.process.stdin.close()
+
+    def stderr_reader(self):
+        err = open(self.stderr)
+        try:
+            for l in iter(lambda: err.read(65535), ''):
+                sys.stderr.write(l)
         except IOError:
             pass
-    else:
-        read_iter = iter(lambda: sys.stdin.read(65535), '')
-        try:
-            for l in read_iter:
-                output.write(l)
-        except IOError:
-            pass
-    output.close()
+        err.close()
+
+    def stdout_write(self):
+        pipe = open(self.stdout)
+        if sys.stdout.isatty():
+            for line in pipe:
+                sys.stdout.write(line)
+        else:
+            for line in iter(lambda: pipe.read(65535), ''):
+                sys.stdout.write(line)
+        pipe.close()
+
+    def report_reader(self):
+        for line in iter(lambda: self.process.stdout.read(65535), ''):
+            self.report += line
+
+    def spawn(self, func, **kwargs):
+        self.reader = threading.Thread(target=func, kwargs=kwargs)
+        self.reader.daemon = True
+        self.reader.start()
+
+    def print_error(self, rc):
+        for f in self.files:
+            if f:
+                if is_binary_string(open(f).read(1024)):
+                    sys.stderr.write('%s is a binary file\n' % f)
+                else:
+                    sys.stderr.write('\n'.join(['-' * 10 + f + '-' * 10, open(f).read(), '-' * 25, '']))
+        sys.stderr.write(self.report)
+        sys.stderr.write("ERROR: ZeroVM return code is %d\n" % rc)
 
 
-def spawn(func, **kwargs):
-    t = threading.Thread(target=func, kwargs=kwargs)
-    t.daemon = True
-    t.start()
-    return t
-
-
-def cleanup(file_list):
-    for f in file_list:
+def cleanup(temp_files):
+    for f in temp_files:
         if f:
             try:
                 os.unlink(f)
@@ -56,166 +319,43 @@ def cleanup(file_list):
                 pass
 
 
-def print_error(rc, nvram_fn, manifest_fn):
-    sys.stderr.write('\n'.join(['-' * 10 + 'NVRAM' + '-' * 10, open(nvram_fn).read(), '-' * 25, '']))
-    sys.stderr.write('\n'.join(['-' * 8 + 'MANIFEST' + '-' * 8, open(manifest_fn).read(), '-' * 24, '']))
-    sys.stderr.write("ERROR: ZeroVM return code is %d, please check /var/log/syslog for any errors\n" % rc)
-   
- 
-nvram_env = {}
-nvram_fstab = {}
-manifest_conf = {
-    'Version': '20130611',
-    'Memory': '419430400, 0',
-    'Node': 1,
-    'Timeout': 50
-}
-channel_conf = {
-    'reads': str(1024 * 1024 * 1024 * 4),
-    'rbytes': str(1024 * 1024 * 1024 * 4),
-    'writes': str(1024 * 1024 * 1024 * 4),
-    'wbytes': str(1024 * 1024 * 1024 * 4)
-}
-config = ConfigParser.ConfigParser()
-config.optionxform = str
-cfg_file = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), 
-                                        'zvsh.cfg')
-config.read(cfg_file)
-try:
-    manifest_conf.update(dict(config.items('manifest')))
-except ConfigParser.NoSectionError:
-    pass
-try:
-    nvram_env.update(dict(config.items('env')))
-except ConfigParser.NoSectionError:
-    pass
-try:
-    channel_conf.update(dict(config.items('limits')))
-except ConfigParser.NoSectionError:
-    pass
-manifest_channels = [
-    'Channel = /dev/stdin,/dev/stdin,0,0,%s,%s,0,0'
-    % (channel_conf['reads'], channel_conf['rbytes']),
-    'Channel = /dev/stdout,/dev/stdout,0,0,0,0,%s,%s'
-    % (channel_conf['writes'], channel_conf['wbytes']),
-    'Channel = /dev/stderr,/dev/stderr,0,0,0,0,%s,%s'
-    % (channel_conf['writes'], channel_conf['wbytes'])
-]
-try:
-    for k,v in dict(config.items('fstab')).iteritems():
-        dev_name = create_manifest_channel(manifest_channels, channel_conf, k)
-        nvram_fstab[dev_name] = v
-except ConfigParser.NoSectionError:
-    pass
-argparser = argparse.ArgumentParser()
-argparser.add_argument('executable', help='ZeroVM executable')
-argparser.add_argument('--zvm-image', help='ZeroVM image file(s)', action='append')
-argparser.add_argument('--zvm-debug', help='Enable ZeroVM debug output into zvsh.log', action='store_true')
-argparser.add_argument('--zvm-trace', help='Enable ZeroVM trace output into zvsh.trace.log', action='store_true')
-argparser.add_argument('--zvm-verbosity', help='ZeroVM debug verbosity level', type=int)
-argparser.add_argument('cmd_args', help='command line arguments', nargs=argparse.REMAINDER)
-args = argparser.parse_args()
-untrusted_args = [os.path.basename(args.executable)]
-for arg in args.cmd_args:
-    if arg.startswith('@'):
-        arg = arg[1:]
-        m = env_match.match(arg)
-        if m:
-            nvram_env[m.group(1)] = m.group(2)
-        else:
-            dev_name = create_manifest_channel(manifest_channels, channel_conf, arg)
-            untrusted_args.append(dev_name)
-    else:
-        untrusted_args.append(arg)
-
-nvram_args = {
-    'args': untrusted_args
-}
-
-tmpnexe_fn = None
-if args.zvm_image:
-    for img in args.zvm_image:
-        (imgpath, imgmp, imgacc) = (img.split(',') + [None] * 3)[:3]
-        dev_name = create_manifest_channel(manifest_channels, channel_conf, imgpath)
-        nvram_fstab[dev_name] = '%s %s' % (imgmp or '/', imgacc or 'ro')
-        tar = tarfile.open(name=imgpath)
-        nexe = None
-        try:
-            nexe = tar.extractfile(args.executable)
-        except KeyError:
-            pass
-        if nexe:
-            tmpnexe_fd, tmpnexe_fn = mkstemp()
-            read_iter = iter(lambda: nexe.read(65535), '')
-            for chunk in read_iter:
-                os.write(tmpnexe_fd, chunk)
-            os.close(tmpnexe_fd)
-            args.executable = tmpnexe_fn
-if args.zvm_debug:
-    manifest_channels.append('Channel = %s,/dev/debug,0,0,0,0,%s,%s'
-                             % (os.path.abspath('zvsh.log'),
-                                channel_conf['writes'], channel_conf['wbytes']))
-nvram = '[args]\n'
-nvram += 'args = %s\n' % ' '.join([a.replace(',', '\\x2c') for a in nvram_args['args']])
-if len(nvram_env) > 0:
-    nvram += '[env]\n'
-    for k, v in nvram_env.iteritems():
-        nvram += 'name=%s,value=%s\n' % (k, v.replace(',', '\\x2c'))
-if len(nvram_fstab) > 0:
-    nvram += '[fstab]\n'
-    for channel, mount in nvram_fstab.iteritems():
-        (mp, access) = mount.split()
-        nvram += 'channel=%s,mountpoint=%s,access=%s,removable=no\n' % (channel, mp, access)
-if sys.stdin.isatty() or sys.stdout.isatty() or sys.stderr.isatty():
-    nvram += '[mapping]\n'
-    if sys.stdin.isatty():
-        nvram += 'channel=/dev/stdin,mode=char\n'
-    if sys.stdout.isatty():
-        nvram += 'channel=/dev/stdout,mode=char\n'
-    if sys.stderr.isatty():
-        nvram += 'channel=/dev/stderr,mode=char\n'
-if args.zvm_verbosity:
-    nvram += '[debug]\nverbosity=%d\n' % args.zvm_verbosity
-manifest = ''
-for k, v in manifest_conf.iteritems():
-    manifest += '%s = %s\n' % (k, v)
-manifest += 'Program = %s\n' % os.path.abspath(args.executable)
-manifest_fn = None
-nvram_fn = None
-zerovm = None
-reader = None
-try:
-    nvram_fd, nvram_fn = mkstemp()
-    os.write(nvram_fd, nvram)
-    os.close(nvram_fd)
-    manifest_channels.append('Channel = %s,/dev/nvram,3,0,%s,%s,0,0'
-                             % (os.path.abspath(nvram_fn),
-                                channel_conf['reads'], channel_conf['rbytes']))
-    manifest += '\n'.join(manifest_channels)
-    manifest_fd, manifest_fn = mkstemp()
-    os.write(manifest_fd, manifest)
-    os.close(manifest_fd)
-    zvm_run = ['zerovm', '-PQt1']
-    if args.zvm_trace:
+zvsh_args = ZvArgs()
+zvsh_args.parse(sys.argv[1:])
+if 'gdb' == zvsh_args.args.executable:
+    # user wants to debug the program
+    zvsh_args = DebugArgs()
+    zvsh_args.parse(sys.argv[1:])
+    zvsh_config = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), 'zvsh.cfg')
+    zvshell = ZvShell(zvsh_config, use_fifo=False)
+    zvshell.manifest_conf['Timeout'] = 1000000
+    manifest_file, nvram_file, temp_prog_file = zvshell.add_arguments(zvsh_args.args)
+    zvm_run = ['zerovm-dbg', '-sPQ', manifest_file]
+    exec_path = os.path.abspath(zvshell.program)
+    debug_scp = DEBUG_TEMPLATE % exec_path
+    debug_scp_fd, debug_scp_fn = mkstemp()
+    os.write(debug_scp_fd, debug_scp)
+    os.close(debug_scp_fd)
+    command_line = ['gdb', '--command=%s' % debug_scp_fn]
+    command_line.extend(zvsh_args.args.gdb_args)
+    command_line.append('--args')
+    command_line.extend(zvm_run)
+    print ' '.join(command_line)
+    try:
+        pty.spawn(command_line)
+    except (KeyboardInterrupt, Exception):
+        pass
+    finally:
+        cleanup([manifest_file, nvram_file, temp_prog_file, debug_scp_fn])
+        zvshell.cleanup()
+else:
+    zvsh_config = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), 'zvsh.cfg')
+    zvshell = ZvShell(zvsh_config)
+    manifest_file, nvram_file, temp_prog_file = zvshell.add_arguments(zvsh_args.args)
+    zvm_run = ['zerovm', '-PQ']
+    if zvsh_args.args.zvm_trace:
         trace_log = os.path.abspath('zvsh.trace.log')
         zvm_run.extend(['-T', trace_log])
-    zvm_run.append(manifest_fn)
-    zerovm = Popen(zvm_run, stdin=PIPE, stdout=PIPE)
-    reader = spawn(stdin_reader, output=zerovm.stdin)
-    if sys.stdout.isatty():
-        for line in zerovm.stdout:
-            sys.stdout.write(line)
-    else:
-        read_iter = iter(lambda: zerovm.stdout.read(65535), '')
-        for line in read_iter:
-            sys.stdout.write(line)
-    rc = zerovm.wait()
-    if rc > 0:
-        print_error(rc, nvram_fn, manifest_fn)
-    cleanup([manifest_fn, nvram_fn, tmpnexe_fn])
-except (KeyboardInterrupt, Exception):
-    if zerovm:
-        rc = zerovm.wait()
-        if rc > 0:
-            print_error(rc, nvram_fn, manifest_fn)
-    cleanup([manifest_fn, nvram_fn, tmpnexe_fn])
+    zvm_run.append(manifest_file)
+    runner = ZvRunner(zvm_run, zvshell.stdout, zvshell.stderr, [manifest_file, nvram_file, temp_prog_file])
+    runner.run()
+    zvshell.cleanup()
