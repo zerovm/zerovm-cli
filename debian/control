@@ -1,0 +1,12 @@
+Source: zerovm-cli
+Maintainer: Constantine Peresypkin (pkit) <constantine@litestack.com>
+Section: otherosfs
+Priority: extra
+Standards-Version: 3.9.3
+Build-Depends: debhelper (>= 8)
+
+Package: zerovm-cli
+Architecture: amd64
+Depends: zerovm, python2.7, python (>= 2.7), python (<< 2.8)
+Description: Command line tools for ZeroVM
+ Installs command line tools and utilities for ZeroVM testing.

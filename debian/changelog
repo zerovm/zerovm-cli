@@ -1,0 +1,13 @@
+zerovm-cli (0.9.4-2) precise; urgency=low
+
+  * added gdb support, refactored code
+  * fix pipes not emptying up, fix debugger path
+  * made search for zvsh.cfg file more sensible
+
+ -- Constantine Peresypkin (pkit) <constantine@litestack.com>  Tue, 19 Nov 2013 21:55:25 +0200
+
+zerovm-cli (0.9.4-1) precise; urgency=low
+
+  * Initial release.
+
+ -- Constantine Peresypkin (pkit) <constantine@litestack.com>  Tue, 19 Nov 2013 21:29:08 +0200
