@@ -75,7 +75,7 @@ class DebugArgs(ZvArgs):
 
 class ZvShell:
 
-    def __init__(self, config_file, use_fifo=True):
+    def __init__(self, config_files, use_fifo=True):
         self.temp_files = []
         self.nvram_env = {}
         self.nvram_fstab = {}
@@ -85,7 +85,7 @@ class ZvShell:
         self.channel_conf = DEFAULT_LIMITS
         config = ConfigParser.ConfigParser()
         config.optionxform = str
-        config.read(config_file)
+        config.read(config_files)
         try:
             self.manifest_conf.update(dict(config.items('manifest')))
         except ConfigParser.NoSectionError:
@@ -322,12 +322,13 @@ def cleanup(temp_files):
 
 zvsh_args = ZvArgs()
 zvsh_args.parse(sys.argv[1:])
+zvsh_config = os.path.abspath('zvsh.cfg')
 if 'gdb' == zvsh_args.args.executable:
     # user wants to debug the program
     zvsh_args = DebugArgs()
     zvsh_args.parse(sys.argv[1:])
-    zvsh_config = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), 'zvsh.cfg')
-    zvshell = ZvShell(zvsh_config, use_fifo=False)
+    zvshell = ZvShell([zvsh_config, os.path.expanduser('~/.zvsh.cfg'), '/etc/zvsh.cfg'],
+                      use_fifo=False)
     zvshell.manifest_conf['Timeout'] = 1000000
     manifest_file, nvram_file, temp_prog_file = zvshell.add_arguments(zvsh_args.args)
     zvm_run = ['zerovm-dbg', '-sPQ', manifest_file]
@@ -349,8 +350,7 @@ if 'gdb' == zvsh_args.args.executable:
         cleanup([manifest_file, nvram_file, temp_prog_file, debug_scp_fn])
         zvshell.cleanup()
 else:
-    zvsh_config = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), 'zvsh.cfg')
-    zvshell = ZvShell(zvsh_config)
+    zvshell = ZvShell([zvsh_config, os.path.expanduser('~/.zvsh.cfg'), '/etc/zvsh.cfg'])
     manifest_file, nvram_file, temp_prog_file = zvshell.add_arguments(zvsh_args.args)
     zvm_run = ['zerovm', '-PQ']
     if zvsh_args.args.zvm_trace:
