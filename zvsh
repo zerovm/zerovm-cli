@@ -243,10 +243,11 @@ class ZvRunner:
     def run(self):
         try:
             self.process = Popen(self.command, stdin=PIPE, stdout=PIPE)
-            self.spawn(self.stdin_reader)
-            self.spawn(self.stderr_reader)
-            self.spawn(self.report_reader)
+            self.spawn(True, self.stdin_reader)
+            self.spawn(False, self.stderr_reader)
+            self.spawn(False, self.report_reader)
             self.stdout_write()
+
         except (KeyboardInterrupt, Exception):
             pass
         finally:
@@ -294,9 +295,9 @@ class ZvRunner:
         for line in iter(lambda: self.process.stdout.read(65535), ''):
             self.report += line
 
-    def spawn(self, func, **kwargs):
+    def spawn(self, daemon, func, **kwargs):
         self.reader = threading.Thread(target=func, kwargs=kwargs)
-        self.reader.daemon = True
+        self.reader.daemon = daemon
         self.reader.start()
 
     def print_error(self, rc):
@@ -335,7 +336,7 @@ if 'gdb' == zvsh_args.args.executable:
     debug_scp_fd, debug_scp_fn = mkstemp()
     os.write(debug_scp_fd, debug_scp)
     os.close(debug_scp_fd)
-    command_line = ['gdb', '--command=%s' % debug_scp_fn]
+    command_line = ['x86_64-nacl-gdb', '--command=%s' % debug_scp_fn]
     command_line.extend(zvsh_args.args.gdb_args)
     command_line.append('--args')
     command_line.extend(zvm_run)
