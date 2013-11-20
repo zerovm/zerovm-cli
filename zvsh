@@ -172,7 +172,7 @@ class ZvShell:
     def add_debug(self, zvm_debug):
         if zvm_debug:
             self.manifest_channels.append(CHANNEL_SEQ_WRITE_TEMPLATE
-                                          % (os.path.abspath('zvsh.log'), 'dev/debug',
+                                          % (os.path.abspath('zvsh.log'), '/dev/debug',
                                              self.channel_conf['writes'], self.channel_conf['wbytes']))
 
     def create_nvram(self, verbosity):
