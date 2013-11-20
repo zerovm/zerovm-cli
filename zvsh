@@ -27,6 +27,7 @@ DEFAULT_LIMITS = {
 CHANNEL_SEQ_READ_TEMPLATE = 'Channel = %s,%s,0,0,%s,%s,0,0'
 CHANNEL_SEQ_WRITE_TEMPLATE = 'Channel = %s,%s,0,0,0,0,%s,%s'
 CHANNEL_RANDOM_RW_TEMPLATE = 'Channel = %s,%s,3,0,%s,%s,%s,%s'
+CHANNEL_RANDOM_RO_TEMPLATE = 'Channel = %s,%s,3,0,%s,%s,0,0'
 
 DEBUG_TEMPLATE = '''set confirm off
 b CreateSession
@@ -119,12 +120,18 @@ class ZvShell:
             pass
 
     def create_manifest_channel(self, file_name):
+        name = os.path.basename(file_name)
         self.temp_files.append(file_name)
-        devname = '/dev/file%s' % len(self.temp_files)
-        self.manifest_channels.append(CHANNEL_RANDOM_RW_TEMPLATE
-                                      % (os.path.abspath(file_name), devname,
-                                         self.channel_conf['reads'], self.channel_conf['rbytes'],
-                                         self.channel_conf['writes'], self.channel_conf['wbytes']))
+        devname = '/dev/%s.%s' % (len(self.temp_files), name)
+        if os.access(os.path.abspath(file_name), os.W_OK):
+            self.manifest_channels.append(CHANNEL_RANDOM_RW_TEMPLATE
+                                          % (os.path.abspath(file_name), devname,
+                                             self.channel_conf['reads'], self.channel_conf['rbytes'],
+                                             self.channel_conf['writes'], self.channel_conf['wbytes']))
+        else:
+            self.manifest_channels.append(CHANNEL_RANDOM_RO_TEMPLATE
+                                          % (os.path.abspath(file_name), devname,
+                                             self.channel_conf['reads'], self.channel_conf['rbytes']))
         return devname
 
     def add_untrusted_args(self, program, cmdline):
@@ -234,7 +241,6 @@ class ZvRunner:
     def __init__(self, command_line, stdout, stderr, temp_files):
         self.command = command_line
         self.files = temp_files
-        self.reader = None
         self.process = None
         self.stdout = stdout
         self.stderr = stderr
@@ -244,10 +250,14 @@ class ZvRunner:
         try:
             self.process = Popen(self.command, stdin=PIPE, stdout=PIPE)
             self.spawn(True, self.stdin_reader)
-            self.spawn(False, self.stderr_reader)
-            self.spawn(False, self.report_reader)
-            self.stdout_write()
-
+            err_reader = self.spawn(True, self.stderr_reader)
+            rep_reader = self.spawn(True, self.report_reader)
+            writer = self.spawn(True, self.stdout_write)
+            self.process.wait()
+            rep_reader.join()
+            if self.process.returncode == 0:
+                writer.join()
+                err_reader.join()
         except (KeyboardInterrupt, Exception):
             pass
         finally:
@@ -296,9 +306,10 @@ class ZvRunner:
             self.report += line
 
     def spawn(self, daemon, func, **kwargs):
-        self.reader = threading.Thread(target=func, kwargs=kwargs)
-        self.reader.daemon = daemon
-        self.reader.start()
+        thread = threading.Thread(target=func, kwargs=kwargs)
+        thread.daemon = daemon
+        thread.start()
+        return thread
 
     def print_error(self, rc):
         for f in self.files:
