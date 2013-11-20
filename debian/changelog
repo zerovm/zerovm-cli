@@ -1,3 +1,10 @@
+zerovm-cli (0.9.4-3) precise; urgency=low
+
+  * debian packaging added
+  * fixed bug in --zvm-debug
+
+ -- Constantine Peresypkin (pkit) <constantine@litestack.com>  Wed, 20 Nov 2013 11:46:43 +0000
+
 zerovm-cli (0.9.4-2) precise; urgency=low
 
   * added gdb support, refactored code
