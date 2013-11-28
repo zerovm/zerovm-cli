@@ -45,8 +45,7 @@ class ZvArgs:
         self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
         self.parser.add_argument('command', help='Zvsh command, can be:\n'
                                                  '- path to ZeroVM executable\n'
-                                                 '- "gdb" (for running debugger)\n'
-                                                 '- "cloud" (when running cluster map)')
+                                                 '- "gdb" (for running debugger)\n')
         self.parser.add_argument('--zvm-image', help='ZeroVM image file(s) in the following '
                                                      'format:\npath[,mount point][,access type]\n'
                                                      'defaults: path,/,ro\n', action='append')
