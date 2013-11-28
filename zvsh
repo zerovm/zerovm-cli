@@ -4,9 +4,10 @@ import argparse
 import os
 import pty
 import shutil
+import stat
 import sys
 import re
-from tempfile import mkstemp, mkdtemp
+from tempfile import mkdtemp
 from subprocess import Popen, PIPE
 import threading
 import tarfile
@@ -50,10 +51,17 @@ class ZvArgs:
     def __init__(self):
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('executable', help='ZeroVM executable')
-        self.parser.add_argument('--zvm-image', help='ZeroVM image file(s)', action='append')
-        self.parser.add_argument('--zvm-debug', help='Enable ZeroVM debug output into zvsh.log', action='store_true')
-        self.parser.add_argument('--zvm-trace', help='Enable ZeroVM trace output into zvsh.trace.log', action='store_true')
+        self.parser.add_argument('--zvm-image', help='ZeroVM image file(s) in the following '
+                                                     'format: path[,mount point][,access type] '
+                                                     'defaults: path,/,ro', action='append')
+        self.parser.add_argument('--zvm-debug', help='Enable ZeroVM debug output into zvsh.log',
+                                 action='store_true')
+        self.parser.add_argument('--zvm-trace', help='Enable ZeroVM trace output into zvsh.trace.log',
+                                 action='store_true')
         self.parser.add_argument('--zvm-verbosity', help='ZeroVM debug verbosity level', type=int)
+        self.parser.add_argument('--zvm-save-dir', help='Save ZeroVM environment files into provided directory,'
+                                                        'directory will be created/re-created',
+                                 action='store')
         self.parser.add_argument('cmd_args', help='command line arguments', nargs=argparse.REMAINDER)
         self.args = None
 
@@ -81,6 +89,7 @@ class ZvShell:
         self.nvram_env = {}
         self.nvram_fstab = {}
         self.nvram_args = None
+        self.nvram_filename = None
         self.program = None
         self.manifest_conf = DEFAULT_MANIFEST
         self.channel_conf = DEFAULT_LIMITS
@@ -99,9 +108,11 @@ class ZvShell:
             self.channel_conf.update(dict(config.items('limits')))
         except ConfigParser.NoSectionError:
             pass
+        self.node_id = self.manifest_conf['Node']
+        self.savedir = None
         self.tmpdir = mkdtemp()
-        self.stdout = os.path.join(self.tmpdir, 'stdout')
-        self.stderr = os.path.join(self.tmpdir, 'stderr')
+        self.stdout = os.path.join(self.tmpdir, 'stdout.%d' % self.node_id)
+        self.stderr = os.path.join(self.tmpdir, 'stderr.%d' % self.node_id)
         if use_fifo:
             os.mkfifo(self.stdout)
             os.mkfifo(self.stderr)
@@ -164,17 +175,15 @@ class ZvShell:
             nexe = None
             try:
                 nexe = tar.extractfile(self.program)
-            except KeyError:
-                pass
-            if nexe:
-                tmpnexe_fd, tmpnexe_fn = mkstemp()
+                tmpnexe_fn = os.path.join(self.tmpdir, 'boot.%d' % self.node_id)
+                tmpnexe_fd = open(tmpnexe_fn, 'wb')
                 read_iter = iter(lambda: nexe.read(65535), '')
                 for chunk in read_iter:
-                    os.write(tmpnexe_fd, chunk)
-                os.close(tmpnexe_fd)
+                    tmpnexe_fd.write(chunk)
+                tmpnexe_fd.close()
                 self.program = tmpnexe_fn
-                return self.program
-        return None
+            except KeyError:
+                pass
 
     def add_debug(self, zvm_debug):
         if zvm_debug:
@@ -204,43 +213,63 @@ class ZvShell:
                 nvram += 'channel=/dev/stderr,mode=char\n'
         if verbosity:
             nvram += '[debug]\nverbosity=%d\n' % verbosity
-        nvram_fd, nvram_fn = mkstemp()
-        os.write(nvram_fd, nvram)
-        os.close(nvram_fd)
-        return nvram_fn
+        self.nvram_filename = os.path.join(self.tmpdir, 'nvram.%d' % self.node_id)
+        nvram_fd = open(self.nvram_filename, 'wb')
+        nvram_fd.write(nvram)
+        nvram_fd.close()
 
-    def create_manifest(self, nvram_fn):
+    def create_manifest(self):
         manifest = ''
         for k, v in self.manifest_conf.iteritems():
             manifest += '%s = %s\n' % (k, v)
         manifest += 'Program = %s\n' % os.path.abspath(self.program)
         self.manifest_channels.append(CHANNEL_RANDOM_RW_TEMPLATE
-                                      % (os.path.abspath(nvram_fn), '/dev/nvram',
+                                      % (os.path.abspath(self.nvram_filename), '/dev/nvram',
                                          self.channel_conf['reads'], self.channel_conf['rbytes'],
                                          self.channel_conf['writes'], self.channel_conf['wbytes']))
         manifest += '\n'.join(self.manifest_channels)
-        manifest_fd, manifest_fn = mkstemp()
-        os.write(manifest_fd, manifest)
-        os.close(manifest_fd)
+        manifest_fn = os.path.join(self.tmpdir, 'manifest.%d' % self.node_id)
+        manifest_fd = open(manifest_fn, 'wb')
+        manifest_fd.write(manifest)
+        manifest_fd.close()
         return manifest_fn
 
     def add_arguments(self, args):
         self.add_debug(args.zvm_debug)
         zvshell.add_untrusted_args(args.executable, args.cmd_args)
-        temp_prog_file = zvshell.add_image_args(args.zvm_image)
-        nvram_file = zvshell.create_nvram(args.zvm_verbosity)
-        manifest_file = zvshell.create_manifest(nvram_file)
-        return (manifest_file, nvram_file, temp_prog_file)
+        zvshell.add_image_args(args.zvm_image)
+        zvshell.create_nvram(args.zvm_verbosity)
+        manifest_file = zvshell.create_manifest()
+        self.savedir = args.zvm_save_dir
+        return manifest_file
 
     def cleanup(self):
-        shutil.rmtree(self.tmpdir, ignore_errors=True)
+        if self.savedir:
+            try:
+                if os.path.exists(self.savedir):
+                    shutil.rmtree(self.savedir)
+                os.rename(self.tmpdir, self.savedir)
+            except OSError, e:
+                sys.stderr.write(str(e) + '\n')
+                shutil.rmtree(self.tmpdir, ignore_errors=True)
+        else:
+            shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def add_debug_script(self):
+        exec_path = os.path.abspath(self.program)
+        debug_scp = DEBUG_TEMPLATE % exec_path
+        debug_scp_fn = os.path.join(self.tmpdir, 'debug.scp')
+        debug_scp_fd = open(debug_scp_fn, 'wb')
+        debug_scp_fd.write(debug_scp)
+        debug_scp_fd.close()
+        return debug_scp_fn
 
 
 class ZvRunner:
 
-    def __init__(self, command_line, stdout, stderr, temp_files):
+    def __init__(self, command_line, stdout, stderr, tempdir):
         self.command = command_line
-        self.files = temp_files
+        self.tmpdir = tempdir
         self.process = None
         self.stdout = stdout
         self.stderr = stderr
@@ -265,7 +294,6 @@ class ZvRunner:
                 self.process.wait()
                 if self.process.returncode > 0:
                     self.print_error(self.process.returncode)
-            cleanup(self.files)
 
     def stdin_reader(self):
         if sys.stdin.isatty():
@@ -312,43 +340,29 @@ class ZvRunner:
         return thread
 
     def print_error(self, rc):
-        for f in self.files:
-            if f:
-                if is_binary_string(open(f).read(1024)):
-                    sys.stderr.write('%s is a binary file\n' % f)
+        for f in os.listdir(self.tmpdir):
+            path = os.path.join(self.tmpdir, f)
+            if stat.S_ISREG(os.stat(path).st_mode):
+                if is_binary_string(open(path).read(1024)):
+                    sys.stderr.write('%s is a binary file\n' % path)
                 else:
-                    sys.stderr.write('\n'.join(['-' * 10 + f + '-' * 10, open(f).read(), '-' * 25, '']))
+                    sys.stderr.write('\n'.join(['-' * 10 + f + '-' * 10, open(path).read(), '-' * 25, '']))
         sys.stderr.write(self.report)
         sys.stderr.write("ERROR: ZeroVM return code is %d\n" % rc)
 
 
-def cleanup(temp_files):
-    for f in temp_files:
-        if f:
-            try:
-                os.unlink(f)
-            except OSError:
-                pass
-
-
 zvsh_args = ZvArgs()
 zvsh_args.parse(sys.argv[1:])
-zvsh_config = os.path.abspath('zvsh.cfg')
+zvsh_config = [os.path.abspath('zvsh.cfg'), os.path.expanduser('~/.zvsh.cfg'), '/etc/zvsh.cfg']
 if 'gdb' == zvsh_args.args.executable:
     # user wants to debug the program
     zvsh_args = DebugArgs()
     zvsh_args.parse(sys.argv[1:])
-    zvshell = ZvShell([zvsh_config, os.path.expanduser('~/.zvsh.cfg'), '/etc/zvsh.cfg'],
-                      use_fifo=False)
-    zvshell.manifest_conf['Timeout'] = 1000000
-    manifest_file, nvram_file, temp_prog_file = zvshell.add_arguments(zvsh_args.args)
+    zvshell = ZvShell(zvsh_config, use_fifo=False)
+    zvshell.manifest_conf['Timeout'] = 60 * 60 * 24 * 30  # a month until debug session will time out
+    manifest_file = zvshell.add_arguments(zvsh_args.args)
     zvm_run = ['zerovm-dbg', '-sPQ', manifest_file]
-    exec_path = os.path.abspath(zvshell.program)
-    debug_scp = DEBUG_TEMPLATE % exec_path
-    debug_scp_fd, debug_scp_fn = mkstemp()
-    os.write(debug_scp_fd, debug_scp)
-    os.close(debug_scp_fd)
-    command_line = ['x86_64-nacl-gdb', '--command=%s' % debug_scp_fn]
+    command_line = ['x86_64-nacl-gdb', '--command=%s' % zvshell.add_debug_script()]
     command_line.extend(zvsh_args.args.gdb_args)
     command_line.append('--args')
     command_line.extend(zvm_run)
@@ -358,16 +372,17 @@ if 'gdb' == zvsh_args.args.executable:
     except (KeyboardInterrupt, Exception):
         pass
     finally:
-        cleanup([manifest_file, nvram_file, temp_prog_file, debug_scp_fn])
         zvshell.cleanup()
 else:
-    zvshell = ZvShell([zvsh_config, os.path.expanduser('~/.zvsh.cfg'), '/etc/zvsh.cfg'])
-    manifest_file, nvram_file, temp_prog_file = zvshell.add_arguments(zvsh_args.args)
+    zvshell = ZvShell(zvsh_config)
+    manifest_file = zvshell.add_arguments(zvsh_args.args)
     zvm_run = ['zerovm', '-PQ']
     if zvsh_args.args.zvm_trace:
         trace_log = os.path.abspath('zvsh.trace.log')
         zvm_run.extend(['-T', trace_log])
     zvm_run.append(manifest_file)
-    runner = ZvRunner(zvm_run, zvshell.stdout, zvshell.stderr, [manifest_file, nvram_file, temp_prog_file])
-    runner.run()
-    zvshell.cleanup()
+    runner = ZvRunner(zvm_run, zvshell.stdout, zvshell.stderr, zvshell.tmpdir)
+    try:
+        runner.run()
+    finally:
+        zvshell.cleanup()
