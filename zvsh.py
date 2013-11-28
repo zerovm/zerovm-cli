@@ -77,36 +77,35 @@ class DebugArgs(ZvArgs):
         self.args.command = self.args.cmd_args.pop(0)
 
 
-class ZvShell:
+class ZvConfig(ConfigParser.ConfigParser):
 
-    def __init__(self, config_files, use_fifo=True,
+    def __init__(self):
+        ConfigParser.ConfigParser.__init__(self)
+        self.add_section('manifest')
+        self.add_section('env')
+        self.add_section('limits')
+        self.add_section('fstab')
+        self._sections['manifest'].update(DEFAULT_MANIFEST)
+        self._sections['limits'].update(DEFAULT_LIMITS)
+        self.optionxform = str
+
+    def __getitem__(self, item):
+        return dict(self._sections[item])
+
+
+class ZvShell(object):
+
+    def __init__(self, config, use_fifo=True,
                  stdin=None, stdout=None, stderr=None):
         self.temp_files = []
-        self.nvram_env = {}
         self.nvram_fstab = {}
         self.nvram_args = None
         self.nvram_filename = None
         self.program = None
-        self.manifest_conf = DEFAULT_MANIFEST
-        self.channel_conf = DEFAULT_LIMITS
-        config = ConfigParser.ConfigParser()
-        config.optionxform = str
-        config.read(config_files)
-        try:
-            self.manifest_conf.update(dict(config.items('manifest')))
-        except ConfigParser.NoSectionError:
-            pass
-        try:
-            self.nvram_env.update(dict(config.items('env')))
-        except ConfigParser.NoSectionError:
-            pass
-        try:
-            self.channel_conf.update(dict(config.items('limits')))
-        except ConfigParser.NoSectionError:
-            pass
-        self.node_id = self.manifest_conf['Node']
         self.savedir = None
         self.tmpdir = mkdtemp()
+        self.config = config
+        self.node_id = self.config['manifest']['Node']
         if stdout:
             self.stdout = stdout
         else:
@@ -121,33 +120,33 @@ class ZvShell:
                 os.mkfifo(self.stderr)
         if not stdin:
             stdin = '/dev/stdin'
+        self.channel_seq_read_template = CHANNEL_SEQ_READ_TEMPLATE \
+            % ('%s', '%s', self.config['limits']['reads'], self.config['limits']['rbytes'])
+        self.channel_seq_write_template = CHANNEL_SEQ_WRITE_TEMPLATE \
+            % ('%s', '%s', self.config['limits']['writes'], self.config['limits']['wbytes'])
+        self.channel_random_ro_template = CHANNEL_RANDOM_RO_TEMPLATE \
+            % ('%s', '%s', self.config['limits']['reads'], self.config['limits']['rbytes'])
+        self.channel_random_rw_template = CHANNEL_RANDOM_RW_TEMPLATE \
+            % ('%s', '%s', self.config['limits']['reads'], self.config['limits']['rbytes'],
+                self.config['limits']['writes'], self.config['limits']['wbytes'])
         self.manifest_channels = [
-            CHANNEL_SEQ_READ_TEMPLATE
-            % (stdin, '/dev/stdin', self.channel_conf['reads'], self.channel_conf['rbytes']),
-            CHANNEL_SEQ_WRITE_TEMPLATE
-            % (self.stdout, '/dev/stdout', self.channel_conf['writes'], self.channel_conf['wbytes']),
-            CHANNEL_SEQ_WRITE_TEMPLATE
-            % (self.stderr, '/dev/stderr', self.channel_conf['writes'], self.channel_conf['wbytes'])
+            self.channel_seq_read_template % (stdin, '/dev/stdin'),
+            self.channel_seq_write_template % (self.stdout, '/dev/stdout'),
+            self.channel_seq_write_template % (self.stderr, '/dev/stderr')
         ]
-        try:
-            for k, v in dict(config.items('fstab')).iteritems():
-                self.nvram_fstab[self.create_manifest_channel(k)] = v
-        except ConfigParser.NoSectionError:
-            pass
+        for k, v in self.config['fstab'].iteritems():
+            self.nvram_fstab[self.create_manifest_channel(k)] = v
 
     def create_manifest_channel(self, file_name):
         name = os.path.basename(file_name)
         self.temp_files.append(file_name)
         devname = '/dev/%s.%s' % (len(self.temp_files), name)
         if os.access(os.path.abspath(file_name), os.W_OK):
-            self.manifest_channels.append(CHANNEL_RANDOM_RW_TEMPLATE
-                                          % (os.path.abspath(file_name), devname,
-                                             self.channel_conf['reads'], self.channel_conf['rbytes'],
-                                             self.channel_conf['writes'], self.channel_conf['wbytes']))
+            self.manifest_channels.append(self.channel_random_rw_template
+                                          % (os.path.abspath(file_name), devname))
         else:
-            self.manifest_channels.append(CHANNEL_RANDOM_RO_TEMPLATE
-                                          % (os.path.abspath(file_name), devname,
-                                             self.channel_conf['reads'], self.channel_conf['rbytes']))
+            self.manifest_channels.append(self.channel_random_ro_template
+                                          % (os.path.abspath(file_name), devname))
         return devname
 
     def add_untrusted_args(self, program, cmdline):
@@ -158,7 +157,7 @@ class ZvShell:
                 arg = arg[1:]
                 m = ENV_MATCH.match(arg)
                 if m:
-                    self.nvram_env[m.group(1)] = m.group(2)
+                    self.config['env'][m.group(1)] = m.group(2)
                 else:
                     dev_name = self.create_manifest_channel(arg)
                     untrusted_args.append(dev_name)
@@ -192,16 +191,15 @@ class ZvShell:
 
     def add_debug(self, zvm_debug):
         if zvm_debug:
-            self.manifest_channels.append(CHANNEL_SEQ_WRITE_TEMPLATE
-                                          % (os.path.abspath('zvsh.log'), '/dev/debug',
-                                             self.channel_conf['writes'], self.channel_conf['wbytes']))
+            self.manifest_channels.append(self.channel_seq_write_template
+                                          % (os.path.abspath('zvsh.log'), '/dev/debug'))
 
     def create_nvram(self, verbosity):
         nvram = '[args]\n'
         nvram += 'args = %s\n' % ' '.join([a.replace(',', '\\x2c') for a in self.nvram_args['args']])
-        if len(self.nvram_env) > 0:
+        if len(self.config['env']) > 0:
             nvram += '[env]\n'
-            for k, v in self.nvram_env.iteritems():
+            for k, v in self.config['env'].iteritems():
                 nvram += 'name=%s,value=%s\n' % (k, v.replace(',', '\\x2c'))
         if len(self.nvram_fstab) > 0:
             nvram += '[fstab]\n'
@@ -225,13 +223,11 @@ class ZvShell:
 
     def create_manifest(self):
         manifest = ''
-        for k, v in self.manifest_conf.iteritems():
+        for k, v in self.config['manifest'].iteritems():
             manifest += '%s = %s\n' % (k, v)
         manifest += 'Program = %s\n' % os.path.abspath(self.program)
-        self.manifest_channels.append(CHANNEL_RANDOM_RW_TEMPLATE
-                                      % (os.path.abspath(self.nvram_filename), '/dev/nvram',
-                                         self.channel_conf['reads'], self.channel_conf['rbytes'],
-                                         self.channel_conf['writes'], self.channel_conf['wbytes']))
+        self.manifest_channels.append(self.channel_random_rw_template
+                                      % (os.path.abspath(self.nvram_filename), '/dev/nvram'))
         manifest += '\n'.join(self.manifest_channels)
         manifest_fn = os.path.join(self.tmpdir, 'manifest.%d' % self.node_id)
         manifest_fd = open(manifest_fn, 'wb')

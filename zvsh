@@ -2,17 +2,19 @@
 import os
 import pty
 import sys
-from zvsh import ZvArgs, DebugArgs, ZvShell, ZvRunner
+from zvsh import ZvArgs, DebugArgs, ZvShell, ZvRunner, ZvConfig
 
 zvsh_args = ZvArgs()
 zvsh_args.parse(sys.argv[1:])
 zvsh_config = [os.path.abspath('zvsh.cfg'), os.path.expanduser('~/.zvsh.cfg'), '/etc/zvsh.cfg']
+config = ZvConfig()
+config.read(zvsh_config)
 if 'gdb' == zvsh_args.args.command:
     # user wants to debug the program
     zvsh_args = DebugArgs()
     zvsh_args.parse(sys.argv[1:])
-    zvshell = ZvShell(zvsh_config, use_fifo=False)
-    zvshell.manifest_conf['Timeout'] = 60 * 60 * 24 * 30  # a month until debug session will time out
+    zvshell = ZvShell(config, use_fifo=False)
+    zvshell.config['manifest']['Timeout'] = 60 * 60 * 24 * 30  # a month until debug session will time out
     manifest_file = zvshell.add_arguments(zvsh_args.args)
     zvm_run = ['zerovm-dbg', '-sPQ', manifest_file]
     command_line = ['x86_64-nacl-gdb', '--command=%s' % zvshell.add_debug_script()]
@@ -27,7 +29,7 @@ if 'gdb' == zvsh_args.args.command:
     finally:
         zvshell.cleanup()
 else:
-    zvshell = ZvShell(zvsh_config)
+    zvshell = ZvShell(config)
     manifest_file = zvshell.add_arguments(zvsh_args.args)
     zvm_run = ['zerovm', '-PQ']
     if zvsh_args.args.zvm_trace:
