@@ -1,0 +1,114 @@
+#!/usr/bin/python
+
+import argparse
+import os
+import sys
+import tarfile
+from zerocloud.common import CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME, NodeEncoder
+from zvsh import ZvArgs, DEFAULT_LIMITS, ZvConfig
+
+try:
+    import simplejson as json
+except ImportError:
+    import json
+
+try:
+    from zerocloud.configparser import ClusterConfigParser, ClusterConfigParsingError
+except ImportError:
+    sys.stderr.write('Please install python-zerocloud before running %s\n' % sys.argv[0])
+    sys.exit(1)
+
+
+class AppArgs(ZvArgs):
+
+    def __init__(self):
+        self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+        self.parser.add_argument('exec_file', help='ZeroVM application archive or map file\n')
+        self.parser.add_argument('--swift-root-path',
+                                 help='Root path for resolving swift:// urls, ex.\n'
+                                      'swift://account/container/object ->'
+                                      ' swift-root-path/account/container/object\n')
+        self.parser.add_argument('--swift-account-path',
+                                 help='Account path for all urls\n'
+                                      'to serve all swift://account/ urls from one path')
+        self.parser.add_argument('--sysimage-root-path',
+                                 help='Root path for system image files\n')
+        self.args = None
+
+
+def list_account(account, mask=None, root_path=None, account_path=None):
+    if not root_path:
+        root_path = ''
+    if not account_path:
+        account_path = os.path.join(root_path, account)
+    ret = []
+    for item in sorted(os.listdir(account_path)):
+        if not mask or mask.match(item):
+            ret.append(item)
+    return ret
+
+
+def list_container(account, container, mask=None, root_path=None, account_path=None):
+    if not root_path:
+        root_path = ''
+    if not account_path:
+        account_path = os.path.join(root_path, account)
+    container_path = os.path.join(account_path, container)
+    ret = []
+    for dirpath, _junk, filenames in os.walk(container_path):
+        dirpath = dirpath.replace(container_path, '', 1)[1:]
+        for item in sorted(filenames):
+            objpath = os.path.join(dirpath, item)
+            if not mask or mask.match(objpath):
+                ret.append(objpath)
+    return ret
+
+
+def list_sysimage_devices(sysimage_root_path):
+    return []
+
+
+app_args = AppArgs()
+app_args.parse(sys.argv[1:])
+zvsh_config = [os.path.abspath('zvsh.cfg'), os.path.expanduser('~/.zvsh.cfg'), '/etc/zvsh.cfg']
+config = ZvConfig()
+config.read(zvsh_config)
+cluster_config = None
+tar = None
+try:
+    cluster_config_fd = open(app_args.args.exec_file, 'rb')
+except IOError, e:
+    sys.stderr.write(str(e) + '\n')
+    sys.exit(1)
+try:
+    # let's load the file as a cluster map
+    cluster_config = json.load(cluster_config_fd)
+except Exception:
+    # it's not a cluster map file
+    # try to load it as zvm app archive
+    try:
+        tar = tarfile.open(app_args.args.exec_file)
+        for name in tar.getnames():
+            if name in [CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME]:
+                cluster_config = json.load(tar.extractfile(name))
+                break
+    except tarfile.ReadError:
+        # it's not a tar file, bail out for now
+        sys.stderr.write('Cannot parse the input file %s\n' % app_args.args.exec_file)
+        sys.exit(1)
+sysimage_devices = list_sysimage_devices(app_args.args.sysimage_root_path)
+parser = ClusterConfigParser(sysimage_devices, 'application/octet-stream',
+                             config,
+                             list_account, list_container)
+try:
+    parser.parse(cluster_config, root_path=app_args.args.swift_root_path,
+                 account_path=app_args.args.swift_account_path)
+except ClusterConfigParsingError, e:
+    sys.stderr.write(str(e) + '\n')
+    exit(1)
+
+total_count = len(parser.nodes)
+for node in parser.nodes.itervalues():
+    parser.build_connect_string(node, total_count)
+
+print json.dumps(parser.nodes, cls=NodeEncoder, indent=2)
