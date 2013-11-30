@@ -1,12 +1,18 @@
 #!/usr/bin/python
 
 import argparse
+from eventlet.green.subprocess import Popen
 import os
+import shutil
+from subprocess import PIPE
 import sys
+import re
 import tarfile
-from tempfile import mkstemp
-from zerocloud.common import CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME, NodeEncoder
-from zvsh import ZvArgs, DEFAULT_LIMITS, ZvConfig
+from tempfile import mkstemp, mkdtemp
+from eventlet import GreenPool
+from zerocloud.common import CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME, NodeEncoder, parse_location, is_swift_path, ACCESS_WRITABLE, ACCESS_READABLE, is_image_path, ACCESS_CDR, ACCESS_NETWORK
+from zerocloud.proxyquery import NameService
+from zvsh import ZvArgs, DEFAULT_LIMITS, ZvConfig, ZvShell, ZvRunner
 
 try:
     import simplejson as json
@@ -18,6 +24,30 @@ try:
 except ImportError:
     sys.stderr.write('Please install python-zerocloud before running %s\n' % sys.argv[0])
     sys.exit(1)
+
+
+class AppRunner(ZvRunner):
+
+    def __init__(self, command_line, report_file):
+        self.command = command_line
+        self.process = None
+        self.report = ''
+        self.report_file = report_file
+
+    def run(self):
+        try:
+            self.process = Popen(self.command, stdout=PIPE)
+            rep_reader = self.spawn(True, self.report_reader)
+            self.process.wait()
+            rep_reader.join()
+        except (KeyboardInterrupt, Exception):
+            pass
+        finally:
+            if self.process:
+                self.process.wait()
+                fd = open(self.report_file, 'wb')
+                fd.write(self.report)
+                fd.close()
 
 
 class AppArgs(ZvArgs):
@@ -37,38 +67,136 @@ class AppArgs(ZvArgs):
         self.args = None
 
 
-def list_account(account, mask=None, root_path=None, account_path=None):
-    if not root_path:
-        root_path = ''
-    if not account_path:
-        account_path = os.path.join(root_path, account)
-    ret = []
-    for item in sorted(os.listdir(account_path)):
-        if not mask or mask.match(item):
-            ret.append(item)
-    return ret
+class ZvLocalFilesystem(object):
+
+    SYSIMAGE_MASK = re.compile(r'(.*?)(\.[^.]+)?$')
+
+    def __init__(self, sysimage_root_path=None,
+                 root_path=None, account_path=None, image_path=None):
+        if not root_path:
+            root_path = ''
+        self.image_path = image_path
+        self.root_path = os.path.abspath(root_path)
+        self.account_path = account_path
+        if account_path:
+            self.account_path = os.path.abspath(self.account_path)
+        self.tempdir = mkdtemp()
+        self.sysimage_devices = {}
+        if sysimage_root_path:
+            self.sysimage_devices = self._list_sysimage_devices(os.path.abspath(sysimage_root_path))
+        self.immediate_responses = {}
+
+    def list_account(self, account, mask=None):
+        account_path = self.account_path
+        if not account_path:
+            account_path = os.path.join(self.root_path, account)
+        ret = []
+        for item in sorted(os.listdir(account_path)):
+            if not mask or mask.match(item):
+                ret.append(item)
+        return ret
+
+    def list_container(self, account, container, mask=None):
+        account_path = self.account_path
+        if not account_path:
+            account_path = os.path.join(self.root_path, account)
+        container_path = os.path.join(account_path, container)
+        ret = []
+        for dirpath, _junk, filenames in os.walk(container_path):
+            dirpath = dirpath.replace(container_path, '', 1)[1:]
+            for item in sorted(filenames):
+                objpath = os.path.join(dirpath, item)
+                if not mask or mask.match(objpath):
+                    ret.append(objpath)
+        return ret
+
+    def _list_sysimage_devices(self, sysimage_path):
+        result = {}
+        if os.path.isdir(sysimage_path):
+            for item in os.listdir(sysimage_path):
+                path = os.path.join(sysimage_path, item)
+                if os.path.isfile(path):
+                    base = os.path.basename(path)
+                    name = self.SYSIMAGE_MASK.search(base).group(1)
+                    result[name] = path
+        return result
+
+    def get_local_path(self, device, path, access, node_name=None):
+        sysimage = self.sysimage_devices.get(device, None)
+        if sysimage:
+            return sysimage
+        if 'image' == device:
+            return self.image_path
+        loc = parse_location(path)
+        if not loc and access & ACCESS_WRITABLE:
+            temp_file = self.get_temp_file()
+            self.immediate_responses[node_name] = temp_file
+            return temp_file
+        elif is_swift_path(loc):
+            account_path = self.account_path
+            if not account_path:
+                account_path = os.path.join(self.root_path, loc.account)
+            local_path = os.path.join(account_path, loc.container, loc.obj)
+            return local_path
+        elif is_image_path(loc) and access & (ACCESS_READABLE | ACCESS_CDR):
+            if 'image' == loc.image:
+                if os.path.isdir(self.image_path):
+                    return os.path.join(os.path.abspath(self.image_path), loc.path)
+                else:
+                    return self._extract_file(self.image_path, loc.path)
+            sysimage = self.sysimage_devices.get(loc.image, None)
+            return self._extract_file(sysimage, loc.path)
+        elif access & ACCESS_NETWORK:
+            return path
+
+    def _extract_file(self, image, file_name):
+        tar = tarfile.open(name=image)
+        efile = None
+        try:
+            efile = tar.extractfile(file_name)
+        except KeyError:
+            pass
+        if not efile:
+            return None
+        (fd, fn) = mkstemp(dir=self.tempdir)
+        reader = iter(lambda: efile.read(4096), '')
+        for chunk in reader:
+            os.write(fd, chunk)
+        os.close(fd)
+        return fn
+
+    def resolve_local_paths(self, node_config):
+        for ch in node_config['channels']:
+            ch['lpath'] = self.get_local_path(ch['device'], ch['path'], ch['access'], node_config['name'])
+
+    def cleanup(self):
+        shutil.rmtree(self.tempdir)
+
+    def get_temp_file(self):
+        (fd, fn) = mkstemp(dir=self.tempdir)
+        os.close(fd)
+        return fn
+
+    def create_nvram(self):
+        return self.get_temp_file()
+
+    def get_responses(self):
+        data = ''
+        for name in sorted(self.immediate_responses.keys()):
+            data += open(self.immediate_responses[name]).read()
+        return data
+
+    def create_temp_files(self, node_name):
+        session_dir = os.path.join(self.tempdir, node_name)
+        os.makedirs(session_dir)
+        result = []
+        for n in ['nvram', 'manifest', 'report']:
+            result.append(os.path.join(session_dir, n))
+        #result.append(session_dir)
+        return result
 
 
-def list_container(account, container, mask=None, root_path=None, account_path=None):
-    if not root_path:
-        root_path = ''
-    if not account_path:
-        account_path = os.path.join(root_path, account)
-    container_path = os.path.join(account_path, container)
-    ret = []
-    for dirpath, _junk, filenames in os.walk(container_path):
-        dirpath = dirpath.replace(container_path, '', 1)[1:]
-        for item in sorted(filenames):
-            objpath = os.path.join(dirpath, item)
-            if not mask or mask.match(objpath):
-                ret.append(objpath)
-    return ret
-
-
-def list_sysimage_devices(sysimage_root_path):
-    return {}
-
-
+threadpool = GreenPool()
 app_args = AppArgs()
 app_args.parse(sys.argv[1:])
 zvsh_config = [os.path.abspath('zvsh.cfg'), os.path.expanduser('~/.zvsh.cfg'), '/etc/zvsh.cfg']
@@ -76,6 +204,7 @@ config = ZvConfig()
 config.read(zvsh_config)
 cluster_config = None
 tar = None
+image_path = None
 try:
     cluster_config_fd = open(app_args.args.exec_file, 'rb')
 except IOError, e:
@@ -84,6 +213,7 @@ except IOError, e:
 try:
     # let's load the file as a cluster map
     cluster_config = json.load(cluster_config_fd)
+    image_path = os.path.dirname(os.path.abspath(app_args.args.exec_file))
 except Exception:
     # it's not a cluster map file
     # try to load it as zvm app archive
@@ -93,29 +223,60 @@ except Exception:
             if name in [CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME]:
                 cluster_config = json.load(tar.extractfile(name))
                 break
+        image_path = os.path.abspath(app_args.args.exec_file)
     except tarfile.ReadError:
         # it's not a tar file, bail out for now
         sys.stderr.write('Cannot parse the input file %s\n' % app_args.args.exec_file)
         sys.exit(1)
-sysimage_devices = list_sysimage_devices(app_args.args.sysimage_root_path)
-parser = ClusterConfigParser(sysimage_devices, 'application/octet-stream',
-                             config,
-                             list_account, list_container)
-try:
-    parser.parse(cluster_config, False, root_path=app_args.args.swift_root_path,
-                 account_path=app_args.args.swift_account_path)
-    parser.resolve_path_info('/local', 3)
-except ClusterConfigParsingError, e:
-    sys.stderr.write(str(e) + '\n')
-    exit(1)
 
-(nvram_fd, nvram_fn) = mkstemp()
-os.close(nvram_fd)
-total_count = len(parser.nodes)
-for node in parser.nodes.itervalues():
-    parser.build_connect_string(node)
-    config = json.dumps(node, cls=NodeEncoder, indent=2)
-    print config
-    #manifest = parser.prepare_zerovm_files(json.loads(config), nvram_fn, None, '/aaa')
-    #print manifest
-#print json.dumps(parser.nodes, cls=NodeEncoder, indent=2)
+local_fs = ZvLocalFilesystem(app_args.args.sysimage_root_path,
+                             app_args.args.swift_root_path,
+                             app_args.args.swift_account_path,
+                             image_path)
+try:
+    parser = ClusterConfigParser(local_fs.sysimage_devices, 'application/octet-stream',
+                                 config,
+                                 local_fs.list_account, local_fs.list_container)
+    try:
+        add_user_image = False
+        if os.path.isfile(image_path):
+            add_user_image = True
+        parser.parse(cluster_config, add_user_image, account_name='local', replica_count=1)
+    except ClusterConfigParsingError, e:
+        sys.stderr.write(str(e) + '\n')
+        exit(1)
+
+    ns_server = None
+    if parser.total_count > 1:
+        ns_server = NameService(parser.total_count)
+        ns_server.start(threadpool)
+        for node in parser.node_list:
+            node.name_service = 'udp:%s:%d' % ('127.0.0.1', ns_server.port)
+            parser.build_connect_string(node)
+    for node in parser.node_list:
+        node_config = json.loads(json.dumps(node, cls=NodeEncoder))
+
+        local_fs.resolve_local_paths(node_config)
+        nexe_path = local_fs.get_local_path('boot', node_config['exe'], ACCESS_READABLE)
+        nvram_file, manifest_file, report_file = \
+            local_fs.create_temp_files(node_config['name'])
+        #print json.dumps(node_config, indent=2)
+        manifest = parser.prepare_zerovm_files(node_config, nvram_file, None, nexe_path)
+        fd = open(manifest_file, 'wb')
+        fd.write(manifest)
+        fd.close()
+        command_line = ['zerovm', '-PQ', manifest_file]
+        runner = AppRunner(command_line, report_file)
+        #print manifest
+        #print open(nvram_file).read()
+        #print os.system('ls -al %s' % temp_dir)
+        runner.run()
+        print "---------- Node: %s id: %s ----------" \
+              % (node_config['name'], node_config['id'])
+        print open(report_file).read()
+    if ns_server:
+        ns_server.stop()
+    print "========== Result =========="
+    print local_fs.get_responses()
+finally:
+    local_fs.cleanup()

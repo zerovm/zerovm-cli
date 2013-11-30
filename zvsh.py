@@ -13,7 +13,7 @@ import re
 ENV_MATCH = re.compile(r'([_A-Z0-9]+)=(.*)')
 DEFAULT_MANIFEST = {
     'Version': '20130611',
-    'Memory': '%d, 0' % (4 * 1024 * 1024 * 1024),
+    'Memory': '%d' % (4 * 1024 * 1024 * 1024),
     'Node': 1,
     'Timeout': 50
 }
@@ -98,8 +98,7 @@ class ZvConfig(ConfigParser.ConfigParser):
 
 class ZvShell(object):
 
-    def __init__(self, config, use_fifo=True,
-                 stdin=None, stdout=None, stderr=None):
+    def __init__(self, config, stdin=None, stdout=None, stderr=None):
         self.temp_files = []
         self.nvram_fstab = {}
         self.nvram_args = None
@@ -109,18 +108,15 @@ class ZvShell(object):
         self.tmpdir = mkdtemp()
         self.config = config
         self.node_id = self.config['manifest']['Node']
+        self.config['manifest']['Memory'] += ',0'
         if stdout:
             self.stdout = stdout
         else:
             self.stdout = os.path.join(self.tmpdir, 'stdout.%d' % self.node_id)
-            if use_fifo:
-                os.mkfifo(self.stdout)
         if stderr:
             self.stderr = stderr
         else:
             self.stderr = os.path.join(self.tmpdir, 'stderr.%d' % self.node_id)
-            if use_fifo:
-                os.mkfifo(self.stderr)
         if not stdin:
             stdin = '/dev/stdin'
         self.channel_seq_read_template = CHANNEL_SEQ_READ_TEMPLATE \
@@ -278,6 +274,8 @@ class ZvRunner:
         self.stdout = stdout
         self.stderr = stderr
         self.report = ''
+        os.mkfifo(self.stdout)
+        os.mkfifo(self.stderr)
 
     def run(self):
         try:
