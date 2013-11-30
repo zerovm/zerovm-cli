@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 import tarfile
+from tempfile import mkstemp
 from zerocloud.common import CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME, NodeEncoder
 from zvsh import ZvArgs, DEFAULT_LIMITS, ZvConfig
 
@@ -65,7 +66,7 @@ def list_container(account, container, mask=None, root_path=None, account_path=N
 
 
 def list_sysimage_devices(sysimage_root_path):
-    return []
+    return {}
 
 
 app_args = AppArgs()
@@ -101,14 +102,20 @@ parser = ClusterConfigParser(sysimage_devices, 'application/octet-stream',
                              config,
                              list_account, list_container)
 try:
-    parser.parse(cluster_config, root_path=app_args.args.swift_root_path,
+    parser.parse(cluster_config, False, root_path=app_args.args.swift_root_path,
                  account_path=app_args.args.swift_account_path)
+    parser.resolve_path_info('/local', 3)
 except ClusterConfigParsingError, e:
     sys.stderr.write(str(e) + '\n')
     exit(1)
 
+(nvram_fd, nvram_fn) = mkstemp()
+os.close(nvram_fd)
 total_count = len(parser.nodes)
 for node in parser.nodes.itervalues():
-    parser.build_connect_string(node, total_count)
-
-print json.dumps(parser.nodes, cls=NodeEncoder, indent=2)
+    parser.build_connect_string(node)
+    config = json.dumps(node, cls=NodeEncoder, indent=2)
+    print config
+    #manifest = parser.prepare_zerovm_files(json.loads(config), nvram_fn, None, '/aaa')
+    #print manifest
+#print json.dumps(parser.nodes, cls=NodeEncoder, indent=2)
