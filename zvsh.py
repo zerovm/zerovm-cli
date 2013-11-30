@@ -90,7 +90,10 @@ class ZvConfig(ConfigParser.ConfigParser):
         self.optionxform = str
 
     def __getitem__(self, item):
-        return dict(self._sections[item])
+        return self._sections[item]
+
+    def __setitem__(self, key, value):
+        self._sections[key] = value
 
 
 class ZvShell(object):
