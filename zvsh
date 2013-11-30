@@ -13,7 +13,7 @@ if 'gdb' == zvsh_args.args.command:
     # user wants to debug the program
     zvsh_args = DebugArgs()
     zvsh_args.parse(sys.argv[1:])
-    zvshell = ZvShell(config, use_fifo=False)
+    zvshell = ZvShell(config)
     zvshell.config['manifest']['Timeout'] = 60 * 60 * 24 * 30  # a month until debug session will time out
     manifest_file = zvshell.add_arguments(zvsh_args.args)
     zvm_run = ['zerovm-dbg', '-sPQ', manifest_file]
