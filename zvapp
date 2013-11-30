@@ -2,7 +2,7 @@
 
 import argparse
 from eventlet.green.subprocess import Popen
-import os
+from eventlet.green import os
 import shutil
 from subprocess import PIPE
 import sys
@@ -197,6 +197,7 @@ class ZvLocalFilesystem(object):
 
 
 threadpool = GreenPool()
+nspool = GreenPool(1)
 app_args = AppArgs()
 app_args.parse(sys.argv[1:])
 zvsh_config = [os.path.abspath('zvsh.cfg'), os.path.expanduser('~/.zvsh.cfg'), '/etc/zvsh.cfg']
@@ -233,6 +234,7 @@ local_fs = ZvLocalFilesystem(app_args.args.sysimage_root_path,
                              app_args.args.swift_root_path,
                              app_args.args.swift_account_path,
                              image_path)
+reports = {}
 try:
     parser = ClusterConfigParser(local_fs.sysimage_devices, 'application/octet-stream',
                                  config,
@@ -249,7 +251,7 @@ try:
     ns_server = None
     if parser.total_count > 1:
         ns_server = NameService(parser.total_count)
-        ns_server.start(threadpool)
+        ns_server.start(nspool)
         for node in parser.node_list:
             node.name_service = 'udp:%s:%d' % ('127.0.0.1', ns_server.port)
             parser.build_connect_string(node)
@@ -270,12 +272,15 @@ try:
         #print manifest
         #print open(nvram_file).read()
         #print os.system('ls -al %s' % temp_dir)
-        runner.run()
-        print "---------- Node: %s id: %s ----------" \
-              % (node_config['name'], node_config['id'])
-        print open(report_file).read()
+        reports[node_config['name']] = (report_file, node_config['id'])
+        threadpool.spawn_n(runner.run)
+    threadpool.waitall()
     if ns_server:
         ns_server.stop()
+    for name in sorted(reports.keys()):
+        rfile, node_id = reports[name]
+        print "---------- Node: %s id: %s ---------" % (name, node_id)
+        print open(rfile).read()
     print "========== Result =========="
     print local_fs.get_responses()
 finally:
