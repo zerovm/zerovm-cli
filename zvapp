@@ -10,9 +10,11 @@ import re
 import tarfile
 from tempfile import mkstemp, mkdtemp
 from eventlet import GreenPool
-from zerocloud.common import CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME, NodeEncoder, parse_location, is_swift_path, ACCESS_WRITABLE, ACCESS_READABLE, is_image_path, ACCESS_CDR, ACCESS_NETWORK
+from zerocloud.common import CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME, NodeEncoder, \
+    parse_location, is_swift_path, is_image_path, \
+    ACCESS_WRITABLE, ACCESS_READABLE, ACCESS_CDR, ACCESS_NETWORK
 from zerocloud.proxyquery import NameService
-from zvsh import ZvArgs, DEFAULT_LIMITS, ZvConfig, ZvShell, ZvRunner
+from zvsh import ZvArgs, ZvConfig, ZvRunner
 
 try:
     import simplejson as json
@@ -234,7 +236,7 @@ local_fs = ZvLocalFilesystem(app_args.args.sysimage_root_path,
                              app_args.args.swift_root_path,
                              app_args.args.swift_account_path,
                              image_path)
-reports = {}
+threads = {}
 try:
     parser = ClusterConfigParser(local_fs.sysimage_devices, 'application/octet-stream',
                                  config,
@@ -272,13 +274,15 @@ try:
         #print manifest
         #print open(nvram_file).read()
         #print os.system('ls -al %s' % temp_dir)
-        reports[node_config['name']] = (report_file, node_config['id'])
+        threads[node_config['name']] = (report_file, node_config['id'], runner)
+    for name in sorted(threads.keys()):
+        runner = threads[name][2]
         threadpool.spawn_n(runner.run)
     threadpool.waitall()
     if ns_server:
         ns_server.stop()
-    for name in sorted(reports.keys()):
-        rfile, node_id = reports[name]
+    for name in sorted(threads.keys()):
+        rfile, node_id, runner = threads[name]
         print "---------- Node: %s id: %s ---------" % (name, node_id)
         print open(rfile).read()
     print "========== Result =========="
