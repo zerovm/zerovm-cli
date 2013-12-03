@@ -1,19 +1,16 @@
 #!/usr/bin/python
 
 import argparse
-from eventlet.green.subprocess import Popen
-from eventlet.green import os
 import shutil
-from subprocess import PIPE
 import sys
 import re
 import tarfile
 from tempfile import mkstemp, mkdtemp
+
+from eventlet.green.subprocess import Popen, PIPE
+from eventlet.green import os
 from eventlet import GreenPool
-from zerocloud.common import CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME, NodeEncoder, \
-    parse_location, is_swift_path, is_image_path, \
-    ACCESS_WRITABLE, ACCESS_READABLE, ACCESS_CDR, ACCESS_NETWORK
-from zerocloud.proxyquery import NameService
+
 from zvsh import ZvArgs, ZvConfig, ZvRunner
 
 try:
@@ -23,6 +20,10 @@ except ImportError:
 
 try:
     from zerocloud.configparser import ClusterConfigParser, ClusterConfigParsingError
+    from zerocloud.common import CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME, NodeEncoder, \
+        parse_location, is_swift_path, is_image_path, \
+        ACCESS_WRITABLE, ACCESS_READABLE, ACCESS_CDR, ACCESS_NETWORK
+    from zerocloud.proxyquery import NameService
 except ImportError:
     sys.stderr.write('Please install python-zerocloud before running %s\n' % sys.argv[0])
     sys.exit(1)
@@ -54,8 +55,7 @@ class AppRunner(ZvRunner):
 
 class AppArgs(ZvArgs):
 
-    def __init__(self):
-        self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    def add_agruments(self):
         self.parser.add_argument('exec_file', help='ZeroVM application archive or map file\n')
         self.parser.add_argument('--swift-root-path',
                                  help='Root path for resolving swift:// urls, ex.\n'
@@ -66,7 +66,6 @@ class AppArgs(ZvArgs):
                                       'to serve all swift://account/ urls from one path')
         self.parser.add_argument('--sysimage-root-path',
                                  help='Root path for system image files\n')
-        self.args = None
 
 
 class ZvLocalFilesystem(object):
@@ -131,7 +130,7 @@ class ZvLocalFilesystem(object):
             return self.image_path
         loc = parse_location(path)
         if not loc and access & ACCESS_WRITABLE:
-            temp_file = self.get_temp_file()
+            temp_file = self.create_temp_file()
             self.immediate_responses[node_name] = temp_file
             return temp_file
         elif is_swift_path(loc):
@@ -174,13 +173,10 @@ class ZvLocalFilesystem(object):
     def cleanup(self):
         shutil.rmtree(self.tempdir)
 
-    def get_temp_file(self):
+    def create_temp_file(self):
         (fd, fn) = mkstemp(dir=self.tempdir)
         os.close(fd)
         return fn
-
-    def create_nvram(self):
-        return self.get_temp_file()
 
     def get_responses(self):
         data = ''

@@ -40,9 +40,12 @@ d br
 
 
 class ZvArgs:
-
     def __init__(self):
         self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+        self.args = None
+        self.add_agruments()
+
+    def add_agruments(self):
         self.parser.add_argument('command', help='Zvsh command, can be:\n'
                                                  '- path to ZeroVM executable\n'
                                                  '- "gdb" (for running debugger)\n')
@@ -58,7 +61,6 @@ class ZvArgs:
                                                         'directory will be created/re-created\n',
                                  action='store')
         self.parser.add_argument('cmd_args', help='command line arguments\n', nargs=argparse.REMAINDER)
-        self.args = None
 
     def parse(self, zvsh_args):
         self.args = self.parser.parse_args(args=zvsh_args)
