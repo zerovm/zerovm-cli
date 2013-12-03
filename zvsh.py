@@ -87,6 +87,7 @@ class ZvConfig(ConfigParser.ConfigParser):
         self.add_section('env')
         self.add_section('limits')
         self.add_section('fstab')
+        self.add_section('zvapp')
         self._sections['manifest'].update(DEFAULT_MANIFEST)
         self._sections['limits'].update(DEFAULT_LIMITS)
         self.optionxform = str

@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import argparse
 import shutil
 import sys
 import re
@@ -73,16 +72,20 @@ class ZvLocalFilesystem(object):
     SYSIMAGE_MASK = re.compile(r'(.*?)(\.[^.]+)?$')
 
     def __init__(self, sysimage_root_path=None,
-                 root_path=None, account_path=None, image_path=None):
+                 root_path=None, account_path=None, config=None):
         if not root_path:
-            root_path = ''
-        self.image_path = image_path
+            root_path = config.get('root_path', None) or ''
+        self.image_path = None
         self.root_path = os.path.abspath(root_path)
         self.account_path = account_path
-        if account_path:
+        if not self.account_path:
+            self.account_path = config.get('account_path', None)
+        if self.account_path:
             self.account_path = os.path.abspath(self.account_path)
         self.tempdir = mkdtemp()
         self.sysimage_devices = {}
+        if not sysimage_root_path:
+            sysimage_root_path = config.get('sysimage_path', None)
         if sysimage_root_path:
             self.sysimage_devices = self._list_sysimage_devices(os.path.abspath(sysimage_root_path))
         self.immediate_responses = {}
@@ -126,7 +129,7 @@ class ZvLocalFilesystem(object):
         sysimage = self.sysimage_devices.get(device, None)
         if sysimage:
             return sysimage
-        if 'image' == device:
+        if 'image' == device and not path:
             return self.image_path
         loc = parse_location(path)
         if not loc and access & ACCESS_WRITABLE:
@@ -202,44 +205,76 @@ zvsh_config = [os.path.abspath('zvsh.cfg'), os.path.expanduser('~/.zvsh.cfg'), '
 config = ZvConfig()
 config.read(zvsh_config)
 cluster_config = None
-tar = None
-image_path = None
-try:
-    cluster_config_fd = open(app_args.args.exec_file, 'rb')
-except IOError, e:
-    sys.stderr.write(str(e) + '\n')
-    sys.exit(1)
-try:
-    # let's load the file as a cluster map
-    cluster_config = json.load(cluster_config_fd)
-    image_path = os.path.dirname(os.path.abspath(app_args.args.exec_file))
-except Exception:
-    # it's not a cluster map file
-    # try to load it as zvm app archive
-    try:
-        tar = tarfile.open(app_args.args.exec_file)
-        for name in tar.getnames():
-            if name in [CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME]:
-                cluster_config = json.load(tar.extractfile(name))
-                break
-        image_path = os.path.abspath(app_args.args.exec_file)
-    except tarfile.ReadError:
-        # it's not a tar file, bail out for now
-        sys.stderr.write('Cannot parse the input file %s\n' % app_args.args.exec_file)
-        sys.exit(1)
-
 local_fs = ZvLocalFilesystem(app_args.args.sysimage_root_path,
                              app_args.args.swift_root_path,
                              app_args.args.swift_account_path,
-                             image_path)
-threads = {}
+                             config['zvapp'])
+image_path = None
 try:
+    if os.path.isdir(app_args.args.exec_file):
+        # user tries to run an extracted application
+        # we will need to create image on the fly
+        # to load it in zerovm as a channel
+        app_dir = app_args.args.exec_file
+        tar_file = local_fs.create_temp_file()
+        tar = tarfile.TarFile.open(name=tar_file, mode='w')
+        try:
+            tar.add(os.path.join(app_dir, CLUSTER_CONFIG_FILENAME),
+                    arcname=CLUSTER_CONFIG_FILENAME)
+            boot = CLUSTER_CONFIG_FILENAME
+        except OSError:
+            try:
+                tar.add(os.path.join(app_dir, NODE_CONFIG_FILENAME),
+                        arcname=NODE_CONFIG_FILENAME)
+                boot = NODE_CONFIG_FILENAME
+            except OSError:
+                sys.stderr.write('Cannot find boot map anywhere in %s\n' % app_dir)
+                sys.exit(1)
+
+        def tar_filter(tar_info):
+            if tar_info.name in [CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME]:
+                return None
+            return tar_info
+
+        for item in os.listdir(app_dir):
+            tar.add(os.path.join(app_dir, item), arcname=item, filter=tar_filter)
+        #print tar.getnames()
+        tar.close()
+        image_path = os.path.abspath(tar_file)
+        cluster_config = json.load(open(os.path.join(app_dir, boot), 'rb'))
+    else:
+        try:
+            cluster_config_fd = open(app_args.args.exec_file, 'rb')
+        except IOError, e:
+            sys.stderr.write(str(e) + '\n')
+            sys.exit(1)
+        try:
+            # let's load the file as a cluster map
+            cluster_config = json.load(cluster_config_fd)
+            image_path = os.path.dirname(os.path.abspath(app_args.args.exec_file))
+        except Exception:
+            # it's not a cluster map file
+            # try to load it as zvm app archive
+            try:
+                tar = tarfile.open(app_args.args.exec_file)
+                for name in tar.getnames():
+                    if name in [CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME]:
+                        cluster_config = json.load(tar.extractfile(name))
+                        break
+                image_path = os.path.abspath(app_args.args.exec_file)
+            except tarfile.ReadError:
+                # it's not a tar file, bail out for now
+                sys.stderr.write('Cannot parse the input file %s\n' % app_args.args.exec_file)
+                sys.exit(1)
+
+    local_fs.image_path = image_path
+    threads = {}
     parser = ClusterConfigParser(local_fs.sysimage_devices, 'application/octet-stream',
                                  config,
                                  local_fs.list_account, local_fs.list_container)
     try:
         add_user_image = False
-        if os.path.isfile(image_path):
+        if os.path.isfile(local_fs.image_path):
             add_user_image = True
         parser.parse(cluster_config, add_user_image, account_name='local', replica_count=1)
     except ClusterConfigParsingError, e:
