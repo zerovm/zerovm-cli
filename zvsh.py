@@ -101,27 +101,28 @@ class ZvConfig(ConfigParser.ConfigParser):
 
 class ZvShell(object):
 
-    def __init__(self, config, stdin=None, stdout=None, stderr=None):
+    def __init__(self, config, savedir=None):
         self.temp_files = []
         self.nvram_fstab = {}
         self.nvram_args = None
         self.nvram_filename = None
         self.program = None
         self.savedir = None
-        self.tmpdir = mkdtemp()
+        self.tmpdir = None
         self.config = config
+        self.savedir = savedir
+        if self.savedir:
+            self.tmpdir = os.path.abspath(self.savedir)
+            if os.path.isdir(self.tmpdir):
+                shutil.rmtree(self.tmpdir)
+            os.makedirs(self.tmpdir)
+        else:
+            self.tmpdir = mkdtemp()
         self.node_id = self.config['manifest']['Node']
         self.config['manifest']['Memory'] += ',0'
-        if stdout:
-            self.stdout = stdout
-        else:
-            self.stdout = os.path.join(self.tmpdir, 'stdout.%d' % self.node_id)
-        if stderr:
-            self.stderr = stderr
-        else:
-            self.stderr = os.path.join(self.tmpdir, 'stderr.%d' % self.node_id)
-        if not stdin:
-            stdin = '/dev/stdin'
+        self.stdout = os.path.join(self.tmpdir, 'stdout.%d' % self.node_id)
+        self.stderr = os.path.join(self.tmpdir, 'stderr.%d' % self.node_id)
+        stdin = '/dev/stdin'
         self.channel_seq_read_template = CHANNEL_SEQ_READ_TEMPLATE \
             % ('%s', '%s', self.config['limits']['reads'], self.config['limits']['rbytes'])
         self.channel_seq_write_template = CHANNEL_SEQ_WRITE_TEMPLATE \
@@ -143,12 +144,16 @@ class ZvShell(object):
         name = os.path.basename(file_name)
         self.temp_files.append(file_name)
         devname = '/dev/%s.%s' % (len(self.temp_files), name)
-        if os.access(os.path.abspath(file_name), os.W_OK):
+        abs_path = os.path.abspath(file_name)
+        if not os.path.exists(abs_path):
+            fd = open(abs_path, 'wb')
+            fd.close()
+        if os.access(abs_path, os.W_OK):
             self.manifest_channels.append(self.channel_random_rw_template
-                                          % (os.path.abspath(file_name), devname))
+                                          % (abs_path, devname))
         else:
             self.manifest_channels.append(self.channel_random_ro_template
-                                          % (os.path.abspath(file_name), devname))
+                                          % (abs_path, devname))
         return devname
 
     def add_untrusted_args(self, program, cmdline):
@@ -243,19 +248,10 @@ class ZvShell(object):
         self.add_image_args(args.zvm_image)
         self.create_nvram(args.zvm_verbosity)
         manifest_file = self.create_manifest()
-        self.savedir = args.zvm_save_dir
         return manifest_file
 
     def cleanup(self):
-        if self.savedir:
-            try:
-                if os.path.exists(self.savedir):
-                    shutil.rmtree(self.savedir)
-                os.rename(self.tmpdir, self.savedir)
-            except OSError, e:
-                sys.stderr.write(str(e) + '\n')
-                shutil.rmtree(self.tmpdir, ignore_errors=True)
-        else:
+        if not self.savedir:
             shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def add_debug_script(self):
