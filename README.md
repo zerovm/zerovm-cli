@@ -47,6 +47,8 @@ The interesting parts are:
 - the second configuration file /tmp/test/nvram.1 is connected to /dev/nvram device inside the VM
 - actual real /dev/stdin on host is connected to /dev/stdin inside VM (will be discussed later)
 
+.
+
     $ cat /tmp/test/nvram.1
     [args]
     args = busybox echo Hello World
