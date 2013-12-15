@@ -175,4 +175,56 @@ zvapp
 
 A tool to run servlets or cluster images on one machine, without using Openstack Swift infrastructure.
 
-TO BE CONTINUED
+Please consider reading the [servlet-related documents] (https://github.com/zerovm/zerocloud/tree/master/doc) before proceeding.
+
+
+Using zvapp we can run several types of configurations.
+
+Run servlet description file (JSON)
+
+----
+
+    $ zvapp --swift-account-path /home/user/swift job.json
+
+Here we run a JSON job description that references swift:// urls.  
+Each url should be mapped to a local file/directory. Here we use `--swift-account-path` for that.
+It points to a local dir where all the files are placed in same hierarchy as in Swift account.  
+Example:
+
+    /home/user/swift
+    \ container1
+       \ object1
+       \ object2
+    \ container2
+       \ object3
+       \ object4
+
+    swift://account/container1/object2 -> /home/user/swift/container1/object2
+
+Note: any account name will point to the same /home/user/swift directory
+
+If we want to use directory per account, we can use `--swift-root-path` directive.  
+Example:
+
+    --swift-root-path /home/user/swift
+
+    /home/user/swift
+    \ account1
+       \ container1
+          \ object1
+          \ object2
+       \ container2
+          \ object3
+          \ object4
+
+    swift://account1/container1/object2 -> /home/user/swift/account1/container1/object2
+
+
+Run from application root
+
+----
+
+    $ zvapp --swift-account-path /home/user/swift path/to/app/root
+
+Application root should have `boot/system.map` or `boot/cluster.map` file. The application job will be loaded from there.  
+You can also reference any `swift://` URLs inside the job, as in any other job description file.

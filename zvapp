@@ -65,6 +65,8 @@ class AppArgs(ZvArgs):
                                       'to serve all swift://account/ urls from one path')
         self.parser.add_argument('--sysimage-root-path',
                                  help='Root path for system image files\n')
+        self.parser.add_argument('--zvm-save-dir', help='Save ZeroVM environment files into provided directory,\n'
+                                                        'directory will be created/re-created\n')
 
 
 class ZvLocalFilesystem(object):
@@ -72,7 +74,7 @@ class ZvLocalFilesystem(object):
     SYSIMAGE_MASK = re.compile(r'(.*?)(\.[^.]+)?$')
 
     def __init__(self, sysimage_root_path=None,
-                 root_path=None, account_path=None, config=None):
+                 root_path=None, account_path=None, config=None, savedir=None):
         if not root_path:
             root_path = config.get('root_path', None) or ''
         self.image_path = None
@@ -82,7 +84,14 @@ class ZvLocalFilesystem(object):
             self.account_path = config.get('account_path', None)
         if self.account_path:
             self.account_path = os.path.abspath(self.account_path)
-        self.tempdir = mkdtemp()
+        self.savedir = savedir
+        if self.savedir:
+            self.tempdir = os.path.abspath(self.savedir)
+            if os.path.isdir(self.tempdir):
+                shutil.rmtree(self.tempdir)
+            os.makedirs(self.tempdir)
+        else:
+            self.tempdir = mkdtemp()
         self.sysimage_devices = {}
         if not sysimage_root_path:
             sysimage_root_path = config.get('sysimage_path', None)
@@ -174,7 +183,8 @@ class ZvLocalFilesystem(object):
             ch['lpath'] = self.get_local_path(ch['device'], ch['path'], ch['access'], node_config['name'])
 
     def cleanup(self):
-        shutil.rmtree(self.tempdir)
+        if not self.savedir:
+            shutil.rmtree(self.tempdir)
 
     def create_temp_file(self):
         (fd, fn) = mkstemp(dir=self.tempdir)
