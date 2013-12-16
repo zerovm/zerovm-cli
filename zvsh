@@ -36,7 +36,8 @@ else:
         trace_log = os.path.abspath('zvsh.trace.log')
         zvm_run.extend(['-T', trace_log])
     zvm_run.append(manifest_file)
-    runner = ZvRunner(zvm_run, zvshell.stdout, zvshell.stderr, zvshell.tmpdir)
+    runner = ZvRunner(zvm_run, zvshell.stdout, zvshell.stderr, zvshell.tmpdir,
+                      getrc=zvsh_args.args.zvm_getrc)
     try:
         runner.run()
     finally:

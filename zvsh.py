@@ -56,7 +56,10 @@ class ZvArgs:
                                  action='store_true')
         self.parser.add_argument('--zvm-trace', help='Enable ZeroVM trace output into zvsh.trace.log\n',
                                  action='store_true')
-        self.parser.add_argument('--zvm-verbosity', help='ZeroVM debug verbosity level', type=int)
+        self.parser.add_argument('--zvm-verbosity', help='ZeroVM debug verbosity level\n', type=int)
+        self.parser.add_argument('--zvm-getrc', help='If set, zvsh will exit with '
+                                                     'zerovm return code and not the application one\n',
+                                 action='store_true')
         self.parser.add_argument('--zvm-save-dir', help='Save ZeroVM environment files into provided directory,\n'
                                                         'directory will be created/re-created\n',
                                  action='store')
@@ -264,14 +267,24 @@ class ZvShell(object):
         return debug_scp_fn
 
 
+def parse_return_code(report):
+    rc = report.split('\n', 5)[2]
+    try:
+        rc = int(rc)
+    except ValueError:
+        rc = int(rc.replace('user return code = ', ''))
+    return rc
+
+
 class ZvRunner:
 
-    def __init__(self, command_line, stdout, stderr, tempdir):
+    def __init__(self, command_line, stdout, stderr, tempdir, getrc=False):
         self.command = command_line
         self.tmpdir = tempdir
         self.process = None
         self.stdout = stdout
         self.stderr = stderr
+        self.getrc = getrc
         self.report = ''
         os.mkfifo(self.stdout)
         os.mkfifo(self.stderr)
@@ -285,6 +298,7 @@ class ZvRunner:
             writer = self.spawn(True, self.stdout_write)
             self.process.wait()
             rep_reader.join()
+            self.rc = parse_return_code(self.report)
             if self.process.returncode == 0:
                 writer.join()
                 err_reader.join()
@@ -295,6 +309,10 @@ class ZvRunner:
                 self.process.wait()
                 if self.process.returncode > 0:
                     self.print_error(self.process.returncode)
+            rc = self.rc
+            if self.getrc:
+                rc = self.process.returncode
+            sys.exit(rc)
 
     def stdin_reader(self):
         if sys.stdin.isatty():
