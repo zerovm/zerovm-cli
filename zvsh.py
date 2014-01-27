@@ -207,7 +207,7 @@ class ZvShell(object):
     def create_nvram(self, verbosity):
         nvram = '[args]\n'
         nvram += 'args = %s\n' % ' '.join(
-            ['"%s"' % a.replace(',', '\\x2c').replace('"', '\\"')
+            ['%s' % a.replace(',', '\\x2c').replace(' ', '\\x20')
              for a in self.nvram_args['args']])
         if len(self.config['env']) > 0:
             nvram += '[env]\n'
