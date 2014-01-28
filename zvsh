@@ -2,7 +2,7 @@
 import os
 import pty
 import sys
-from zvsh import ZvArgs, DebugArgs, ZvShell, ZvRunner, ZvConfig
+from zvsh import ZvArgs, DebugArgs, ZvShell, ZvRunner, ZvConfig, spawn
 
 zvsh_args = ZvArgs()
 zvsh_args.parse(sys.argv[1:])
@@ -23,7 +23,7 @@ if 'gdb' == zvsh_args.args.command:
     command_line.extend(zvm_run)
     print ' '.join(command_line)
     try:
-        pty.spawn(command_line)
+        spawn(command_line)
     except (KeyboardInterrupt, Exception):
         pass
     finally:

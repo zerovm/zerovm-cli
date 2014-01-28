@@ -9,6 +9,12 @@ import tarfile
 from tempfile import mkdtemp
 import threading
 import re
+import termios
+import array
+import pty
+import tty
+import fcntl
+
 
 ENV_MATCH = re.compile(r'([_A-Z0-9]+)=(.*)')
 DEFAULT_MANIFEST = {
@@ -375,3 +381,31 @@ class ZvRunner:
 def is_binary_string(byte_string):
     textchars = ''.join(map(chr, [7, 8, 9, 10, 12, 13, 27] + range(0x20, 0x100)))
     return bool(byte_string.translate(None, textchars))
+
+
+def spawn(argv, master_read=pty._read, stdin_read=pty._read):
+    """Create a spawned process.
+    Based on pty.spawn code."""
+    if type(argv) == type(''):
+        argv = (argv,)
+    pid, master_fd = pty.fork()
+    if pid == pty.CHILD:
+        os.execlp(argv[0], *argv)
+    try:
+        mode = tty.tcgetattr(pty.STDIN_FILENO)
+        tty.setraw(pty.STDIN_FILENO)
+        restore = 1
+    except tty.error:    # This is the same as termios.error
+        restore = 0
+    # get pseudo-terminal window size
+    buf = array.array('h', [0, 0, 0, 0])
+    fcntl.ioctl(pty.STDOUT_FILENO, termios.TIOCGWINSZ, buf, True)
+    # pass window size settings to forked one
+    fcntl.ioctl(master_fd, termios.TIOCSWINSZ, buf)
+    try:
+        pty._copy(master_fd, master_read, stdin_read)
+    except (IOError, OSError):
+        if restore:
+            tty.tcsetattr(pty.STDIN_FILENO, tty.TCSAFLUSH, mode)
+
+    os.close(master_fd)
