@@ -20,18 +20,7 @@ from os import path
 # TODO(LB): This is a hack to make imports work, and should be replaced
 # with something proper
 sys.path.insert(0, path.abspath(path.dirname(path.dirname(__file__))))
-from zpm import zpm
-
-
-class NewAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        zpm.create_project(values)
-        print('Created new project in "%s"' % values)
-
-
-class BundleAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        zpm.bundle_project(values)
+from zpm import zpm, commands
 
 
 def set_up_arg_parser():
@@ -46,11 +35,11 @@ def set_up_arg_parser():
     new_parser.add_argument(
         'dir',
         help='Non-existent or empty directory',
-        action=NewAction,
         metavar='WORKING_DIR',
         nargs='?',
         default=os.getcwd(),
     )
+    new_parser.set_defaults(func=commands.new)
 
     bundle_parser = subparsers.add_parser(
         'bundle',
@@ -59,14 +48,15 @@ def set_up_arg_parser():
     bundle_parser.add_argument(
         'dir',
         help='ZeroVM workspace',
-        action=BundleAction,
         metavar='WORKING_DIR',
         nargs='?',
         default=os.getcwd(),
     )
+    bundle_parser.set_defaults(func=commands.bundle)
     return parser
 
 
 if __name__ == "__main__":
     arg_parser = set_up_arg_parser()
-    arg_parser.parse_args()
+    args = arg_parser.parse_args()
+    args.func(args)
