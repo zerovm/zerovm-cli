@@ -36,7 +36,8 @@ class BundleAction(argparse.Action):
 
 def set_up_arg_parser():
     parser = argparse.ArgumentParser(description='ZeroVM Package Manager')
-    subparsers = parser.add_subparsers()
+    subparsers = parser.add_subparsers(description='available subcommands',
+                                       metavar='COMMAND')
 
     new_parser = subparsers.add_parser(
         'new',
@@ -44,6 +45,7 @@ def set_up_arg_parser():
     )
     new_parser.add_argument(
         'dir',
+        help='Non-existent or empty directory',
         action=NewAction,
         metavar='WORKING_DIR',
         nargs='?',
@@ -56,6 +58,7 @@ def set_up_arg_parser():
     )
     bundle_parser.add_argument(
         'dir',
+        help='ZeroVM workspace',
         action=BundleAction,
         metavar='WORKING_DIR',
         nargs='?',
