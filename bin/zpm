@@ -28,7 +28,7 @@ def set_up_arg_parser():
     subparsers = parser.add_subparsers(description='available subcommands',
                                        metavar='COMMAND')
 
-    for cmd in commands.new, commands.bundle:
+    for cmd in commands.all_commands():
         subparser = subparsers.add_parser(cmd.__name__, help=cmd.__doc__)
         cmd(subparser)
 
