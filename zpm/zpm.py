@@ -96,12 +96,12 @@ def bundle_project(location):
             zar.add(each_file, path.basename(each_file))
     finally:
         zar.close()
-    # TODO(LB): Return or print the generated .zar file?
+    # TODO(LB): Return or print the generated .zar filename?
 
 
 def make_tar(tar_fp, path, arcpath):
     """
-    Pack `source` files into a tar file.
+    Recursively pack the files at `path` into a tar file.
 
     :param tar_fp:
         A writable file-like.
