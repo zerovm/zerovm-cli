@@ -19,9 +19,11 @@ import zpm
 
 _commands = []
 
+
 def command(func):
     _commands.append(func)
     return func
+
 
 def all_commands():
     return sorted(_commands, key=operator.attrgetter('__name__'))
