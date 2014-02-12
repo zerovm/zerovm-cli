@@ -25,22 +25,13 @@ from zpm import zpm
 
 class NewAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        if values is None:
-            # no working dir specified, use default
-            location = namespace.new
-        else:
-            location = values
-        zpm.create_project(location)
-        print('Created new project in "%s"' % location)
+        zpm.create_project(values)
+        print('Created new project in "%s"' % values)
 
 
 class BundleAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        if values is None:
-            # no working dir specified, use default
-            zpm.bundle_project(namespace.bundle)
-        else:
-            zpm.bundle_project(values)
+        zpm.bundle_project(values)
 
 
 def set_up_arg_parser():
