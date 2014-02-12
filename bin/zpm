@@ -45,19 +45,26 @@ class BundleAction(argparse.Action):
 
 def set_up_arg_parser():
     parser = argparse.ArgumentParser(description='ZeroVM Package Manager')
-    parser.add_argument(
-        '--new',
-        '-n',
+    subparsers = parser.add_subparsers()
+
+    new_parser = subparsers.add_parser(
+        'new',
         help='Create a new ZeroVM application workspace',
+    )
+    new_parser.add_argument(
+        'dir',
         action=NewAction,
         metavar='WORKING_DIR',
         nargs='?',
         default=os.getcwd(),
     )
-    parser.add_argument(
-        '--bundle',
-        '-b',
+
+    bundle_parser = subparsers.add_parser(
+        'bundle',
         help='Bundle a ZeroVM application',
+    )
+    bundle_parser.add_argument(
+        'dir',
         action=BundleAction,
         metavar='WORKING_DIR',
         nargs='?',
