@@ -28,31 +28,10 @@ def set_up_arg_parser():
     subparsers = parser.add_subparsers(description='available subcommands',
                                        metavar='COMMAND')
 
-    new_parser = subparsers.add_parser(
-        'new',
-        help='Create a new ZeroVM application workspace',
-    )
-    new_parser.add_argument(
-        'dir',
-        help='Non-existent or empty directory',
-        metavar='WORKING_DIR',
-        nargs='?',
-        default=os.getcwd(),
-    )
-    new_parser.set_defaults(func=commands.new)
+    for cmd in commands.new, commands.bundle:
+        subparser = subparsers.add_parser(cmd.__name__, help=cmd.__doc__)
+        cmd(subparser)
 
-    bundle_parser = subparsers.add_parser(
-        'bundle',
-        help='Bundle a ZeroVM application',
-    )
-    bundle_parser.add_argument(
-        'dir',
-        help='ZeroVM workspace',
-        metavar='WORKING_DIR',
-        nargs='?',
-        default=os.getcwd(),
-    )
-    bundle_parser.set_defaults(func=commands.bundle)
     return parser
 
 

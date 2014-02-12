@@ -12,11 +12,30 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import os
 import zpm
 
-def new(args):
-    zpm.create_project(args.dir)
-    print('Created new project in "%s"' % args.dir)
 
-def bundle(args):
-    zpm.bundle_project(args.dir)
+def new(parser):
+    """Create a new ZeroVM application workspace"""
+
+    def cmd(args):
+        zpm.create_project(args.dir)
+        print('Created new project in "%s"' % args.dir)
+
+    parser.add_argument('dir', help='Non-existent or empty directory',
+                        metavar='WORKING_DIR', nargs='?',
+                        default=os.getcwd())
+    parser.set_defaults(func=cmd)
+
+
+def bundle(parser):
+    """Bundle a ZeroVM application"""
+
+    def cmd(args):
+        zpm.bundle_project(args.dir)
+
+    parser.add_argument('dir', help='ZeroVM workspace',
+                        metavar='WORKING_DIR', nargs='?',
+                        default=os.getcwd())
+    parser.set_defaults(func=cmd)
