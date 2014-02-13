@@ -15,12 +15,8 @@
 #  limitations under the License.
 
 import argparse
-import os
-import sys
 
-from os import path
-
-from zpmlib import zpm, commands
+from zpmlib import commands
 
 
 def set_up_arg_parser():
