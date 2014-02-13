@@ -11,6 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
 import os
 import tarfile
 
@@ -62,11 +63,11 @@ def _create_project(location):
         os.makedirs(path.join(location, proj_dir))
 
     # make the template config files:
-    with open(path.join(location, 'meta.ini'), 'w') as fh:
-        fh.write(META_INI_TEMPLATE)
+    with open(path.join(location, 'meta.ini'), 'w') as fp:
+        fp.write(META_INI_TEMPLATE)
 
-    with open(path.join(location, 'zar.ini'), 'w') as fh:
-        fh.write(ZAR_INI_TEMPLATE)
+    with open(path.join(location, 'zar.ini'), 'w') as fp:
+        fp.write(ZAR_INI_TEMPLATE)
 
 
 def bundle_project(location):
