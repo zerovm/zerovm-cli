@@ -20,52 +20,22 @@ from os import path
 # TODO(LB): This is a hack to make imports work, and should be replaced
 # with something proper
 sys.path.insert(0, path.abspath(path.dirname(path.dirname(__file__))))
-from zpm import zpm
-
-
-class NewAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        if values is None:
-            # no working dir specified, use default
-            location = namespace.new
-        else:
-            location = values
-        zpm.create_project(location)
-        print('Created new project in "%s"' % location)
-
-
-class BundleAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        if values is None:
-            # no working dir specified, use default
-            zpm.bundle_project(namespace.bundle)
-        else:
-            zpm.bundle_project(values)
+from zpm import zpm, commands
 
 
 def set_up_arg_parser():
     parser = argparse.ArgumentParser(description='ZeroVM Package Manager')
-    parser.add_argument(
-        '--new',
-        '-n',
-        help='Create a new ZeroVM application workspace',
-        action=NewAction,
-        metavar='WORKING_DIR',
-        nargs='?',
-        default=os.getcwd(),
-    )
-    parser.add_argument(
-        '--bundle',
-        '-b',
-        help='Bundle a ZeroVM application',
-        action=BundleAction,
-        metavar='WORKING_DIR',
-        nargs='?',
-        default=os.getcwd(),
-    )
+    subparsers = parser.add_subparsers(description='available subcommands',
+                                       metavar='COMMAND')
+
+    for cmd in commands.all_commands():
+        subparser = subparsers.add_parser(cmd.__name__, help=cmd.__doc__)
+        cmd(subparser)
+
     return parser
 
 
 if __name__ == "__main__":
     arg_parser = set_up_arg_parser()
-    arg_parser.parse_args()
+    args = arg_parser.parse_args()
+    args.func(args)
