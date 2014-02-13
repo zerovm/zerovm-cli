@@ -19,9 +19,7 @@ import os
 import sys
 
 from os import path
-# TODO(LB): This is a hack to make imports work, and should be replaced
-# with something proper
-sys.path.insert(0, path.abspath(path.dirname(path.dirname(__file__))))
+
 from zpmlib import zpm, commands
 
 
