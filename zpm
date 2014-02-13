@@ -20,7 +20,11 @@ from zpmlib import commands
 
 
 def set_up_arg_parser():
-    parser = argparse.ArgumentParser(description='ZeroVM Package Manager')
+    parser = argparse.ArgumentParser(
+        description='ZeroVM Package Manager',
+        epilog=("See 'zpm <command> --help' for more information on a specific"
+                " command."),
+    )
     subparsers = parser.add_subparsers(description='available subcommands',
                                        metavar='COMMAND')
 
