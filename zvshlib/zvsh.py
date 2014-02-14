@@ -61,29 +61,58 @@ d br
 
 class ZvArgs:
     def __init__(self):
-        self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+        self.parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawTextHelpFormatter
+        )
         self.args = None
         self.add_agruments()
 
     def add_agruments(self):
-        self.parser.add_argument('command', help='Zvsh command, can be:\n'
-                                                 '- path to ZeroVM executable\n'
-                                                 '- "gdb" (for running debugger)\n')
-        self.parser.add_argument('--zvm-image', help='ZeroVM image file(s) in the following '
-                                                     'format:\npath[,mount point][,access type]\n'
-                                                     'defaults: path,/,ro\n', action='append')
-        self.parser.add_argument('--zvm-debug', help='Enable ZeroVM debug output into zvsh.log\n',
-                                 action='store_true')
-        self.parser.add_argument('--zvm-trace', help='Enable ZeroVM trace output into zvsh.trace.log\n',
-                                 action='store_true')
-        self.parser.add_argument('--zvm-verbosity', help='ZeroVM debug verbosity level\n', type=int)
-        self.parser.add_argument('--zvm-getrc', help='If set, zvsh will exit with '
-                                                     'zerovm return code and not the application one\n',
-                                 action='store_true')
-        self.parser.add_argument('--zvm-save-dir', help='Save ZeroVM environment files into provided directory,\n'
-                                                        'directory will be created/re-created\n',
-                                 action='store')
-        self.parser.add_argument('cmd_args', help='command line arguments\n', nargs=argparse.REMAINDER)
+        self.parser.add_argument(
+            'command',
+            help=('Zvsh command, can be:\n'
+                  '- path to ZeroVM executable\n'
+                  '- "gdb" (for running debugger)\n'),
+        )
+        self.parser.add_argument(
+            '--zvm-image',
+            help=('ZeroVM image file(s) in the following '
+                  'format:\npath[,mount point][,access type]\n'
+                  'defaults: path,/,ro\n'),
+            action='append',
+        )
+        self.parser.add_argument(
+            '--zvm-debug',
+            help='Enable ZeroVM debug output into zvsh.log\n',
+            action='store_true',
+        )
+        self.parser.add_argument(
+            '--zvm-trace',
+            help='Enable ZeroVM trace output into zvsh.trace.log\n',
+            action='store_true',
+        )
+        self.parser.add_argument(
+            '--zvm-verbosity',
+            help='ZeroVM debug verbosity level\n',
+            type=int,
+        )
+        self.parser.add_argument(
+            '--zvm-getrc',
+            help=('If set, zvsh will exit with '
+                  'zerovm return code and not the application one\n'),
+            action='store_true',
+        )
+        self.parser.add_argument(
+            '--zvm-save-dir',
+            help=('Save ZeroVM environment files into provided directory,\n'
+                  'directory will be created/re-created\n'),
+            action='store',
+        )
+        self.parser.add_argument(
+            'cmd_args',
+            help='command line arguments\n',
+            nargs=argparse.REMAINDER,
+        )
 
     def parse(self, zvsh_args):
         self.args = self.parser.parse_args(args=zvsh_args)
@@ -147,14 +176,19 @@ class ZvShell(object):
         self.stderr = os.path.join(self.tmpdir, 'stderr.%d' % self.node_id)
         stdin = '/dev/stdin'
         self.channel_seq_read_template = CHANNEL_SEQ_READ_TEMPLATE \
-            % ('%s', '%s', self.config['limits']['reads'], self.config['limits']['rbytes'])
+            % ('%s', '%s', self.config['limits']['reads'],
+               self.config['limits']['rbytes'])
         self.channel_seq_write_template = CHANNEL_SEQ_WRITE_TEMPLATE \
-            % ('%s', '%s', self.config['limits']['writes'], self.config['limits']['wbytes'])
+            % ('%s', '%s', self.config['limits']['writes'],
+               self.config['limits']['wbytes'])
         self.channel_random_ro_template = CHANNEL_RANDOM_RO_TEMPLATE \
-            % ('%s', '%s', self.config['limits']['reads'], self.config['limits']['rbytes'])
+            % ('%s', '%s', self.config['limits']['reads'],
+               self.config['limits']['rbytes'])
         self.channel_random_rw_template = CHANNEL_RANDOM_RW_TEMPLATE \
-            % ('%s', '%s', self.config['limits']['reads'], self.config['limits']['rbytes'],
-                self.config['limits']['writes'], self.config['limits']['wbytes'])
+            % ('%s', '%s', self.config['limits']['reads'],
+               self.config['limits']['rbytes'],
+               self.config['limits']['writes'],
+               self.config['limits']['wbytes'])
         self.manifest_channels = [
             self.channel_seq_read_template % (stdin, '/dev/stdin'),
             self.channel_seq_write_template % (self.stdout, '/dev/stdout'),
@@ -204,12 +238,14 @@ class ZvShell(object):
         for img in zvm_image:
             (imgpath, imgmp, imgacc) = (img.split(',') + [None] * 3)[:3]
             dev_name = self.create_manifest_channel(imgpath)
-            self.nvram_fstab[dev_name] = '%s %s' % (imgmp or '/', imgacc or 'ro')
+            self.nvram_fstab[dev_name] = '%s %s' % (imgmp or '/',
+                                                    imgacc or 'ro')
             tar = tarfile.open(name=imgpath)
             nexe = None
             try:
                 nexe = tar.extractfile(self.program)
-                tmpnexe_fn = os.path.join(self.tmpdir, 'boot.%d' % self.node_id)
+                tmpnexe_fn = os.path.join(self.tmpdir,
+                                          'boot.%d' % self.node_id)
                 tmpnexe_fd = open(tmpnexe_fn, 'wb')
                 read_iter = iter(lambda: nexe.read(65535), '')
                 for chunk in read_iter:
@@ -222,7 +258,8 @@ class ZvShell(object):
     def add_debug(self, zvm_debug):
         if zvm_debug:
             self.manifest_channels.append(self.channel_seq_write_template
-                                          % (os.path.abspath('zvsh.log'), '/dev/debug'))
+                                          % (os.path.abspath('zvsh.log'),
+                                             '/dev/debug'))
 
     def create_nvram(self, verbosity):
         nvram = '[args]\n'
@@ -237,7 +274,8 @@ class ZvShell(object):
             nvram += '[fstab]\n'
             for channel, mount in self.nvram_fstab.iteritems():
                 (mp, access) = mount.split()
-                nvram += 'channel=%s,mountpoint=%s,access=%s,removable=no\n' % (channel, mp, access)
+                nvram += ('channel=%s,mountpoint=%s,access=%s,removable=no\n'
+                          % (channel, mp, access))
         if sys.stdin.isatty() or sys.stdout.isatty() or sys.stderr.isatty():
             nvram += '[mapping]\n'
             if sys.stdin.isatty():
@@ -248,7 +286,8 @@ class ZvShell(object):
                 nvram += 'channel=/dev/stderr,mode=char\n'
         if verbosity:
             nvram += '[debug]\nverbosity=%d\n' % verbosity
-        self.nvram_filename = os.path.join(self.tmpdir, 'nvram.%d' % self.node_id)
+        self.nvram_filename = os.path.join(self.tmpdir,
+                                           'nvram.%d' % self.node_id)
         nvram_fd = open(self.nvram_filename, 'wb')
         nvram_fd.write(nvram)
         nvram_fd.close()
@@ -259,7 +298,8 @@ class ZvShell(object):
             manifest += '%s = %s\n' % (k, v)
         manifest += 'Program = %s\n' % os.path.abspath(self.program)
         self.manifest_channels.append(self.channel_random_rw_template
-                                      % (os.path.abspath(self.nvram_filename), '/dev/nvram'))
+                                      % (os.path.abspath(self.nvram_filename),
+                                         '/dev/nvram'))
         manifest += '\n'.join(self.manifest_channels)
         manifest_fn = os.path.join(self.tmpdir, 'manifest.%d' % self.node_id)
         manifest_fd = open(manifest_fn, 'wb')
@@ -388,20 +428,27 @@ class ZvRunner:
                 if is_binary_string(open(path).read(1024)):
                     sys.stderr.write('%s is a binary file\n' % path)
                 else:
-                    sys.stderr.write('\n'.join(['-' * 10 + f + '-' * 10, open(path).read(), '-' * 25, '']))
+                    sys.stderr.write('\n'.join(['-' * 10 + f + '-' * 10,
+                                                open(path).read(), '-' * 25,
+                                                '']))
         sys.stderr.write(self.report)
         sys.stderr.write("ERROR: ZeroVM return code is %d\n" % rc)
 
 
 def is_binary_string(byte_string):
-    textchars = ''.join(map(chr, [7, 8, 9, 10, 12, 13, 27] + range(0x20, 0x100)))
+    textchars = ''.join(
+        map(chr, [7, 8, 9, 10, 12, 13, 27] + range(0x20, 0x100))
+    )
     return bool(byte_string.translate(None, textchars))
 
 
 def spawn(argv, master_read=pty._read, stdin_read=pty._read):
     """Create a spawned process.
     Based on pty.spawn code."""
-    if type(argv) == type(''):
+    # TODO(LB): This type check won't work with python3
+    # See http://packages.python.org/six/#six.string_types
+    # for a possible solution.
+    if isinstance(argv, (basestring)):
         argv = (argv,)
     pid, master_fd = pty.fork()
     if pid == pty.CHILD:
