@@ -294,6 +294,7 @@ class ZvRunner:
         self.stderr = stderr
         self.getrc = getrc
         self.report = ''
+        self.rc = -255
         os.mkfifo(self.stdout)
         os.mkfifo(self.stderr)
 
