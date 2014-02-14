@@ -2,7 +2,7 @@
 import os
 import pty
 import sys
-from zvsh import ZvArgs, DebugArgs, ZvShell, ZvRunner, ZvConfig, spawn
+from zvshlib.zvsh import ZvArgs, DebugArgs, ZvShell, ZvRunner, ZvConfig, spawn
 
 zvsh_args = ZvArgs()
 zvsh_args.parse(sys.argv[1:])
