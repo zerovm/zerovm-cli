@@ -32,7 +32,7 @@ Packaging
 
     $ sudo apt-get install devscripts debhelper
 
-2. Clone source from git. Example:
+2. Clone source from Git. Example:
 
     $ git clone https://github.com/zerovm/zpm.git $HOME/zpm
 
