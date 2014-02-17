@@ -16,7 +16,12 @@ import os
 import tarfile
 
 from os import path
-from ConfigParser import ConfigParser
+
+try:
+    from configparser import ConfigParser
+except ImportError:
+    # Python 2 fallback
+    from ConfigParser import ConfigParser
 
 META_INI_TEMPLATE = """\
 [metadata]

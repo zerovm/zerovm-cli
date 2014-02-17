@@ -14,7 +14,7 @@
 
 import os
 import operator
-import zpm
+from zpmlib import zpm
 
 
 _commands = []
