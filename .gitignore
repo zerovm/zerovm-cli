@@ -1,2 +1,8 @@
 *.pyc
 *.swp
+
+.coverage
+.tox
+htmlcov
+junit.xml
+zvsh.egg-info
