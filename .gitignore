@@ -5,6 +5,7 @@
 dist
 build
 sdist
+zpm.egg-info
 
 # Unit test / coverage reports
 .coverage
