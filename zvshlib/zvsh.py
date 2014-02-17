@@ -25,6 +25,8 @@ import threading
 import re
 import termios
 import array
+from pty import _read as pty_read
+from pty import _copy as pty_copy
 import pty
 import tty
 import fcntl
@@ -442,7 +444,7 @@ def is_binary_string(byte_string):
     return bool(byte_string.translate(None, textchars))
 
 
-def spawn(argv, master_read=pty._read, stdin_read=pty._read):
+def spawn(argv, master_read=pty_read, stdin_read=pty_read):
     """Create a spawned process.
     Based on pty.spawn code."""
     # TODO(LB): This type check won't work with python3
@@ -465,7 +467,7 @@ def spawn(argv, master_read=pty._read, stdin_read=pty._read):
     # pass window size settings to forked one
     fcntl.ioctl(master_fd, termios.TIOCSWINSZ, buf)
     try:
-        pty._copy(master_fd, master_read, stdin_read)
+        pty_copy(master_fd, master_read, stdin_read)
     except (IOError, OSError):
         if restore:
             tty.tcsetattr(pty.STDIN_FILENO, tty.TCSAFLUSH, mode)
