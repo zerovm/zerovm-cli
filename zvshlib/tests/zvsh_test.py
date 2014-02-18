@@ -165,3 +165,31 @@ Channel = \
         man = zvsh.Manifest('20130611', 10, 1024, '/tmp/zvsh.boot.1')
         with pytest.raises(RuntimeError):
             man.dumps()
+
+
+def test_create_manifest():
+    # Test for :func:`zvhslib.zvsh.create_manifest`.
+    working_dir = '/tmp/abc123'
+    program_path = '/tmp/abc123/boot.2'
+    manifest_cfg = dict(Node=2, Version='20130611', Timeout=100, Memory=1024)
+    tar_files = ['/usr/share/foo.tar', '/usr/share/bar.tar']
+    limits_cfg = dict(reads=16, rbytes=32, writes=64, wbytes=128)
+
+    expected_manifest_text = """\
+Node = 2
+Version = 20130611
+Timeout = 100
+Memory = 1024,0
+Program = /tmp/abc123/boot.2
+Channel = /dev/stdin,/dev/stdin,0,0,4294967296,4294967296,0,0
+Channel = /tmp/abc123/stdout.1,/dev/stdout,0,0,0,0,4294967296,4294967296
+Channel = /tmp/abc123/stderr.1,/dev/stderr,0,0,0,0,4294967296,4294967296
+Channel = \
+/tmp/abc123/nvram.1,/dev/nvram,3,0,4294967296,4294967296,4294967296,4294967296
+Channel = /usr/share/foo.tar,/dev/1.foo.tar,3,0,16,32,64,128
+Channel = /usr/share/bar.tar,/dev/2.bar.tar,3,0,16,32,64,128"""
+
+    manifest = zvsh.create_manifest(working_dir, program_path, manifest_cfg,
+                                    tar_files, limits_cfg)
+
+    assert manifest.dumps() == expected_manifest_text
