@@ -9,8 +9,8 @@ from tempfile import mkstemp, mkdtemp
 from eventlet.green.subprocess import Popen, PIPE
 from eventlet.green import os
 from eventlet import GreenPool
+from zvshlib.zvsh import ZvRunner, ZvArgs, ZvConfig
 
-from zvsh import ZvArgs, ZvConfig, ZvRunner
 
 try:
     import simplejson as json
@@ -65,8 +65,9 @@ class AppArgs(ZvArgs):
                                       'to serve all swift://account/ urls from one path')
         self.parser.add_argument('--sysimage-root-path',
                                  help='Root path for system image files\n')
-        self.parser.add_argument('--zvm-save-dir', help='Save ZeroVM environment files into provided directory,\n'
-                                                        'directory will be created/re-created\n')
+        self.parser.add_argument('--zvm-save-dir',
+                                 help='Save ZeroVM environment files into provided directory,\n'
+                                      'directory will be created/re-created\n')
 
 
 class ZvLocalFilesystem(object):
@@ -96,7 +97,8 @@ class ZvLocalFilesystem(object):
         if not sysimage_root_path:
             sysimage_root_path = config.get('sysimage_path', None)
         if sysimage_root_path:
-            self.sysimage_devices = self._list_sysimage_devices(os.path.abspath(sysimage_root_path))
+            self.sysimage_devices = \
+                self._list_sysimage_devices(os.path.abspath(sysimage_root_path))
         self.immediate_responses = {}
 
     def list_account(self, account, mask=None):
@@ -104,9 +106,9 @@ class ZvLocalFilesystem(object):
         if not account_path:
             account_path = os.path.join(self.root_path, account)
         ret = []
-        for item in sorted(os.listdir(account_path)):
-            if not mask or mask.match(item):
-                ret.append(item)
+        for fname in sorted(os.listdir(account_path)):
+            if not mask or mask.match(fname):
+                ret.append(fname)
         return ret
 
     def list_container(self, account, container, mask=None):
@@ -117,8 +119,8 @@ class ZvLocalFilesystem(object):
         ret = []
         for dirpath, _junk, filenames in os.walk(container_path):
             dirpath = dirpath.replace(container_path, '', 1)[1:]
-            for item in sorted(filenames):
-                objpath = os.path.join(dirpath, item)
+            for fname in sorted(filenames):
+                objpath = os.path.join(dirpath, fname)
                 if not mask or mask.match(objpath):
                     ret.append(objpath)
         return ret
@@ -126,12 +128,12 @@ class ZvLocalFilesystem(object):
     def _list_sysimage_devices(self, sysimage_path):
         result = {}
         if os.path.isdir(sysimage_path):
-            for item in os.listdir(sysimage_path):
-                path = os.path.join(sysimage_path, item)
+            for fname in os.listdir(sysimage_path):
+                path = os.path.join(sysimage_path, fname)
                 if os.path.isfile(path):
                     base = os.path.basename(path)
-                    name = self.SYSIMAGE_MASK.search(base).group(1)
-                    result[name] = path
+                    sysimage_name = self.SYSIMAGE_MASK.search(base).group(1)
+                    result[sysimage_name] = path
         return result
 
     def get_local_path(self, device, path, access, node_name=None):
@@ -180,7 +182,10 @@ class ZvLocalFilesystem(object):
 
     def resolve_local_paths(self, node_config):
         for ch in node_config['channels']:
-            ch['lpath'] = self.get_local_path(ch['device'], ch['path'], ch['access'], node_config['name'])
+            ch['lpath'] = self.get_local_path(ch['device'],
+                                              ch['path'],
+                                              ch['access'],
+                                              node_config['name'])
 
     def cleanup(self):
         if not self.savedir:
@@ -193,8 +198,8 @@ class ZvLocalFilesystem(object):
 
     def get_responses(self):
         data = ''
-        for name in sorted(self.immediate_responses.keys()):
-            data += open(self.immediate_responses[name]).read()
+        for fname in sorted(self.immediate_responses.keys()):
+            data += open(self.immediate_responses[fname]).read()
         return data
 
     def create_temp_files(self, node_name):
@@ -206,127 +211,135 @@ class ZvLocalFilesystem(object):
         #result.append(session_dir)
         return result
 
-
-threadpool = GreenPool()
-nspool = GreenPool(1)
-app_args = AppArgs()
-app_args.parse(sys.argv[1:])
-zvsh_config = [os.path.abspath('zvsh.cfg'), os.path.expanduser('~/.zvsh.cfg'), '/etc/zvsh.cfg']
-config = ZvConfig()
-config.read(zvsh_config)
-cluster_config = None
-local_fs = ZvLocalFilesystem(app_args.args.sysimage_root_path,
-                             app_args.args.swift_root_path,
-                             app_args.args.swift_account_path,
-                             config['zvapp'])
-image_path = None
-try:
-    if os.path.isdir(app_args.args.exec_file):
-        # user tries to run an extracted application
-        # we will need to create image on the fly
-        # to load it in zerovm as a channel
-        app_dir = app_args.args.exec_file
-        tar_file = local_fs.create_temp_file()
-        tar = tarfile.TarFile.open(name=tar_file, mode='w')
-        try:
-            tar.add(os.path.join(app_dir, CLUSTER_CONFIG_FILENAME),
-                    arcname=CLUSTER_CONFIG_FILENAME)
-            boot = CLUSTER_CONFIG_FILENAME
-        except OSError:
-            try:
-                tar.add(os.path.join(app_dir, NODE_CONFIG_FILENAME),
-                        arcname=NODE_CONFIG_FILENAME)
-                boot = NODE_CONFIG_FILENAME
-            except OSError:
-                sys.stderr.write('Cannot find boot map anywhere in %s\n' % app_dir)
-                sys.exit(1)
-
-        def tar_filter(tar_info):
-            if tar_info.name in [CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME]:
-                return None
-            return tar_info
-
-        for item in os.listdir(app_dir):
-            tar.add(os.path.join(app_dir, item), arcname=item, filter=tar_filter)
-        #print tar.getnames()
-        tar.close()
-        image_path = os.path.abspath(tar_file)
-        cluster_config = json.load(open(os.path.join(app_dir, boot), 'rb'))
-    else:
-        try:
-            cluster_config_fd = open(app_args.args.exec_file, 'rb')
-        except IOError, e:
-            sys.stderr.write(str(e) + '\n')
-            sys.exit(1)
-        try:
-            # let's load the file as a cluster map
-            cluster_config = json.load(cluster_config_fd)
-            image_path = os.path.dirname(os.path.abspath(app_args.args.exec_file))
-        except Exception:
-            # it's not a cluster map file
-            # try to load it as zvm app archive
-            try:
-                tar = tarfile.open(app_args.args.exec_file)
-                for name in tar.getnames():
-                    if name in [CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME]:
-                        cluster_config = json.load(tar.extractfile(name))
-                        break
-                image_path = os.path.abspath(app_args.args.exec_file)
-            except tarfile.ReadError:
-                # it's not a tar file, bail out for now
-                sys.stderr.write('Cannot parse the input file %s\n' % app_args.args.exec_file)
-                sys.exit(1)
-
-    local_fs.image_path = image_path
-    threads = {}
-    parser = ClusterConfigParser(local_fs.sysimage_devices, 'application/octet-stream',
-                                 config,
-                                 local_fs.list_account, local_fs.list_container)
+if __name__ == '__main__':
+    threadpool = GreenPool()
+    nspool = GreenPool(1)
+    app_args = AppArgs()
+    app_args.parse(sys.argv[1:])
+    zvsh_config = [os.path.abspath('zvsh.cfg'),
+                   os.path.expanduser('~/.zvsh.cfg'),
+                   '/etc/zvsh.cfg']
+    zvconfig = ZvConfig()
+    zvconfig.read(zvsh_config)
+    cluster_config = None
+    local_fs = ZvLocalFilesystem(app_args.args.sysimage_root_path,
+                                 app_args.args.swift_root_path,
+                                 app_args.args.swift_account_path,
+                                 zvconfig['zvapp'])
+    image_path = None
     try:
-        add_user_image = False
-        if os.path.isfile(local_fs.image_path):
-            add_user_image = True
-        parser.parse(cluster_config, add_user_image, account_name='local', replica_count=1)
-    except ClusterConfigParsingError, e:
-        sys.stderr.write(str(e) + '\n')
-        exit(1)
+        if os.path.isdir(app_args.args.exec_file):
+            # user tries to run an extracted application
+            # we will need to create image on the fly
+            # to load it in zerovm as a channel
+            app_dir = app_args.args.exec_file
+            tar_file = local_fs.create_temp_file()
+            tar = tarfile.TarFile.open(name=tar_file, mode='w')
+            try:
+                tar.add(os.path.join(app_dir, CLUSTER_CONFIG_FILENAME),
+                        arcname=CLUSTER_CONFIG_FILENAME)
+                boot = CLUSTER_CONFIG_FILENAME
+            except OSError:
+                try:
+                    tar.add(os.path.join(app_dir, NODE_CONFIG_FILENAME),
+                            arcname=NODE_CONFIG_FILENAME)
+                    boot = NODE_CONFIG_FILENAME
+                except OSError:
+                    sys.stderr.write('Cannot find boot map anywhere in %s\n' % app_dir)
+                    sys.exit(1)
 
-    ns_server = None
-    if parser.total_count > 1:
-        ns_server = NameService(parser.total_count)
-        ns_server.start(nspool)
+            def tar_filter(tar_info):
+                if tar_info.name in [CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME]:
+                    return None
+                return tar_info
+
+            for item in os.listdir(app_dir):
+                tar.add(os.path.join(app_dir, item), arcname=item, filter=tar_filter)
+            #print tar.getnames()
+            tar.close()
+            image_path = os.path.abspath(tar_file)
+            cluster_config = json.load(open(os.path.join(app_dir, boot), 'rb'))
+        else:
+            try:
+                cluster_config_fd = open(app_args.args.exec_file, 'rb')
+            except IOError, e:
+                sys.stderr.write(str(e) + '\n')
+                sys.exit(1)
+            try:
+                # let's load the file as a cluster map
+                cluster_config = json.load(cluster_config_fd)
+                image_path = os.path.dirname(os.path.abspath(app_args.args.exec_file))
+            except Exception:
+                # it's not a cluster map file
+                # try to load it as zvm app archive
+                try:
+                    tar = tarfile.open(app_args.args.exec_file)
+                    for name in tar.getnames():
+                        if name in [CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME]:
+                            cluster_config = json.load(tar.extractfile(name))
+                            break
+                    image_path = os.path.abspath(app_args.args.exec_file)
+                except tarfile.ReadError:
+                    # it's not a tar file, bail out for now
+                    sys.stderr.write('Cannot parse the input file %s\n'
+                                     % app_args.args.exec_file)
+                    sys.exit(1)
+
+        local_fs.image_path = image_path
+        threads = {}
+        parser = ClusterConfigParser(local_fs.sysimage_devices,
+                                     'application/octet-stream',
+                                     zvconfig,
+                                     local_fs.list_account,
+                                     local_fs.list_container)
+        try:
+            add_user_image = False
+            if os.path.isfile(local_fs.image_path):
+                add_user_image = True
+            parser.parse(cluster_config, add_user_image,
+                         account_name='local', replica_count=1)
+        except ClusterConfigParsingError, e:
+            sys.stderr.write(str(e) + '\n')
+            exit(1)
+
+        ns_server = None
+        if parser.total_count > 1:
+            ns_server = NameService(parser.total_count)
+            ns_server.start(nspool)
+            for node in parser.node_list:
+                node.name_service = 'udp:%s:%d' % ('127.0.0.1', ns_server.port)
+                parser.build_connect_string(node)
         for node in parser.node_list:
-            node.name_service = 'udp:%s:%d' % ('127.0.0.1', ns_server.port)
-            parser.build_connect_string(node)
-    for node in parser.node_list:
-        node_config = json.loads(json.dumps(node, cls=NodeEncoder))
+            node_config = json.loads(json.dumps(node, cls=NodeEncoder))
 
-        local_fs.resolve_local_paths(node_config)
-        nexe_path = local_fs.get_local_path('boot', node_config['exe'], ACCESS_READABLE)
-        nvram_file, manifest_file, report_file = \
-            local_fs.create_temp_files(node_config['name'])
-        #print json.dumps(node_config, indent=2)
-        manifest = parser.prepare_zerovm_files(node_config, nvram_file, None, nexe_path)
-        fd = open(manifest_file, 'wb')
-        fd.write(manifest)
-        fd.close()
-        command_line = ['zerovm', '-PQ', manifest_file]
-        runner = AppRunner(command_line, report_file)
-        #print manifest
-        #print open(nvram_file).read()
-        #print os.system('ls -al %s' % temp_dir)
-        threads[node_config['name']] = (report_file, node_config['id'], runner)
-    for name in sorted(threads.keys()):
-        runner = threads[name][2]
-        threadpool.spawn_n(runner.run)
-    threadpool.waitall()
-    if ns_server:
-        ns_server.stop()
-    for name in sorted(threads.keys()):
-        rfile, node_id, runner = threads[name]
-        print "---------- Node: %s id: %s ---------" % (name, node_id)
-        print open(rfile).read()
-    print "========== Result =========="
-    print local_fs.get_responses()
-finally:
-    local_fs.cleanup()
+            local_fs.resolve_local_paths(node_config)
+            nexe_path = local_fs.get_local_path('boot',
+                                                node_config['exe'], ACCESS_READABLE)
+            nvram_file, manifest_file, report_file = \
+                local_fs.create_temp_files(node_config['name'])
+            #print json.dumps(node_config, indent=2)
+            manifest = parser.prepare_zerovm_files(node_config,
+                                                   nvram_file, None, nexe_path)
+            fd = open(manifest_file, 'wb')
+            fd.write(manifest)
+            fd.close()
+            command_line = ['zerovm', '-PQ', manifest_file]
+            runner = AppRunner(command_line, report_file)
+            #print manifest
+            #print open(nvram_file).read()
+            #print os.system('ls -al %s' % temp_dir)
+            threads[node_config['name']] = (report_file, node_config['id'], runner)
+        for name in sorted(threads.keys()):
+            runner = threads[name][2]
+            threadpool.spawn_n(runner.run)
+        threadpool.waitall()
+        if ns_server:
+            ns_server.stop()
+        for name in sorted(threads.keys()):
+            rfile, node_id, runner = threads[name]
+            print "---------- Node: %s id: %s ---------" % (name, node_id)
+            print open(rfile).read()
+        print "========== Result =========="
+        print local_fs.get_responses()
+    finally:
+        local_fs.cleanup()
