@@ -257,6 +257,45 @@ def _process_images(zvm_images):
         yield path, mount_dir, access_type
 
 
+def create_manifest(working_dir, program_path, manifest_cfg, tar_files,
+                    limits_cfg):
+    """
+    :param manifest_cfg:
+        `dict` containing the following keys:
+
+            * Node
+            * Version
+            * Timeout
+            * Memory
+    :param limits_cfg:
+        `dict` containing the following keys:
+
+            * reads
+            * rbytes
+            * writes
+            * wbytes
+    """
+    manifest = Manifest.default_manifest(working_dir, program_path)
+    manifest.node = manifest_cfg['Node']
+    manifest.version = manifest_cfg['Version']
+    manifest.timeout = manifest_cfg['Timeout']
+    manifest.memory = manifest_cfg['Memory']
+
+    for i, tar_file in enumerate(tar_files, start=1):
+        mount_point = '/dev/%s.%s' % (i, path.basename(tar_file))
+
+        ch = Channel(
+            tar_file, mount_point, access_type=RND_READ_RND_WRITE,
+            gets=limits_cfg['reads'],
+            get_size=limits_cfg['rbytes'],
+            puts=limits_cfg['writes'],
+            put_size=limits_cfg['wbytes'],
+        )
+        manifest.channels.append(ch)
+
+    return manifest
+
+
 class ZvArgs:
     def __init__(self):
         self.parser = argparse.ArgumentParser(
