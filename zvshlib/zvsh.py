@@ -12,24 +12,30 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import ConfigParser
+try:
+    import configparser as ConfigParser
+except ImportError:
+    # Python 2 fallback
+    import ConfigParser
 import argparse
+import array
+import fcntl
 import os
+import re
 import shutil
 import stat
-from subprocess import Popen, PIPE
 import sys
 import tarfile
-from tempfile import mkdtemp
-import threading
-import re
 import termios
-import array
 from pty import _read as pty_read
 from pty import _copy as pty_copy
 import pty
+import threading
 import tty
-import fcntl
+
+from os import path
+from subprocess import Popen, PIPE
+from tempfile import mkdtemp
 
 
 ENV_MATCH = re.compile(r'([_A-Z0-9]+)=(.*)')
