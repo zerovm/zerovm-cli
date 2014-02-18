@@ -79,6 +79,18 @@ class TestChannel:
                '/tmp/zvsh/stdout.1,/dev/stdout,0,0,0,0,256,128')
         assert exp == str(chan)
 
+    def test_repr(self):
+        chan = zvsh.Channel(
+            '/dev/stdin',
+            '/dev/stdin',
+            0,
+            puts=0,
+            put_size=0,
+        )
+        exp = ('<Channel = '
+               '/dev/stdin,/dev/stdin,0,0,4294967296,4294967296,0,0>')
+        assert exp == repr(chan)
+
 
 class TestManifest:
     """
