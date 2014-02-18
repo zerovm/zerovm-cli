@@ -156,6 +156,9 @@ class Channel(object):
             self.gets, self.get_size, self.puts, self.put_size
         )
 
+    def __repr__(self):
+        return '<%s>' % self.__str__()
+
 
 class Manifest(object):
     """
