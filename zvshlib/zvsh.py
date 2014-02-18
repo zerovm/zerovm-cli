@@ -93,6 +93,9 @@ RND_READ_SEQ_WRITE = 1
 SEQ_READ_RND_WRITE = 2
 RND_READ_RND_WRITE = 3
 
+_DEFAULT_MOUNT_DIR = '/'
+_DEFAULT_MOUNT_ACCESS = 'ro'
+
 
 class Channel(object):
     """
@@ -213,6 +216,42 @@ class Manifest(object):
 
     def dump(self, fp):
         fp.write(self.dumps())
+
+
+def _process_images(zvm_images):
+    """
+    Process a list of the --zvm-image arguments and split them into the
+    `path,mount_point,access_type` components. This returns a generator of
+    3-tuples.
+
+    `mount_point` and `access_type` are optional and will default to `/` and
+    `ro`, respectively.
+
+    Example:
+
+    >>> list(_process_images(['/home/user1/foo.tar',
+    ...                       '/home/user1/bar.tar,/var/lib',
+    ...                       '/home/user1/baz.tar,/usr/lib,rw']))
+    [('/home/user1/foo.tar', '/', 'ro'), \
+('/home/user1/bar.tar', '/var/lib', 'ro'), \
+('/home/user1/baz.tar', '/usr/lib', 'rw')]
+
+    """
+    for image in zvm_images:
+        image_split = image.split(',')
+        # mount_dir and access_type are optional,
+        # so defaults are provided:
+        mount_dir = _DEFAULT_MOUNT_DIR
+        access_type = _DEFAULT_MOUNT_ACCESS
+
+        if len(image_split) == 1:
+            path = image_split[0]
+        elif len(image_split) == 2:
+            path, mount_dir = image_split
+        elif len(image_split) == 3:
+            path, mount_dir, access_type = image_split
+
+        yield path, mount_dir, access_type
 
 
 class ZvArgs:
