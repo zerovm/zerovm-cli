@@ -67,8 +67,6 @@ c
 d br
 '''
 
-CHANNEL_TEMPLATE = 'Channel = %s'
-
 NVRAM_TEMPLATE = """\
 [args]
 args = %(args)s
