@@ -463,6 +463,10 @@ def run_zerovm(zvconfig, zvargs):
     os.mkfifo(runtime_files['stderr'])
 
     processed_images = list(_process_images(zvargs.args.zvm_image))
+    # expand the tar image paths to absolute paths and resolve any user tokens,
+    # such as ~ and ~foouser.
+    processed_images = [(path.abspath(path.expanduser(tar_path)), mp, access)
+                        for tar_path, mp, access in processed_images]
     # Just the tar files:
     tar_files = [x[0] for x in processed_images]
 
