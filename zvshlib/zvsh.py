@@ -236,12 +236,21 @@ class NVRAM(object):
     :param processed_images:
         A `list` 3-tuples containing (image path, mount point, access). See
         :func:`_process_images` for more details.
+
+    :param env:
+        Optional. `dict` of environment settings from zvsh.cfg.
+
+    :param int debug_verbosity:
+        Optional. Debug verbosity level, in the range 0..4.
     """
 
-    def __init__(self, program_args, processed_images):
+    def __init__(self, program_args, processed_images, env=None,
+                 debug_verbosity=None):
         # TODO(larsbutler): What about the [debug] and [env] sections?
         self.program_args = program_args
         self.processed_images = processed_images
+        self.env = env
+        self.debug_verbosity = debug_verbosity
 
     def dumps(self):
         """
@@ -276,7 +285,22 @@ class NVRAM(object):
             args=args,
             fstab='\n'.join(fstab_channels),
             mapping=mapping,
+            env='\n'.join([]),
         )
+
+        if self.env is not None:
+            nvram_text += '[env]\n'
+            for k, v in self.env.items():
+                nvram_text += 'name=%s,value=%s\n' % (
+                    # TODO(larsbutler): It's not clear exactly why the comma
+                    # must be escaped; since this is a reimplementation of the
+                    # old code, it needs to be equivalent. It would be nice to
+                    # document this and explain why the change is necessary.
+                    k, v.replace(',', '\\x2c')
+                )
+        if self.debug_verbosity is not None:
+            nvram_text += '[debug]\nverbosity=%s\n' % self.debug_verbosity
+
         return nvram_text
 
 
