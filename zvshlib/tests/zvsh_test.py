@@ -184,8 +184,8 @@ class TestNVRAM:
         ]
         nvram = zvsh.NVRAM(prog_args, processed_images)
 
-        expected = \
-r"""[args]
+        expected = (
+            r"""[args]
 args = python -c print\x20"hello\x2c\x20world"
 [fstab]
 channel=/dev/1.usr.tar,mountpoint=/usr,access=ro,removable=no
@@ -195,7 +195,7 @@ channel=/dev/3.tmp.tar,mountpoint=/tmp,access=ro,removable=no
 channel=/dev/stdin,mode=char
 channel=/dev/stdout,mode=char
 channel=/dev/stderr,mode=char
-"""
+""")
         with mock.patch('sys.stdin.isatty') as stdin:
             with mock.patch('sys.stdout.isatty') as stdout:
                 with mock.patch('sys.stderr.isatty') as stderr:
