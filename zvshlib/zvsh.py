@@ -411,6 +411,130 @@ def _check_runtime_files(runtime_files):
                                % file_path)
 
 
+def run_zerovm(zvconfig, zvargs):
+    """
+    :param zvconfig:
+        :class:`ZvConfig` instance.
+    :param zvargs:
+        :class:`ZvArgs` instance.
+    """
+    if zvargs.args.zvm_save_dir is None:
+        # use a temp dir
+        working_dir = mkdtemp()
+    else:
+        # use the specified dir
+        working_dir = path.abspath(path.expanduser(zvargs.args.zvm_save_dir))
+
+    if not path.exists(working_dir):
+        os.makedirs(working_dir)
+    # Manifest config options from the command line / zvsh.cfg
+    man_cfg = zvconfig['manifest']
+    node = man_cfg['Node']
+
+    # These files will be generated in the `working_dir`.
+    runtime_files = _get_runtime_file_paths(working_dir, node)
+    # If any of these files already exist in the target dir,
+    # we need to raise an error and halt.
+    _check_runtime_files(runtime_files)
+
+    os.mkfifo(runtime_files['stdout'])
+    os.mkfifo(runtime_files['stderr'])
+
+    processed_images = list(_process_images(zvargs.args.zvm_image))
+    # Just the tar files:
+    tar_files = [x[0] for x in processed_images]
+
+    # Search the tar images and extract the target nexe to the specified file
+    # (runtime_files['boot'])
+    _extract_nexe(runtime_files['boot'], processed_images, zvargs.args.command)
+
+    # Generate and write the manifest file:
+    manifest = create_manifest(working_dir, runtime_files['boot'], man_cfg,
+                               tar_files, zvconfig['limits'])
+    with open(runtime_files['manifest'], 'w') as man_fp:
+        man_fp.write(manifest.dumps())
+
+    # Generate and write the nvram file:
+    nvram = NVRAM([zvargs.args.command] + zvargs.args.cmd_args,
+                  processed_images)
+    with open(runtime_files['nvram'], 'w') as nvram_fp:
+        nvram_fp.write(nvram.dumps())
+
+    # Now that all required files are generated and in place, run:
+    try:
+        _run_zerovm(working_dir, runtime_files['manifest'],
+                    runtime_files['stdout'], runtime_files['stderr'],
+                    zvargs.args.zvm_trace, zvargs.args.zvm_getrc)
+    finally:
+        # If we're using a tempdir for the working files,
+        # destroy the directory to clean up.
+        if zvargs.args.zvm_save_dir is None:
+            shutil.rmtree(working_dir)
+
+
+def _run_zerovm(working_dir, manifest_path, stdout_path, stderr_path,
+                zvm_trace, zvm_getrc):
+    """
+    :param working_dir:
+        Working directory which contains files needed to run ZeroVM (manifest,
+        nvram, etc.).
+    :param manifest_path:
+        Path to the ZeroVM manifest, which should be in `working_dir`.
+    :param stdout_path:
+        Path to the file into which stdout is written. This file should be in
+        `working_dir`.
+    :param stderr_path:
+        Path to the file into which stderr is written. This file should be in
+        `working_dir`.
+    :param bool zvm_trace:
+        If `True`, enable ZeroVM trace output into `./zvsh.trace.log`.
+    :param bool zvm_getrc:
+        If `True`, return the ZeroVM exit code instead of the application exit
+        code.
+    """
+    zvm_run = ['zerovm', '-PQ']
+    if zvm_trace:
+        # TODO(larsbutler): This should not be hard-coded. Can we parameterize
+        # this via the command line?
+        trace_log = path.abspath('zvsh.trace.log')
+        zvm_run.extend(['-T', trace_log])
+    zvm_run.append(manifest_path)
+    runner = ZvRunner(zvm_run, stdout_path, stderr_path, working_dir,
+                      getrc=zvm_getrc)
+    runner.run()
+
+
+def _extract_nexe(program_path, processed_images, command):
+    """
+    Given a `command`, search through the listed tar images
+    (`processed_images`) and extract the nexe matching `command` to the target
+    `program_path` on the host file system.
+
+    :param program_path:
+        Location (including filename) which specifies the destination of the
+        extracted nexe.
+    :param processed_images:
+        Output of :func:`_process_images`.
+    :param command:
+        The name of a nexe, such as `python` or `myapp.nexe`.
+    """
+    with open(program_path, 'w') as program_fp:
+        for zvm_image, _, _ in processed_images:
+            try:
+                tf = tarfile.open(zvm_image)
+                nexe_fp = tf.extractfile(command)
+                # once we've found the nexe the user wants to run,
+                # we're done
+                program_fp.write(nexe_fp.read())
+                return program_path
+            except KeyError:
+                # program not found in this image,
+                # go to the next and keep searching
+                pass
+            finally:
+                tf.close()
+
+
 class ZvArgs:
     """
     :attr parser:
@@ -709,8 +833,6 @@ class ZvRunner:
         self.getrc = getrc
         self.report = ''
         self.rc = -255
-        os.mkfifo(self.stdout)
-        os.mkfifo(self.stderr)
 
     def run(self):
         try:
