@@ -12,6 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import mock
 import pytest
 
 from zvshlib import zvsh
@@ -165,6 +166,41 @@ Channel = \
         man = zvsh.Manifest('20130611', 10, 1024, '/tmp/zvsh.boot.1')
         with pytest.raises(RuntimeError):
             man.dumps()
+
+
+class TestNVRAM:
+    """
+    Tests for :class:`zvshlib.zvsh.NVRAM`.
+    """
+
+    def test_dumps(self):
+        prog_args = ['python', '-c', 'print "hello, world"']
+        processed_images = [
+            ('/home/user1/usr.tar', '/usr', 'ro'),
+            ('/home/user1/etc.tar', '/etc', 'rw'),
+            ('/home/user1/tmp.tar', '/tmp', 'ro'),
+        ]
+        nvram = zvsh.NVRAM(prog_args, processed_images)
+
+        expected = \
+r"""[args]
+args = python -c print\x20"hello\x2c\x20world"
+[fstab]
+channel=/dev/1.usr.tar,mountpoint=/usr,access=ro,removable=no
+channel=/dev/2.etc.tar,mountpoint=/etc,access=rw,removable=no
+channel=/dev/3.tmp.tar,mountpoint=/tmp,access=ro,removable=no
+[mapping]
+channel=/dev/stdin,mode=char
+channel=/dev/stdout,mode=char
+channel=/dev/stderr,mode=char
+"""
+        with mock.patch('sys.stdin.isatty') as stdin:
+            with mock.patch('sys.stdout.isatty') as stdout:
+                with mock.patch('sys.stderr.isatty') as stderr:
+                    stdin.return_value = True
+                    stdout.return_value = True
+                    stderr.return_value = True
+                    assert nvram.dumps() == expected
 
 
 def test_create_manifest():
