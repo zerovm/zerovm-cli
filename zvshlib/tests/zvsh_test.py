@@ -17,6 +17,7 @@ import os
 import pytest
 import tempfile
 
+from collections import OrderedDict
 from zvshlib import zvsh
 
 
@@ -182,7 +183,11 @@ class TestNVRAM:
             ('/home/user1/etc.tar', '/etc', 'rw'),
             ('/home/user1/tmp.tar', '/tmp', 'ro'),
         ]
-        nvram = zvsh.NVRAM(prog_args, processed_images)
+        env_dict = OrderedDict([('PATH', '/bin:/usr/bin'),
+                                ('LANG', 'en_US.UTF-8,'),
+                                ('TERM', 'vt100')])
+        nvram = zvsh.NVRAM(prog_args, processed_images, env=env_dict,
+                           debug_verbosity=4)
 
         expected = (
             r"""[args]
@@ -195,6 +200,12 @@ channel=/dev/3.tmp.tar,mountpoint=/tmp,access=ro,removable=no
 channel=/dev/stdin,mode=char
 channel=/dev/stdout,mode=char
 channel=/dev/stderr,mode=char
+[env]
+name=PATH,value=/bin:/usr/bin
+name=LANG,value=en_US.UTF-8\x2c
+name=TERM,value=vt100
+[debug]
+verbosity=4
 """)
         with mock.patch('sys.stdin.isatty') as stdin:
             with mock.patch('sys.stdout.isatty') as stdout:
