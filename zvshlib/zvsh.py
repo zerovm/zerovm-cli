@@ -927,7 +927,7 @@ def is_binary_string(byte_string):
 def spawn(argv, master_read=pty_read, stdin_read=pty_read):
     """Create a spawned process.
     Based on pty.spawn code."""
-    # TODO(LB): This type check won't work with python3
+    # TODO(larsbutler): This type check won't work with python3
     # See http://packages.python.org/six/#six.string_types
     # for a possible solution.
     if isinstance(argv, (basestring)):
