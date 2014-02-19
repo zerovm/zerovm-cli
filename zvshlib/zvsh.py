@@ -68,6 +68,14 @@ d br
 
 CHANNEL_TEMPLATE = 'Channel = %s'
 
+NVRAM_TEMPLATE = """\
+[args]
+args = %(args)s
+[fstab]
+%(fstab)s
+[mapping]
+%(mapping)s"""
+
 MANIFEST_TEMPLATE = """\
 Node = %(node)s
 Version = %(version)s
@@ -217,8 +225,72 @@ class Manifest(object):
         )
         return manifest
 
-    def dump(self, fp):
-        fp.write(self.dumps())
+
+class NVRAM(object):
+    """
+    :param program_args:
+        A `list` of the command args to be run inside ZeroVM. In the case of a
+        Python application, this would be something like:
+
+            ['python', '-c', 'print "hello, world"']
+
+    :param processed_images:
+        A `list` 3-tuples containing (image path, mount point, access). See
+        :func:`_process_images` for more details.
+    """
+
+    def __init__(self, program_args, processed_images):
+        # TODO(larsbutler): What about the [debug] and [env] sections?
+        self.program_args = program_args
+        self.processed_images = processed_images
+
+    def dumps(self):
+        """
+        Generate the text for an nvram file.
+        """
+        nvram_text = NVRAM_TEMPLATE
+        fstab_channels = []
+        for i, (zvm_image, mount_point, access) in enumerate(
+                self.processed_images, start=1):
+            device = '/dev/%s.%s' % (i, path.basename(zvm_image))
+            fstab_channel = (
+                'channel=%(device)s,mountpoint=%(mount_point)s,'
+                'access=%(access)s,removable=no'
+                % dict(device=device, mount_point=mount_point, access=access)
+            )
+            fstab_channels.append(fstab_channel)
+
+        mapping = ''
+        if sys.stdin.isatty():
+            mapping += 'channel=/dev/stdin,mode=char\n'
+        if sys.stdout.isatty():
+            mapping += 'channel=/dev/stdout,mode=char\n'
+        if sys.stderr.isatty():
+            mapping += 'channel=/dev/stderr,mode=char\n'
+
+        # Commas and spaces need to be properly encoded, in order for commands
+        # like `python -c "print 42"` to work:
+        # args ['python', '-c', 'print 42']
+        args = ' '.join(_encode_nvram_args(self.program_args))
+
+        nvram_text %= dict(
+            args=args,
+            fstab='\n'.join(fstab_channels),
+            mapping=mapping,
+        )
+        return nvram_text
+
+
+def _encode_nvram_args(args):
+    """
+    Commas and spaces in ZeroVM command strings need to be properly encoded.
+
+    >>> _encode_nvram_args(['python', '-c', 'print "Hello, world"'])
+    ['python', '-c', 'print\\\\x20"Hello\\\\x2c\\\\x20world"']
+    """
+    return [a.replace(' ', '\\x20')  # space
+             .replace(',', '\\x2c')  # comma
+            for a in args]
 
 
 def _process_images(zvm_images):
