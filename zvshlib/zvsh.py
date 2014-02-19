@@ -33,6 +33,7 @@ import pty
 import threading
 import tty
 
+from collections import OrderedDict
 from os import path
 from subprocess import Popen, PIPE
 from tempfile import mkdtemp
@@ -366,6 +367,48 @@ def create_manifest(working_dir, program_path, manifest_cfg, tar_files,
         manifest.channels.append(ch)
 
     return manifest
+
+
+def _get_runtime_file_paths(working_dir, node):
+    """
+    Generate the runtime files paths for boot, manifest, nvram, stdout, and
+    stderr files, and return them as a `OrderedDict` with the following
+    structure:
+
+    >>> _get_runtime_file_paths('/home/user1', 1)
+    OrderedDict([('boot', '/home/user1/boot.1'), \
+('manifest', '/home/user1/manifest.1'), \
+('nvram', '/home/user1/nvram.1'), \
+('stdout', '/home/user1/stdout.1'), \
+('stderr', '/home/user1/stderr.1')])
+
+    Note that that paths are created by simply joining `working_dir`, so
+    relatve file paths can be used as well:
+
+    >>> _get_runtime_file_paths('foo/', 1)
+    OrderedDict([('boot', 'foo/boot.1'), \
+('manifest', 'foo/manifest.1'), \
+('nvram', 'foo/nvram.1'), \
+('stdout', 'foo/stdout.1'), \
+('stderr', 'foo/stderr.1')])
+    """
+    files = OrderedDict()
+    for each in ('boot', 'manifest', 'nvram', 'stdout', 'stderr'):
+        files[each] = path.join(working_dir, '%s.%s' % (each, node))
+
+    return files
+
+
+def _check_runtime_files(runtime_files):
+    """
+    Given a `dict` of runtime files (see the output
+    :func:`_get_runtime_file_paths`), check if any exist. If any exist, raise
+    a `RuntimeError`.
+    """
+    for file_path in runtime_files.values():
+        if path.exists(file_path):
+            raise RuntimeError("Unable to write '%s': file already exists"
+                               % file_path)
 
 
 class ZvArgs:
