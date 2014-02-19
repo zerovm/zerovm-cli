@@ -13,7 +13,9 @@
 #  limitations under the License.
 
 import mock
+import os
 import pytest
+import tempfile
 
 from zvshlib import zvsh
 
@@ -229,3 +231,19 @@ Channel = /usr/share/bar.tar,/dev/2.bar.tar,3,0,16,32,64,128"""
                                     tar_files, limits_cfg)
 
     assert manifest.dumps() == expected_manifest_text
+
+
+def test__check_runtime_files():
+    # Test for :func:`zvshlib.zvsh._check_runtime_files`.
+    _, file_a = tempfile.mkstemp()
+    _, file_b = tempfile.mkstemp()
+    os.unlink(file_b)
+    files = dict(a=file_a, b=file_b)
+
+    # A case where 1 of the files already exists:
+    with pytest.raises(RuntimeError):
+        zvsh._check_runtime_files(files)
+
+    # A case where none of the files exist:
+    os.unlink(file_a)
+    zvsh._check_runtime_files(files)
