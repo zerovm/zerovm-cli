@@ -369,6 +369,14 @@ def create_manifest(working_dir, program_path, manifest_cfg, tar_files,
 
 
 class ZvArgs:
+    """
+    :attr parser:
+        :class:`argparse.ArgumentParser` instance, used to define the command
+        line arguments.
+    :attr args:
+        :class:`argparse.Namespace` representing the command line arguments.
+    """
+
     def __init__(self):
         self.parser = argparse.ArgumentParser(
             formatter_class=argparse.RawTextHelpFormatter
