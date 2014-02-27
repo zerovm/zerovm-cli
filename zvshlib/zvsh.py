@@ -12,24 +12,31 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import ConfigParser
+try:
+    import configparser as ConfigParser
+except ImportError:
+    # Python 2 fallback
+    import ConfigParser
 import argparse
+import array
+import fcntl
 import os
+import re
 import shutil
 import stat
-from subprocess import Popen, PIPE
 import sys
 import tarfile
-from tempfile import mkdtemp
-import threading
-import re
 import termios
-import array
 from pty import _read as pty_read
 from pty import _copy as pty_copy
 import pty
+import threading
 import tty
-import fcntl
+
+from collections import OrderedDict
+from os import path
+from subprocess import Popen, PIPE
+from tempfile import mkdtemp
 
 
 ENV_MATCH = re.compile(r'([_A-Z0-9]+)=(.*)')
@@ -60,8 +67,509 @@ c
 d br
 '''
 
+NVRAM_TEMPLATE = """\
+[args]
+args = %(args)s
+[fstab]
+%(fstab)s
+[mapping]
+%(mapping)s"""
+
+MANIFEST_TEMPLATE = """\
+Node = %(node)s
+Version = %(version)s
+Timeout = %(timeout)s
+Memory = %(memory)s
+Program = %(program)s
+%(channels)s"""
+
+MANIFEST_DEFAULTS = dict(
+    version='20130611',
+    memory=4294967296,
+    node=1,
+    timeout=50,
+)
+
+GETS_DEFAULT = 4294967296
+GET_SIZE_DEFAULT_BYTES = 4294967296
+PUTS_DEFAULT = 4294967296
+PUT_SIZE_DEFAULT_BYTES = 4294967296
+
+SEQ_READ_SEQ_WRITE = 0
+RND_READ_SEQ_WRITE = 1
+SEQ_READ_RND_WRITE = 2
+RND_READ_RND_WRITE = 3
+
+_DEFAULT_MOUNT_DIR = '/'
+_DEFAULT_MOUNT_ACCESS = 'ro'
+
+
+class Channel(object):
+    """
+    Definition of a channel within a manifest. Defines a mapping from the host
+    to the ZeroVM filesystem, access type, and read/write limits.
+
+    :param uri:
+        Path to a local file, pipe, character device, tcp socket or host ID.
+    :param alias:
+        Path where this channel will be mounted in ZeroVM.
+    :param access_type:
+        Choose from the following:
+
+            * 0: sequential read/ sequential write
+            * 1: random read/ sequential write
+            * 2: sequential read / random write
+            * 3: random read / random write
+    :param etag:
+        etag switch; can be in the range 0..1
+
+        Default: 0
+    :param gets:
+        Limit for number of reads from this channel.
+
+        Default: 4294967296
+    :param get_size:
+        Limit on total amount of data to read from this channel, in bytes.
+
+        Default: 4294967296
+    :param puts:
+        Limit for number of writes to this channel.
+
+        Default: 4294967296
+    :param put_size:
+        Limit on total amount of data to be written to this channel, in bytes.
+
+        Default: 4294967296
+    """
+
+    def __init__(self, uri, alias, access_type,
+                 etag=0,
+                 gets=GETS_DEFAULT,
+                 get_size=GET_SIZE_DEFAULT_BYTES,
+                 puts=PUTS_DEFAULT,
+                 put_size=PUT_SIZE_DEFAULT_BYTES):
+        self.uri = uri
+        self.alias = alias
+        self.access_type = access_type
+        self.etag = etag
+        self.gets = gets
+        self.get_size = get_size
+        self.puts = puts
+        self.put_size = put_size
+
+    def __str__(self):
+        return 'Channel = %s,%s,%s,%s,%s,%s,%s,%s' % (
+            self.uri, self.alias, self.access_type, self.etag,
+            self.gets, self.get_size, self.puts, self.put_size
+        )
+
+    def __repr__(self):
+        return '<%s>' % self.__str__()
+
+
+class Manifest(object):
+    """
+    Object representation of a ZeroVM manifest. Includes utilities and sane
+    defaults for generating manifest files.
+    """
+    DEFAULT_NODE = 1
+
+    def __init__(self, version, timeout, memory, program, node=DEFAULT_NODE,
+                 etag=0, channels=None):
+        self.version = version
+        self.timeout = timeout
+        self.memory = memory
+        self.program = program
+
+        self.node = node
+        self.etag = etag
+
+        self.channels = channels
+        if self.channels is None:
+            self.channels = []
+
+    @classmethod
+    def default_manifest(cls, basedir, program):
+        channels = [
+            Channel('/dev/stdin', '/dev/stdin', SEQ_READ_SEQ_WRITE, puts=0,
+                    put_size=0),
+            Channel(path.join(basedir, 'stdout.%s' % cls.DEFAULT_NODE),
+                    '/dev/stdout', SEQ_READ_SEQ_WRITE, gets=0, get_size=0),
+            Channel(path.join(basedir, 'stderr.%s' % cls.DEFAULT_NODE),
+                    '/dev/stderr', SEQ_READ_SEQ_WRITE, gets=0, get_size=0),
+            Channel(path.join(basedir, 'nvram.%s' % cls.DEFAULT_NODE),
+                    '/dev/nvram', RND_READ_RND_WRITE),
+        ]
+        return Manifest(MANIFEST_DEFAULTS['version'],
+                        MANIFEST_DEFAULTS['timeout'],
+                        MANIFEST_DEFAULTS['memory'],
+                        program,
+                        channels=channels)
+
+    def dumps(self):
+        """
+        Get the text representation of the manifest.
+        """
+        if not self.channels:
+            raise RuntimeError("Manifest must have at least 1 channel.")
+
+        manifest = MANIFEST_TEMPLATE
+        manifest %= dict(
+            node=self.node,
+            version=self.version,
+            timeout=self.timeout,
+            memory='%s,%s' % (self.memory, self.etag),
+            program=self.program,
+            channels='\n'.join([str(c) for c in self.channels]),
+        )
+        return manifest
+
+
+class NVRAM(object):
+    """
+    :param program_args:
+        A `list` of the command args to be run inside ZeroVM. In the case of a
+        Python application, this would be something like:
+
+            ['python', '-c', 'print "hello, world"']
+
+    :param processed_images:
+        A `list` 3-tuples containing (image path, mount point, access). See
+        :func:`_process_images` for more details.
+
+    :param env:
+        Optional. `dict` of environment settings from zvsh.cfg.
+
+    :param int debug_verbosity:
+        Optional. Debug verbosity level, in the range 0..4.
+    """
+
+    def __init__(self, program_args, processed_images, env=None,
+                 debug_verbosity=None):
+        # TODO(larsbutler): What about the [debug] and [env] sections?
+        self.program_args = program_args
+        self.processed_images = processed_images
+        self.env = env
+        self.debug_verbosity = debug_verbosity
+
+    def dumps(self):
+        """
+        Generate the text for an nvram file.
+        """
+        nvram_text = NVRAM_TEMPLATE
+        fstab_channels = []
+        for i, (zvm_image, mount_point, access) in enumerate(
+                self.processed_images, start=1):
+            device = '/dev/%s.%s' % (i, path.basename(zvm_image))
+            fstab_channel = (
+                'channel=%(device)s,mountpoint=%(mount_point)s,'
+                'access=%(access)s,removable=no'
+                % dict(device=device, mount_point=mount_point, access=access)
+            )
+            fstab_channels.append(fstab_channel)
+
+        mapping = ''
+        if sys.stdin.isatty():
+            mapping += 'channel=/dev/stdin,mode=char\n'
+        if sys.stdout.isatty():
+            mapping += 'channel=/dev/stdout,mode=char\n'
+        if sys.stderr.isatty():
+            mapping += 'channel=/dev/stderr,mode=char\n'
+
+        # Commas and spaces need to be properly encoded, in order for commands
+        # like `python -c "print 42"` to work:
+        # args ['python', '-c', 'print 42']
+        args = ' '.join(_encode_nvram_args(self.program_args))
+
+        nvram_text %= dict(
+            args=args,
+            fstab='\n'.join(fstab_channels),
+            mapping=mapping,
+            env='\n'.join([]),
+        )
+
+        if self.env is not None:
+            nvram_text += '[env]\n'
+            for k, v in self.env.items():
+                nvram_text += 'name=%s,value=%s\n' % (
+                    # TODO(larsbutler): It's not clear exactly why the comma
+                    # must be escaped; since this is a reimplementation of the
+                    # old code, it needs to be equivalent. It would be nice to
+                    # document this and explain why the change is necessary.
+                    k, v.replace(',', '\\x2c')
+                )
+        if self.debug_verbosity is not None:
+            nvram_text += '[debug]\nverbosity=%s\n' % self.debug_verbosity
+
+        return nvram_text
+
+
+def _encode_nvram_args(args):
+    """
+    Commas and spaces in ZeroVM command strings need to be properly encoded.
+
+    >>> _encode_nvram_args(['python', '-c', 'print "Hello, world"'])
+    ['python', '-c', 'print\\\\x20"Hello\\\\x2c\\\\x20world"']
+    """
+    return [a.replace(' ', '\\x20')  # space
+             .replace(',', '\\x2c')  # comma
+            for a in args]
+
+
+def _process_images(zvm_images):
+    """
+    Process a list of the --zvm-image arguments and split them into the
+    `path,mount_point,access_type` components. This returns a generator of
+    3-tuples.
+
+    `mount_point` and `access_type` are optional and will default to `/` and
+    `ro`, respectively.
+
+    Example:
+
+    >>> list(_process_images(['/home/user1/foo.tar',
+    ...                       '/home/user1/bar.tar,/var/lib',
+    ...                       '/home/user1/baz.tar,/usr/lib,rw']))
+    [('/home/user1/foo.tar', '/', 'ro'), \
+('/home/user1/bar.tar', '/var/lib', 'ro'), \
+('/home/user1/baz.tar', '/usr/lib', 'rw')]
+
+    """
+    for image in zvm_images:
+        image_split = image.split(',')
+        # mount_dir and access_type are optional,
+        # so defaults are provided:
+        mount_dir = _DEFAULT_MOUNT_DIR
+        access_type = _DEFAULT_MOUNT_ACCESS
+
+        if len(image_split) == 1:
+            path = image_split[0]
+        elif len(image_split) == 2:
+            path, mount_dir = image_split
+        elif len(image_split) == 3:
+            path, mount_dir, access_type = image_split
+
+        yield path, mount_dir, access_type
+
+
+def create_manifest(working_dir, program_path, manifest_cfg, tar_files,
+                    limits_cfg):
+    """
+    :param manifest_cfg:
+        `dict` containing the following keys:
+
+            * Node
+            * Version
+            * Timeout
+            * Memory
+    :param limits_cfg:
+        `dict` containing the following keys:
+
+            * reads
+            * rbytes
+            * writes
+            * wbytes
+    """
+    manifest = Manifest.default_manifest(working_dir, program_path)
+    manifest.node = manifest_cfg['Node']
+    manifest.version = manifest_cfg['Version']
+    manifest.timeout = manifest_cfg['Timeout']
+    manifest.memory = manifest_cfg['Memory']
+
+    for i, tar_file in enumerate(tar_files, start=1):
+        mount_point = '/dev/%s.%s' % (i, path.basename(tar_file))
+
+        ch = Channel(
+            tar_file, mount_point, access_type=RND_READ_RND_WRITE,
+            gets=limits_cfg['reads'],
+            get_size=limits_cfg['rbytes'],
+            puts=limits_cfg['writes'],
+            put_size=limits_cfg['wbytes'],
+        )
+        manifest.channels.append(ch)
+
+    return manifest
+
+
+def _get_runtime_file_paths(working_dir, node):
+    """
+    Generate the runtime files paths for boot, manifest, nvram, stdout, and
+    stderr files, and return them as a `OrderedDict` with the following
+    structure:
+
+    >>> _get_runtime_file_paths('/home/user1', 1)
+    OrderedDict([('boot', '/home/user1/boot.1'), \
+('manifest', '/home/user1/manifest.1'), \
+('nvram', '/home/user1/nvram.1'), \
+('stdout', '/home/user1/stdout.1'), \
+('stderr', '/home/user1/stderr.1')])
+
+    Note that that paths are created by simply joining `working_dir`, so
+    relatve file paths can be used as well:
+
+    >>> _get_runtime_file_paths('foo/', 1)
+    OrderedDict([('boot', 'foo/boot.1'), \
+('manifest', 'foo/manifest.1'), \
+('nvram', 'foo/nvram.1'), \
+('stdout', 'foo/stdout.1'), \
+('stderr', 'foo/stderr.1')])
+    """
+    files = OrderedDict()
+    for each in ('boot', 'manifest', 'nvram', 'stdout', 'stderr'):
+        files[each] = path.join(working_dir, '%s.%s' % (each, node))
+
+    return files
+
+
+def _check_runtime_files(runtime_files):
+    """
+    Given a `dict` of runtime files (see the output
+    :func:`_get_runtime_file_paths`), check if any exist. If any exist, raise
+    a `RuntimeError`.
+    """
+    for file_path in runtime_files.values():
+        if path.exists(file_path):
+            raise RuntimeError("Unable to write '%s': file already exists"
+                               % file_path)
+
+
+def run_zerovm(zvconfig, zvargs):
+    """
+    :param zvconfig:
+        :class:`ZvConfig` instance.
+    :param zvargs:
+        :class:`ZvArgs` instance.
+    """
+    if zvargs.args.zvm_save_dir is None:
+        # use a temp dir
+        working_dir = mkdtemp()
+    else:
+        # use the specified dir
+        working_dir = path.abspath(path.expanduser(zvargs.args.zvm_save_dir))
+
+    if not path.exists(working_dir):
+        os.makedirs(working_dir)
+    # Manifest config options from the command line / zvsh.cfg
+    man_cfg = zvconfig['manifest']
+    node = man_cfg['Node']
+
+    # These files will be generated in the `working_dir`.
+    runtime_files = _get_runtime_file_paths(working_dir, node)
+    # If any of these files already exist in the target dir,
+    # we need to raise an error and halt.
+    _check_runtime_files(runtime_files)
+
+    os.mkfifo(runtime_files['stdout'])
+    os.mkfifo(runtime_files['stderr'])
+
+    processed_images = list(_process_images(zvargs.args.zvm_image))
+    # expand the tar image paths to absolute paths and resolve any user tokens,
+    # such as ~ and ~foouser.
+    processed_images = [(path.abspath(path.expanduser(tar_path)), mp, access)
+                        for tar_path, mp, access in processed_images]
+    # Just the tar files:
+    tar_files = [x[0] for x in processed_images]
+
+    # Search the tar images and extract the target nexe to the specified file
+    # (runtime_files['boot'])
+    _extract_nexe(runtime_files['boot'], processed_images, zvargs.args.command)
+
+    # Generate and write the manifest file:
+    manifest = create_manifest(working_dir, runtime_files['boot'], man_cfg,
+                               tar_files, zvconfig['limits'])
+    with open(runtime_files['manifest'], 'w') as man_fp:
+        man_fp.write(manifest.dumps())
+
+    # Generate and write the nvram file:
+    nvram = NVRAM([zvargs.args.command] + zvargs.args.cmd_args,
+                  processed_images)
+    with open(runtime_files['nvram'], 'w') as nvram_fp:
+        nvram_fp.write(nvram.dumps())
+
+    # Now that all required files are generated and in place, run:
+    try:
+        _run_zerovm(working_dir, runtime_files['manifest'],
+                    runtime_files['stdout'], runtime_files['stderr'],
+                    zvargs.args.zvm_trace, zvargs.args.zvm_getrc)
+    finally:
+        # If we're using a tempdir for the working files,
+        # destroy the directory to clean up.
+        if zvargs.args.zvm_save_dir is None:
+            shutil.rmtree(working_dir)
+
+
+def _run_zerovm(working_dir, manifest_path, stdout_path, stderr_path,
+                zvm_trace, zvm_getrc):
+    """
+    :param working_dir:
+        Working directory which contains files needed to run ZeroVM (manifest,
+        nvram, etc.).
+    :param manifest_path:
+        Path to the ZeroVM manifest, which should be in `working_dir`.
+    :param stdout_path:
+        Path to the file into which stdout is written. This file should be in
+        `working_dir`.
+    :param stderr_path:
+        Path to the file into which stderr is written. This file should be in
+        `working_dir`.
+    :param bool zvm_trace:
+        If `True`, enable ZeroVM trace output into `./zvsh.trace.log`.
+    :param bool zvm_getrc:
+        If `True`, return the ZeroVM exit code instead of the application exit
+        code.
+    """
+    zvm_run = ['zerovm', '-PQ']
+    if zvm_trace:
+        # TODO(larsbutler): This should not be hard-coded. Can we parameterize
+        # this via the command line?
+        trace_log = path.abspath('zvsh.trace.log')
+        zvm_run.extend(['-T', trace_log])
+    zvm_run.append(manifest_path)
+    runner = ZvRunner(zvm_run, stdout_path, stderr_path, working_dir,
+                      getrc=zvm_getrc)
+    runner.run()
+
+
+def _extract_nexe(program_path, processed_images, command):
+    """
+    Given a `command`, search through the listed tar images
+    (`processed_images`) and extract the nexe matching `command` to the target
+    `program_path` on the host file system.
+
+    :param program_path:
+        Location (including filename) which specifies the destination of the
+        extracted nexe.
+    :param processed_images:
+        Output of :func:`_process_images`.
+    :param command:
+        The name of a nexe, such as `python` or `myapp.nexe`.
+    """
+    with open(program_path, 'w') as program_fp:
+        for zvm_image, _, _ in processed_images:
+            try:
+                tf = tarfile.open(zvm_image)
+                nexe_fp = tf.extractfile(command)
+                # once we've found the nexe the user wants to run,
+                # we're done
+                program_fp.write(nexe_fp.read())
+                return program_path
+            except KeyError:
+                # program not found in this image,
+                # go to the next and keep searching
+                pass
+            finally:
+                tf.close()
+
 
 class ZvArgs:
+    """
+    :attr parser:
+        :class:`argparse.ArgumentParser` instance, used to define the command
+        line arguments.
+    :attr args:
+        :class:`argparse.Namespace` representing the command line arguments.
+    """
+
     def __init__(self):
         self.parser = argparse.ArgumentParser(
             formatter_class=argparse.RawTextHelpFormatter
@@ -351,8 +859,6 @@ class ZvRunner:
         self.getrc = getrc
         self.report = ''
         self.rc = -255
-        os.mkfifo(self.stdout)
-        os.mkfifo(self.stderr)
 
     def run(self):
         try:
@@ -447,7 +953,7 @@ def is_binary_string(byte_string):
 def spawn(argv, master_read=pty_read, stdin_read=pty_read):
     """Create a spawned process.
     Based on pty.spawn code."""
-    # TODO(LB): This type check won't work with python3
+    # TODO(larsbutler): This type check won't work with python3
     # See http://packages.python.org/six/#six.string_types
     # for a possible solution.
     if isinstance(argv, (basestring)):
