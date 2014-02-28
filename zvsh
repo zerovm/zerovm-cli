@@ -6,7 +6,7 @@ from zvshlib import zvsh
 
 zvsh_args = zvsh.ZvArgs()
 zvsh_args.parse(sys.argv[1:])
-zvsh_config = [os.path.abspath('zvsh.cfg'),
+zvsh_config = ['zvsh.cfg',
                os.path.expanduser('~/.zvsh.cfg'),
                '/etc/zvsh.cfg']
 config = zvsh.ZvConfig()
