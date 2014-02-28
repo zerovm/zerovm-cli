@@ -673,7 +673,7 @@ class ZvShell(object):
         self.config = config
         self.savedir = savedir
         if self.savedir:
-            self.tmpdir = os.path.abspath(self.savedir)
+            self.tmpdir = self.savedir
             if os.path.isdir(self.tmpdir):
                 shutil.rmtree(self.tmpdir)
             os.makedirs(self.tmpdir)
@@ -700,8 +700,10 @@ class ZvShell(object):
                self.config['limits']['wbytes'])
         self.manifest_channels = [
             self.channel_seq_read_template % (stdin, '/dev/stdin'),
-            self.channel_seq_write_template % (self.stdout, '/dev/stdout'),
-            self.channel_seq_write_template % (self.stderr, '/dev/stderr')
+            self.channel_seq_write_template % (os.path.abspath(self.stdout),
+                                               '/dev/stdout'),
+            self.channel_seq_write_template % (os.path.abspath(self.stderr),
+                                               '/dev/stderr')
         ]
         for k, v in self.config['fstab'].iteritems():
             self.nvram_fstab[self.create_manifest_channel(k)] = v
