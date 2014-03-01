@@ -216,7 +216,7 @@ if __name__ == '__main__':
     nspool = GreenPool(1)
     app_args = AppArgs()
     app_args.parse(sys.argv[1:])
-    zvsh_config = [os.path.abspath('zvsh.cfg'),
+    zvsh_config = ['zvsh.cfg',
                    os.path.expanduser('~/.zvsh.cfg'),
                    '/etc/zvsh.cfg']
     zvconfig = ZvConfig()

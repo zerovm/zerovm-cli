@@ -445,7 +445,7 @@ def run_zerovm(zvconfig, zvargs):
         working_dir = mkdtemp()
     else:
         # use the specified dir
-        working_dir = path.abspath(path.expanduser(zvargs.args.zvm_save_dir))
+        working_dir = path.abspath(zvargs.args.zvm_save_dir)
 
     if not path.exists(working_dir):
         os.makedirs(working_dir)
@@ -463,9 +463,8 @@ def run_zerovm(zvconfig, zvargs):
     os.mkfifo(runtime_files['stderr'])
 
     processed_images = list(_process_images(zvargs.args.zvm_image))
-    # expand the tar image paths to absolute paths and resolve any user tokens,
-    # such as ~ and ~foouser.
-    processed_images = [(path.abspath(path.expanduser(tar_path)), mp, access)
+    # expand the tar image paths to absolute paths.
+    processed_images = [(path.abspath(tar_path), mp, access)
                         for tar_path, mp, access in processed_images]
     # Just the tar files:
     tar_files = [x[0] for x in processed_images]
@@ -674,7 +673,7 @@ class ZvShell(object):
         self.config = config
         self.savedir = savedir
         if self.savedir:
-            self.tmpdir = os.path.abspath(self.savedir)
+            self.tmpdir = self.savedir
             if os.path.isdir(self.tmpdir):
                 shutil.rmtree(self.tmpdir)
             os.makedirs(self.tmpdir)
@@ -701,8 +700,10 @@ class ZvShell(object):
                self.config['limits']['wbytes'])
         self.manifest_channels = [
             self.channel_seq_read_template % (stdin, '/dev/stdin'),
-            self.channel_seq_write_template % (self.stdout, '/dev/stdout'),
-            self.channel_seq_write_template % (self.stderr, '/dev/stderr')
+            self.channel_seq_write_template % (os.path.abspath(self.stdout),
+                                               '/dev/stdout'),
+            self.channel_seq_write_template % (os.path.abspath(self.stderr),
+                                               '/dev/stderr')
         ]
         for k, v in self.config['fstab'].iteritems():
             self.nvram_fstab[self.create_manifest_channel(k)] = v
