@@ -1,7 +1,7 @@
 Source: zerovm-cli
 Maintainer: Constantine Peresypkin (pkit) <constantine@litestack.com>
 Section: otherosfs
-Priority: extra
+Priority: optional
 Build-Depends: python-all (>= 2.6.6-3), debhelper (>= 7.4.3), python-setuptools
 Standards-Version: 3.9.3
 
