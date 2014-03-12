@@ -276,9 +276,11 @@ class NVRAM(object):
         if sys.stderr.isatty():
             mapping += 'channel=/dev/stderr,mode=char\n'
 
-        # Commas and spaces need to be properly encoded, in order for commands
-        # like `python -c "print 42"` to work:
-        # args ['python', '-c', 'print 42']
+        # When ZRT presents a program with its argv, it parses the
+        # nvram file. This parser is very simple. It will choke on ','
+        # (it treats comma the same as newline) and it will split the
+        # command line on ' '. We must therefore escape each argument
+        # individually before joining them.
         args = ' '.join(map(_nvram_escape, self.program_args))
 
         nvram_text %= dict(
