@@ -191,7 +191,7 @@ class TestNVRAM:
 
         expected = (
             r"""[args]
-args = python -c print\x20"hello\x2c\x20world"
+args = python -c print\x20\x22hello\x2c\x20world\x22
 [fstab]
 channel=/dev/1.usr.tar,mountpoint=/usr,access=ro,removable=no
 channel=/dev/2.etc.tar,mountpoint=/etc,access=rw,removable=no

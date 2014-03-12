@@ -279,7 +279,7 @@ class NVRAM(object):
         # Commas and spaces need to be properly encoded, in order for commands
         # like `python -c "print 42"` to work:
         # args ['python', '-c', 'print 42']
-        args = ' '.join(_encode_nvram_args(self.program_args))
+        args = ' '.join(map(_nvram_escape, self.program_args))
 
         nvram_text %= dict(
             args=args,
@@ -291,29 +291,45 @@ class NVRAM(object):
         if self.env is not None:
             nvram_text += '[env]\n'
             for k, v in self.env.items():
-                nvram_text += 'name=%s,value=%s\n' % (
-                    # TODO(larsbutler): It's not clear exactly why the comma
-                    # must be escaped; since this is a reimplementation of the
-                    # old code, it needs to be equivalent. It would be nice to
-                    # document this and explain why the change is necessary.
-                    k, v.replace(',', '\\x2c')
-                )
+                nvram_text += 'name=%s,value=%s\n' % (k, _nvram_escape(v))
         if self.debug_verbosity is not None:
             nvram_text += '[debug]\nverbosity=%s\n' % self.debug_verbosity
 
         return nvram_text
 
 
-def _encode_nvram_args(args):
-    """
-    Commas and spaces in ZeroVM command strings need to be properly encoded.
+def _nvram_escape(value):
+    r"""Escape value for inclusion as a value in a nvram file.
 
-    >>> _encode_nvram_args(['python', '-c', 'print "Hello, world"'])
-    ['python', '-c', 'print\\\\x20"Hello\\\\x2c\\\\x20world"']
+    The ini-file parser in ZRT is very simple. One quirk is that it
+    handles ',' the same as '\n', which means that a value like
+
+      greeting = Hello, World
+
+    will be cut-off after "Hello".
+
+    Values also need protection in other ways:
+
+    * When "args" are loaded, the value is split on ' ' and each
+      argument found is then unescaped. This means that each arg need
+      to have ' ' escaped.
+
+    * When a "value" is loaded in [env], it is unescaped. It must
+      therefore also be escaped.
+
+    This function escapes '\\', '"', ',', ' ', and '\n'. These are the
+    characters that conf_parser::unescape_string_copy_to_dest is
+    documented to handle and they are sufficient to handle the above
+    use cases.
+
+    >>> _nvram_escape('foo, bar')
+    'foo\\x2c\\x20bar'
+    >>> _nvram_escape('new\nline')
+    'new\\x0aline'
     """
-    return [a.replace(' ', '\\x20')  # space
-             .replace(',', '\\x2c')  # comma
-            for a in args]
+    for c in '\\", \n':
+        value = value.replace(c, '\\x%02x' % ord(c))
+    return value
 
 
 def _process_images(zvm_images):
