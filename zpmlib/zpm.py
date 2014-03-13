@@ -14,6 +14,8 @@
 
 import os
 import tarfile
+import glob
+import json
 
 from os import path
 
@@ -75,34 +77,35 @@ def _create_project(location):
         fp.write(ZAR_INI_TEMPLATE)
 
 
-def bundle_project(location):
+def find_project_root():
+    root = os.getcwd()
+    while not os.path.isfile(os.path.join(root, 'zar.json')):
+        oldroot, root = root, os.path.dirname(root)
+        if root == oldroot:
+            raise RuntimeError("no zar.json file found")
+    return root
+
+
+def bundle_project(root):
     """
-    Bundle the project given the root project directory as `location`.
+    Bundle the project under root.
     """
-    location = path.abspath(location)
+    zar_json = os.path.join(root, 'zar.json')
+    zar = json.load(open(zar_json))
 
-    zar_ini = path.join(location, 'zar.ini')
-    meta_ini = path.join(location, 'meta.ini')
+    zar_name = zar['meta']['name'] + '.zar'
 
-    # read zar.ini
-    with open(zar_ini) as fp:
-        tars = get_tars_from_zar_ini(fp)
-        tars = list(tars)
-    # TODO(LB): Maybe need a `zpm --bundle --recreate` to force recreation of
-    # cached tars.
+    tar = tarfile.open(zar_name, 'w:gz')
 
-    # now bundle up all of those tars (by tar location specified in the zar.ini
-    # into the .zar,
-    # plus the zar.ini and meta.ini
-    # use the dirname as the zar name
-    zar_name = '%s.zar' % path.split(location)[1]
-    zar = tarfile.open(name=zar_name, mode='w')
-    try:
-        for each_file in tars + [zar_ini, meta_ini]:
-            zar.add(each_file, path.basename(each_file))
-    finally:
-        zar.close()
-    # TODO(LB): Return or print the generated .zar filename?
+    for pattern in zar['bundling'] + ['zar.json']:
+        for path in glob.glob(os.path.join(root, pattern)):
+            print('adding', path)
+            relpath = os.path.relpath(path, root)
+            info = tarfile.TarInfo(name=relpath)
+            info.size = os.path.getsize(path)
+            tar.addfile(info, open(path, 'rb'))
+    tar.close()
+    print('created', zar_name)
 
 
 def make_tar(tar_fp, path, arcpath):

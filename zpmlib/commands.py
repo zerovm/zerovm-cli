@@ -48,9 +48,8 @@ def bundle(parser):
     """Bundle a ZeroVM application"""
 
     def cmd(args):
-        zpm.bundle_project(args.dir)
+        root = zpm.find_project_root()
+        zpm.bundle_project(root)
 
-    parser.add_argument('dir', help='ZeroVM workspace',
-                        metavar='WORKING_DIR', nargs='?',
-                        default=os.getcwd())
+
     parser.set_defaults(func=cmd)
