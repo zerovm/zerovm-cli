@@ -13,9 +13,16 @@
 #  limitations under the License.
 
 import os
+import json
 import operator
-from zpmlib import zpm
+import tarfile
+import shlex
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
 
+from zpmlib import zpm, miniswift
 
 _commands = []
 
@@ -51,5 +58,87 @@ def bundle(parser):
         root = zpm.find_project_root()
         zpm.bundle_project(root)
 
+    parser.set_defaults(func=cmd)
+
+
+@command
+def deploy(parser):
+
+    def cmd(args):
+        print('deploying', args.zar)
+
+        tar = tarfile.open(args.zar)
+        zar = json.load(tar.extractfile('zar.json'))
+
+        #from pprint import pprint
+        #print('loaded zar:')
+        #pprint(zar)
+
+        job = []
+
+        def make_file_list(zgroup):
+            file_list = []
+            for device in zgroup['devices']:
+                dev = {'device': device['name']}
+                if 'path' in device:
+                    dev['path'] = device['path']
+                file_list.append(dev)
+            return file_list
+
+        # TODO(mg): we should eventually reuse zvsh._nvram_escape
+        def escape(value):
+            for c in '\\", \n':
+                value = value.replace(c, '\\x%02x' % ord(c))
+            return value
+
+        def translate_args(cmdline):
+            args = shlex.split(cmdline)
+            return ' '.join(escape(arg) for arg in args)
+
+        for zgroup in zar['execution']['groups']:
+            jgroup = {'name': zgroup['name']}
+            jgroup['exec'] = {
+                'path': zgroup['path'],
+                'args': translate_args(zgroup['args']),
+            }
+
+            jgroup['file_list'] = make_file_list(zgroup)
+
+            path = '%s/%s' % (args.target, os.path.basename(args.zar))
+            client = miniswift.ZwiftClient(args.os_auth_url,
+                                           args.os_tenant_name,
+                                           args.os_username,
+                                           args.os_password)
+            client.auth()
+            client.upload(path, open(args.zar).read())
+
+            swift_path = urlparse.urlparse(client._swift_url).path
+            if swift_path.startswith('/v1/'):
+                swift_path = swift_path[4:]
+            swift_url = 'swift://%s/%s' % (swift_path, path)
+            jgroup['file_list'].append({'device': 'image', 'path': swift_url})
+            job.append(jgroup)
+
+        print('job template:')
+        from pprint import pprint
+        pprint(job)
+
+        print('executing')
+        client.post_job(json.dumps(job))
+
+    parser.add_argument('zar', help='A ZeroVM artifact')
+    parser.add_argument('target', help='Swift path (directory) to deploy into')
+    parser.add_argument('--os-auth-url',
+                        default=os.environ.get('OS_AUTH_URL'),
+                        help='OpenStack auth URL. Defaults to $OS_AUTH_URL.')
+    parser.add_argument('--os-tenant-name',
+                        default=os.environ.get('OS_TENANT_NAME'),
+                        help='OpenStack tenant. Defaults to $OS_TENANT_NAME.')
+    parser.add_argument('--os-username',
+                        default=os.environ.get('OS_USERNAME'),
+                        help='OpenStack username. Defaults to $OS_USERNAME.')
+    parser.add_argument('--os-password',
+                        default=os.environ.get('OS_PASSWORD'),
+                        help='OpenStack password. Defaults to $OS_PASSWORD.')
 
     parser.set_defaults(func=cmd)
