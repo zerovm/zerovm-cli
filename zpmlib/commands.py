@@ -121,17 +121,21 @@ def deploy(parser):
         swift_path = urlparse.urlparse(client._swift_url).path
         if swift_path.startswith('/v1/'):
             swift_path = swift_path[4:]
-        swift_url = 'swift://%s/%s' % (swift_path, path)
-        job = _generate_job_desc(zar, swift_url)
 
-        print('job template:')
-        from pprint import pprint
-        pprint(job)
-        print('executing')
-        client.post_job(json.dumps(job))
+        if args.execute:
+            swift_url = 'swift://%s/%s' % (swift_path, path)
+            job = _generate_job_desc(zar, swift_url)
+
+            print('job template:')
+            from pprint import pprint
+            pprint(job)
+            print('executing')
+            client.post_job(json.dumps(job))
 
     parser.add_argument('zar', help='A ZeroVM artifact')
     parser.add_argument('target', help='Swift path (directory) to deploy into')
+    parser.add_argument('--execute', action='store_true', help='Immediatedly '
+                        'execute the deployed Zar (for testing)')
     parser.add_argument('--os-auth-url',
                         default=os.environ.get('OS_AUTH_URL'),
                         help='OpenStack auth URL. Defaults to $OS_AUTH_URL.')
