@@ -103,21 +103,22 @@ def deploy(parser):
             }
 
             jgroup['file_list'] = make_file_list(zgroup)
-
-            path = '%s/%s' % (args.target, os.path.basename(args.zar))
-            client = miniswift.ZwiftClient(args.os_auth_url,
-                                           args.os_tenant_name,
-                                           args.os_username,
-                                           args.os_password)
-            client.auth()
-            client.upload(path, open(args.zar).read())
-
-            swift_path = urlparse.urlparse(client._swift_url).path
-            if swift_path.startswith('/v1/'):
-                swift_path = swift_path[4:]
-            swift_url = 'swift://%s/%s' % (swift_path, path)
-            jgroup['file_list'].append({'device': 'image', 'path': swift_url})
             job.append(jgroup)
+
+        path = '%s/%s' % (args.target, os.path.basename(args.zar))
+        client = miniswift.ZwiftClient(args.os_auth_url,
+                                       args.os_tenant_name,
+                                       args.os_username,
+                                       args.os_password)
+        client.auth()
+        client.upload(path, open(args.zar).read())
+
+        swift_path = urlparse.urlparse(client._swift_url).path
+        if swift_path.startswith('/v1/'):
+            swift_path = swift_path[4:]
+        swift_url = 'swift://%s/%s' % (swift_path, path)
+        for group in job:
+            group['file_list'].append({'device': 'image', 'path': swift_url})
 
         print('job template:')
         from pprint import pprint
