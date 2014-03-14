@@ -24,10 +24,16 @@ except ImportError:
 
 from zpmlib import zpm, miniswift
 
+# List of function that will be the top-level zpm commands.
 _commands = []
 
 
 def command(func):
+    """Register `func` as a top-level zpm command.
+
+    The name of the function will be the name of the command and any
+    cmdline arguments registered with `arg` will be available.
+    """
     _commands.append(func)
     return func
 
