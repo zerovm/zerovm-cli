@@ -32,33 +32,40 @@ def command(func):
     return func
 
 
+def arg(*args, **kwargs):
+    """Decorator for adding command line argument.
+
+    The `args` and `kwargs` will eventually be passed to
+    `ArgumentParser.add_argument`.
+    """
+    def decorator(func):
+        if not hasattr(func, '_args'):
+            func._args = []
+        func._args.append((args, kwargs))
+        return func
+    return decorator
+
+
 def all_commands():
     return sorted(_commands, key=operator.attrgetter('__name__'))
 
 
 @command
-def new(parser):
+@arg('dir', help='Non-existent or empty directory',
+     metavar='WORKING_DIR', nargs='?',
+     default=os.getcwd())
+def new(args):
     """Create a new ZeroVM application workspace"""
 
-    def cmd(args):
-        zpm.create_project(args.dir)
-        print('Created new project in "%s"' % args.dir)
-
-    parser.add_argument('dir', help='Non-existent or empty directory',
-                        metavar='WORKING_DIR', nargs='?',
-                        default=os.getcwd())
-    parser.set_defaults(func=cmd)
+    zpm.create_project(args.dir)
+    print('Created new project in "%s"' % args.dir)
 
 
 @command
-def bundle(parser):
+def bundle(args):
     """Bundle a ZeroVM application"""
-
-    def cmd(args):
-        root = zpm.find_project_root()
-        zpm.bundle_project(root)
-
-    parser.set_defaults(func=cmd)
+    root = zpm.find_project_root()
+    zpm.bundle_project(root)
 
 
 def _generate_job_desc(zar, swift_url):
@@ -97,56 +104,47 @@ def _generate_job_desc(zar, swift_url):
 
 
 @command
-def deploy(parser):
+@arg('zar', help='A ZeroVM artifact')
+@arg('target', help='Swift path (directory) to deploy into')
+@arg('--execute', action='store_true', help='Immediatedly '
+     'execute the deployed Zar (for testing)')
+@arg('--os-auth-url', default=os.environ.get('OS_AUTH_URL'),
+     help='OpenStack auth URL. Defaults to $OS_AUTH_URL.')
+@arg('--os-tenant-name', default=os.environ.get('OS_TENANT_NAME'),
+     help='OpenStack tenant. Defaults to $OS_TENANT_NAME.')
+@arg('--os-username', default=os.environ.get('OS_USERNAME'),
+     help='OpenStack username. Defaults to $OS_USERNAME.')
+@arg('--os-password', default=os.environ.get('OS_PASSWORD'),
+     help='OpenStack password. Defaults to $OS_PASSWORD.')
+def deploy(args):
+    print('deploying %s' % args.zar)
 
-    def cmd(args):
-        print('deploying %s' % args.zar)
+    tar = tarfile.open(args.zar)
+    zar = json.load(tar.extractfile('zar.json'))
 
-        tar = tarfile.open(args.zar)
-        zar = json.load(tar.extractfile('zar.json'))
+    #from pprint import pprint
+    #print('loaded zar:')
+    #pprint(zar)
 
-        #from pprint import pprint
-        #print('loaded zar:')
-        #pprint(zar)
+    client = miniswift.ZwiftClient(args.os_auth_url,
+                                   args.os_tenant_name,
+                                   args.os_username,
+                                   args.os_password)
+    client.auth()
 
-        client = miniswift.ZwiftClient(args.os_auth_url,
-                                       args.os_tenant_name,
-                                       args.os_username,
-                                       args.os_password)
-        client.auth()
+    path = '%s/%s' % (args.target, os.path.basename(args.zar))
+    client.upload(path, open(args.zar).read())
 
-        path = '%s/%s' % (args.target, os.path.basename(args.zar))
-        client.upload(path, open(args.zar).read())
+    swift_path = urlparse.urlparse(client._swift_url).path
+    if swift_path.startswith('/v1/'):
+        swift_path = swift_path[4:]
 
-        swift_path = urlparse.urlparse(client._swift_url).path
-        if swift_path.startswith('/v1/'):
-            swift_path = swift_path[4:]
+    if args.execute:
+        swift_url = 'swift://%s/%s' % (swift_path, path)
+        job = _generate_job_desc(zar, swift_url)
 
-        if args.execute:
-            swift_url = 'swift://%s/%s' % (swift_path, path)
-            job = _generate_job_desc(zar, swift_url)
-
-            print('job template:')
-            from pprint import pprint
-            pprint(job)
-            print('executing')
-            client.post_job(json.dumps(job))
-
-    parser.add_argument('zar', help='A ZeroVM artifact')
-    parser.add_argument('target', help='Swift path (directory) to deploy into')
-    parser.add_argument('--execute', action='store_true', help='Immediatedly '
-                        'execute the deployed Zar (for testing)')
-    parser.add_argument('--os-auth-url',
-                        default=os.environ.get('OS_AUTH_URL'),
-                        help='OpenStack auth URL. Defaults to $OS_AUTH_URL.')
-    parser.add_argument('--os-tenant-name',
-                        default=os.environ.get('OS_TENANT_NAME'),
-                        help='OpenStack tenant. Defaults to $OS_TENANT_NAME.')
-    parser.add_argument('--os-username',
-                        default=os.environ.get('OS_USERNAME'),
-                        help='OpenStack username. Defaults to $OS_USERNAME.')
-    parser.add_argument('--os-password',
-                        default=os.environ.get('OS_PASSWORD'),
-                        help='OpenStack password. Defaults to $OS_PASSWORD.')
-
-    parser.set_defaults(func=cmd)
+        print('job template:')
+        from pprint import pprint
+        pprint(job)
+        print('executing')
+        client.post_job(json.dumps(job))

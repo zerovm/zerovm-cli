@@ -30,7 +30,12 @@ def set_up_arg_parser():
 
     for cmd in commands.all_commands():
         subparser = subparsers.add_parser(cmd.__name__, help=cmd.__doc__)
-        cmd(subparser)
+        # Add arguments in reverse order: the last decorator
+        # (bottom-most in the source) is called first, so its
+        # arguments will be at the front of the list.
+        for args, kwargs in reversed(getattr(cmd, '_args', [])):
+            subparser.add_argument(*args, **kwargs)
+        subparser.set_defaults(func=cmd)
 
     return parser
 
