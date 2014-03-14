@@ -19,12 +19,6 @@ import json
 
 from os import path
 
-try:
-    from configparser import ConfigParser
-except ImportError:
-    # Python 2 fallback
-    from ConfigParser import ConfigParser
-
 
 def create_project(location):
     """
@@ -79,50 +73,3 @@ def bundle_project(root):
             tar.addfile(info, open(path, 'rb'))
     tar.close()
     print('created %s' % zar_name)
-
-
-def make_tar(tar_fp, path, arcpath):
-    """
-    Recursively pack the files at `path` into a tar file.
-
-    :param tar_fp:
-        A writable file-like.
-    :param path:
-        Directory or file to add the archive.
-    :param arcpath:
-        Path in the archive in which to place the files in `path`.
-    """
-    tar = tarfile.open(mode='w', fileobj=tar_fp)
-    try:
-        tar.add(path, arcname=arcpath)
-    finally:
-        tar.close()
-
-
-def get_tars_from_zar_ini(zar_ini_fp):
-    """
-    Parse a zar.ini and get the paths of all the referenced tar files as a
-    generator.
-
-    Side effect: If the tar doesn't exist and there is a source path defined
-    for the tar, we will attempt to create it.
-
-    :raises:
-        `RuntimeError` if the tar doesn't exist and there's no source defined
-        from which it can be build.
-    """
-    zar_ini_cp = ConfigParser()
-    zar_ini_cp.readfp(zar_ini_fp)
-    # get [tars] info
-    for name, mapping in zar_ini_cp.items('tars'):
-        src_path, tar_path, mount_pt = mapping.split(':')
-        if not path.exists(tar_path):
-            if src_path == '':
-                raise RuntimeError("Tar does not exist, and there's no source"
-                                   "to build it from")
-            else:
-                # we have a source path, but the tar isn't there,
-                # so build it
-                with open(tar_path, 'w') as fp:
-                    make_tar(fp, tar_path, path.basename(tar_path))
-        yield tar_path
