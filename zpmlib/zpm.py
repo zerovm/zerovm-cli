@@ -25,26 +25,6 @@ except ImportError:
     # Python 2 fallback
     from ConfigParser import ConfigParser
 
-META_INI_TEMPLATE = """\
-[metadata]
-name =
-version =
-summary =
-author-email =
-license =
-"""
-ZAR_INI_TEMPLATE = """\
-[zar]
-# The program to run inside ZeroVM. For example:
-# program = python myscript.py arg1 arg2 arg3
-program =
-[tars]
-# name = <path to unpacked src>:<path to tar file>:<mount point on the zvm fs>
-# Examples:
-# myapp = ./myapp:lib/myapp.tar:/lib/python2.7/site-packages
-# python = :/path/to/python.tar:/
-"""
-
 
 def create_project(location):
     """
@@ -68,13 +48,6 @@ def _create_project(location):
     """
     for proj_dir in ('data', 'lib', 'src'):
         os.makedirs(path.join(location, proj_dir))
-
-    # make the template config files:
-    with open(path.join(location, 'meta.ini'), 'w') as fp:
-        fp.write(META_INI_TEMPLATE)
-
-    with open(path.join(location, 'zar.ini'), 'w') as fp:
-        fp.write(ZAR_INI_TEMPLATE)
 
 
 def find_project_root():
