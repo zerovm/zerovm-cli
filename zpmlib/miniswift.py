@@ -42,7 +42,7 @@ class SwiftClient(object):
         data = r.json()
 
         self._token = data['access']['token']['id']
-        print('found token:', self._token[:20], '...')
+        print('found token: %s...' % self._token[:20])
 
         for service in data['access']['serviceCatalog']:
             if service['name'] == 'swift':
@@ -53,7 +53,7 @@ class SwiftClient(object):
                 # parts = list(p)
                 # parts[1] = 'localhost:%d' % p.port
                 # self._swift_url = urlparse.urlunparse(parts)
-                print('found Swift:', self._swift_url)
+                print('found Swift: %s' % self._swift_url)
 
     def upload(self, path, data):
         print('uploading %d bytes to %s' % (len(data), path))

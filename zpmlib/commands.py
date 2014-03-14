@@ -65,7 +65,7 @@ def bundle(parser):
 def deploy(parser):
 
     def cmd(args):
-        print('deploying', args.zar)
+        print('deploying %s' % args.zar)
 
         tar = tarfile.open(args.zar)
         zar = json.load(tar.extractfile('zar.json'))

@@ -99,13 +99,13 @@ def bundle_project(root):
 
     for pattern in zar['bundling'] + ['zar.json']:
         for path in glob.glob(os.path.join(root, pattern)):
-            print('adding', path)
+            print('adding %s' % path)
             relpath = os.path.relpath(path, root)
             info = tarfile.TarInfo(name=relpath)
             info.size = os.path.getsize(path)
             tar.addfile(info, open(path, 'rb'))
     tar.close()
-    print('created', zar_name)
+    print('created %s' % zar_name)
 
 
 def make_tar(tar_fp, path, arcpath):
