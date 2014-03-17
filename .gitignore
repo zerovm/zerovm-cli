@@ -11,6 +11,8 @@ zpm.egg-info
 .coverage
 .tox
 nosetests.xml
+htmlcov/
+junit.xml
 
 # vim
 *.swp
