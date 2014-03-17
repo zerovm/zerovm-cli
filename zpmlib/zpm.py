@@ -14,34 +14,10 @@
 
 import os
 import tarfile
+import glob
+import json
 
 from os import path
-
-try:
-    from configparser import ConfigParser
-except ImportError:
-    # Python 2 fallback
-    from ConfigParser import ConfigParser
-
-META_INI_TEMPLATE = """\
-[metadata]
-name =
-version =
-summary =
-author-email =
-license =
-"""
-ZAR_INI_TEMPLATE = """\
-[zar]
-# The program to run inside ZeroVM. For example:
-# program = python myscript.py arg1 arg2 arg3
-program =
-[tars]
-# name = <path to unpacked src>:<path to tar file>:<mount point on the zvm fs>
-# Examples:
-# myapp = ./myapp:lib/myapp.tar:/lib/python2.7/site-packages
-# python = :/path/to/python.tar:/
-"""
 
 
 def create_project(location):
@@ -67,86 +43,33 @@ def _create_project(location):
     for proj_dir in ('data', 'lib', 'src'):
         os.makedirs(path.join(location, proj_dir))
 
-    # make the template config files:
-    with open(path.join(location, 'meta.ini'), 'w') as fp:
-        fp.write(META_INI_TEMPLATE)
 
-    with open(path.join(location, 'zar.ini'), 'w') as fp:
-        fp.write(ZAR_INI_TEMPLATE)
+def find_project_root():
+    root = os.getcwd()
+    while not os.path.isfile(os.path.join(root, 'zar.json')):
+        oldroot, root = root, os.path.dirname(root)
+        if root == oldroot:
+            raise RuntimeError("no zar.json file found")
+    return root
 
 
-def bundle_project(location):
+def bundle_project(root):
     """
-    Bundle the project given the root project directory as `location`.
+    Bundle the project under root.
     """
-    location = path.abspath(location)
+    zar_json = os.path.join(root, 'zar.json')
+    zar = json.load(open(zar_json))
 
-    zar_ini = path.join(location, 'zar.ini')
-    meta_ini = path.join(location, 'meta.ini')
+    zar_name = zar['meta']['name'] + '.zar'
 
-    # read zar.ini
-    with open(zar_ini) as fp:
-        tars = get_tars_from_zar_ini(fp)
-        tars = list(tars)
-    # TODO(LB): Maybe need a `zpm --bundle --recreate` to force recreation of
-    # cached tars.
+    tar = tarfile.open(zar_name, 'w:gz')
 
-    # now bundle up all of those tars (by tar location specified in the zar.ini
-    # into the .zar,
-    # plus the zar.ini and meta.ini
-    # use the dirname as the zar name
-    zar_name = '%s.zar' % path.split(location)[1]
-    zar = tarfile.open(name=zar_name, mode='w')
-    try:
-        for each_file in tars + [zar_ini, meta_ini]:
-            zar.add(each_file, path.basename(each_file))
-    finally:
-        zar.close()
-    # TODO(LB): Return or print the generated .zar filename?
-
-
-def make_tar(tar_fp, path, arcpath):
-    """
-    Recursively pack the files at `path` into a tar file.
-
-    :param tar_fp:
-        A writable file-like.
-    :param path:
-        Directory or file to add the archive.
-    :param arcpath:
-        Path in the archive in which to place the files in `path`.
-    """
-    tar = tarfile.open(mode='w', fileobj=tar_fp)
-    try:
-        tar.add(path, arcname=arcpath)
-    finally:
-        tar.close()
-
-
-def get_tars_from_zar_ini(zar_ini_fp):
-    """
-    Parse a zar.ini and get the paths of all the referenced tar files as a
-    generator.
-
-    Side effect: If the tar doesn't exist and there is a source path defined
-    for the tar, we will attempt to create it.
-
-    :raises:
-        `RuntimeError` if the tar doesn't exist and there's no source defined
-        from which it can be build.
-    """
-    zar_ini_cp = ConfigParser()
-    zar_ini_cp.readfp(zar_ini_fp)
-    # get [tars] info
-    for name, mapping in zar_ini_cp.items('tars'):
-        src_path, tar_path, mount_pt = mapping.split(':')
-        if not path.exists(tar_path):
-            if src_path == '':
-                raise RuntimeError("Tar does not exist, and there's no source"
-                                   "to build it from")
-            else:
-                # we have a source path, but the tar isn't there,
-                # so build it
-                with open(tar_path, 'w') as fp:
-                    make_tar(fp, tar_path, path.basename(tar_path))
-        yield tar_path
+    for pattern in zar['bundling'] + ['zar.json']:
+        for path in glob.glob(os.path.join(root, pattern)):
+            print('adding %s' % path)
+            relpath = os.path.relpath(path, root)
+            info = tarfile.TarInfo(name=relpath)
+            info.size = os.path.getsize(path)
+            tar.addfile(info, open(path, 'rb'))
+    tar.close()
+    print('created %s' % zar_name)
