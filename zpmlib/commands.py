@@ -17,7 +17,6 @@ import json
 import operator
 import tarfile
 import gzip
-import shlex
 import argparse
 try:
     import urlparse
@@ -101,42 +100,6 @@ def bundle(args):
     zpm.bundle_project(root)
 
 
-def _generate_job_desc(zar, swift_url):
-    job = []
-
-    def make_file_list(zgroup):
-        file_list = []
-        for device in zgroup['devices']:
-            dev = {'device': device['name']}
-            if 'path' in device:
-                dev['path'] = device['path']
-            file_list.append(dev)
-        return file_list
-
-    # TODO(mg): we should eventually reuse zvsh._nvram_escape
-    def escape(value):
-        for c in '\\", \n':
-            value = value.replace(c, '\\x%02x' % ord(c))
-        return value
-
-    def translate_args(cmdline):
-        cmdline = cmdline.encode('utf8')
-        args = shlex.split(cmdline)
-        return ' '.join(escape(arg.decode('utf8')) for arg in args)
-
-    for zgroup in zar['execution']['groups']:
-        jgroup = {'name': zgroup['name']}
-        jgroup['exec'] = {
-            'path': zgroup['path'],
-            'args': translate_args(zgroup['args']),
-        }
-
-        jgroup['file_list'] = make_file_list(zgroup)
-        jgroup['file_list'].append({'device': 'image', 'path': swift_url})
-        job.append(jgroup)
-    return job
-
-
 @command
 @arg('zar', help='A ZeroVM artifact')
 @arg('target', help='Swift path (directory) to deploy into')
@@ -188,7 +151,10 @@ def deploy(args):
 
     if args.execute:
         swift_url = 'swift://%s/%s' % (swift_path, path)
-        job = _generate_job_desc(zar, swift_url)
+        job = json.load(tar.extractfile('%s.json' % zar['meta']['name']))
+        device = {'device': 'image', 'path': swift_url}
+        for group in job:
+            group['file_list'].append(device)
 
         print('job template:')
         from pprint import pprint

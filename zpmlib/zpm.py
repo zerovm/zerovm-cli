@@ -16,6 +16,11 @@ import os
 import tarfile
 import glob
 import json
+import shlex
+try:
+    import cStringIO as StringIO
+except ImportError:
+    import io as StringIO
 
 from os import path
 
@@ -53,6 +58,41 @@ def find_project_root():
     return root
 
 
+def _generate_job_desc(zar):
+    job = []
+
+    def make_file_list(zgroup):
+        file_list = []
+        for device in zgroup['devices']:
+            dev = {'device': device['name']}
+            if 'path' in device:
+                dev['path'] = device['path']
+            file_list.append(dev)
+        return file_list
+
+    # TODO(mg): we should eventually reuse zvsh._nvram_escape
+    def escape(value):
+        for c in '\\", \n':
+            value = value.replace(c, '\\x%02x' % ord(c))
+        return value
+
+    def translate_args(cmdline):
+        cmdline = cmdline.encode('utf8')
+        args = shlex.split(cmdline)
+        return ' '.join(escape(arg.decode('utf8')) for arg in args)
+
+    for zgroup in zar['execution']['groups']:
+        jgroup = {'name': zgroup['name']}
+        jgroup['exec'] = {
+            'path': zgroup['path'],
+            'args': translate_args(zgroup['args']),
+        }
+
+        jgroup['file_list'] = make_file_list(zgroup)
+        job.append(jgroup)
+    return job
+
+
 def bundle_project(root):
     """
     Bundle the project under root.
@@ -63,6 +103,13 @@ def bundle_project(root):
     zar_name = zar['meta']['name'] + '.zar'
 
     tar = tarfile.open(zar_name, 'w:gz')
+
+    job = _generate_job_desc(zar)
+    job_json = json.dumps(job)
+    info = tarfile.TarInfo(name='%s.json' % zar['meta']['name'])
+    info.size = len(job_json)
+    print('adding %s' % info.name)
+    tar.addfile(info, StringIO.StringIO(job_json))
 
     for pattern in zar['bundling'] + ['zar.json']:
         for path in glob.glob(os.path.join(root, pattern)):
