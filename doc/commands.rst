@@ -5,6 +5,8 @@ ZPM Commands
 The ``zpm`` script has the following top-level commands:
 
 
+.. _zpm-new:
+
 ``zpm new``
 -----------
 
@@ -15,6 +17,9 @@ The ``zpm`` script has the following top-level commands:
    :func: set_up_arg_parser
    :prog: zpm
    :path: new
+
+
+.. _zpm-deploy:
 
 
 ``zpm deploy``
@@ -28,6 +33,8 @@ The ``zpm`` script has the following top-level commands:
    :prog: zpm
    :path: deploy
 
+
+.. _zpm-bundle:
 
 ``zpm bundle``
 --------------
