@@ -158,7 +158,10 @@ def deploy(args):
     You will need to know the Swift authentication URL, username,
     password, and tenant name. These can be supplied with command line
     flags (see below) or you can set the corresponding environment
-    variables.
+    variables. The environment variables are the same as the ones used
+    by the `Swift command line tool <http://docs.openstack.org/
+    user-guide/content/swift_commands.html>`_, so if you're already
+    using that to upload files to Swift, you will be ready to go.
     """
     print('deploying %s' % args.zar)
 
