@@ -92,7 +92,11 @@ def new(args):
 
 @command
 def bundle(args):
-    """Bundle a ZeroVM application"""
+    """Bundle a ZeroVM application
+
+    This command creates a ZAR using the instructions in ``zar.json``.
+    The file is read from the project root.
+    """
     root = zpm.find_project_root()
     zpm.bundle_project(root)
 
@@ -146,7 +150,16 @@ def _generate_job_desc(zar, swift_url):
 @arg('--os-password', default=os.environ.get('OS_PASSWORD'),
      help='OpenStack password. Defaults to $OS_PASSWORD.')
 def deploy(args):
-    """Deploy a ZeroVM application"""
+    """Deploy a ZeroVM application
+
+    This deploys a zar onto Swift. The zar can be one you have
+    downloaded or produced yourself :ref:`zpm-bundle`.
+
+    You will need to know the Swift authentication URL, username,
+    password, and tenant name. These can be supplied with command line
+    flags (see below) or you can set the corresponding environment
+    variables.
+    """
     print('deploying %s' % args.zar)
 
     tar = tarfile.open(args.zar)
