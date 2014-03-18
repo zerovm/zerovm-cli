@@ -123,6 +123,7 @@ def _generate_job_desc(zar, swift_url):
 @arg('--os-password', default=os.environ.get('OS_PASSWORD'),
      help='OpenStack password. Defaults to $OS_PASSWORD.')
 def deploy(args):
+    """Deploy a ZeroVM application"""
     print('deploying %s' % args.zar)
 
     tar = tarfile.open(args.zar)
