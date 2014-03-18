@@ -17,6 +17,7 @@ import json
 import operator
 import tarfile
 import shlex
+import argparse
 try:
     import urlparse
 except ImportError:
@@ -26,6 +27,27 @@ from zpmlib import zpm, miniswift
 
 # List of function that will be the top-level zpm commands.
 _commands = []
+
+
+def set_up_arg_parser():
+    parser = argparse.ArgumentParser(
+        description='ZeroVM Package Manager',
+        epilog=("See 'zpm <command> --help' for more information on a specific"
+                " command."),
+    )
+    subparsers = parser.add_subparsers(description='available subcommands',
+                                       metavar='COMMAND')
+
+    for cmd in all_commands():
+        subparser = subparsers.add_parser(cmd.__name__, help=cmd.__doc__)
+        # Add arguments in reverse order: the last decorator
+        # (bottom-most in the source) is called first, so its
+        # arguments will be at the front of the list.
+        for args, kwargs in reversed(getattr(cmd, '_args', [])):
+            subparser.add_argument(*args, **kwargs)
+        subparser.set_defaults(func=cmd)
+
+    return parser
 
 
 def command(func):
