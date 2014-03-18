@@ -14,6 +14,7 @@
 
 import sys
 import os
+from sphinx.ext import autodoc
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -23,7 +24,19 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.0'
+needs_sphinx = '1.1'
+
+
+class CommandDocumenter(autodoc.FunctionDocumenter):
+    objtype = 'command'
+    content_indent = ''
+
+    def add_directive_header(self, sig):
+        pass
+
+
+def setup(app):
+    app.add_autodocumenter(CommandDocumenter)
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
