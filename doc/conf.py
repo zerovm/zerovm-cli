@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinxarg.ext',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
