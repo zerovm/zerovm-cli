@@ -685,6 +685,7 @@ class ZvShell(object):
         self.nvram_fstab = {}
         self.nvram_args = None
         self.nvram_filename = None
+        self.nvram_reg_files = []
         self.program = None
         self.savedir = None
         self.tmpdir = None
@@ -753,6 +754,7 @@ class ZvShell(object):
                     self.config['env'][m.group(1)] = m.group(2)
                 else:
                     dev_name = self.create_manifest_channel(arg)
+                    self.nvram_reg_files.append(dev_name)
                     untrusted_args.append(dev_name)
             else:
                 untrusted_args.append(arg)
@@ -805,14 +807,18 @@ class ZvShell(object):
                 (mp, access) = mount.split()
                 nvram += ('channel=%s,mountpoint=%s,access=%s,removable=no\n'
                           % (channel, mp, access))
+        mapping = ''
         if sys.stdin.isatty() or sys.stdout.isatty() or sys.stderr.isatty():
-            nvram += '[mapping]\n'
             if sys.stdin.isatty():
-                nvram += 'channel=/dev/stdin,mode=char\n'
+                mapping += 'channel=/dev/stdin,mode=char\n'
             if sys.stdout.isatty():
-                nvram += 'channel=/dev/stdout,mode=char\n'
+                mapping += 'channel=/dev/stdout,mode=char\n'
             if sys.stderr.isatty():
-                nvram += 'channel=/dev/stderr,mode=char\n'
+                mapping += 'channel=/dev/stderr,mode=char\n'
+        for dev in self.nvram_reg_files:
+            mapping += 'channel=%s,mode=file\n' % dev
+        if mapping:
+            nvram += '[mapping]\n' + mapping
         if verbosity:
             nvram += '[debug]\nverbosity=%d\n' % verbosity
         self.nvram_filename = os.path.join(self.tmpdir,
