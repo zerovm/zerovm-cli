@@ -16,6 +16,7 @@ import os
 import json
 import operator
 import tarfile
+import gzip
 import shlex
 import argparse
 try:
@@ -162,7 +163,7 @@ def deploy(args):
     client.auth()
 
     path = '%s/%s' % (args.target, os.path.basename(args.zar))
-    client.upload(path, open(args.zar).read())
+    client.upload(path, gzip.open(args.zar).read())
 
     swift_path = urlparse.urlparse(client._swift_url).path
     if swift_path.startswith('/v1/'):
