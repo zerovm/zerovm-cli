@@ -149,13 +149,15 @@ def deploy(args):
     if swift_path.startswith('/v1/'):
         swift_path = swift_path[4:]
 
-    if args.execute:
-        swift_url = 'swift://%s/%s' % (swift_path, path)
-        job = json.load(tar.extractfile('%s.json' % zar['meta']['name']))
-        device = {'device': 'image', 'path': swift_url}
-        for group in job:
-            group['file_list'].append(device)
+    swift_url = 'swift://%s/%s' % (swift_path, path)
+    job = json.load(tar.extractfile('%s.json' % zar['meta']['name']))
+    device = {'device': 'image', 'path': swift_url}
+    for group in job:
+        group['file_list'].append(device)
+    job_json = json.dumps(job)
+    client.upload('%s/%s.json' % (args.target, zar['meta']['name']), job_json)
 
+    if args.execute:
         print('job template:')
         from pprint import pprint
         pprint(job)
