@@ -111,7 +111,8 @@ def bundle_project(root):
     print('adding %s' % info.name)
     tar.addfile(info, StringIO.StringIO(job_json))
 
-    for pattern in zar['bundling'] + ['zar.json']:
+    zar['bundling'].append('zar.json')
+    for pattern in zar['bundling']:
         for path in glob.glob(os.path.join(root, pattern)):
             print('adding %s' % path)
             relpath = os.path.relpath(path, root)
