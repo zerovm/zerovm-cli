@@ -157,6 +157,10 @@ def deploy(args):
     job_json = json.dumps(job)
     client.upload('%s/%s.json' % (args.target, zar['meta']['name']), job_json)
 
+    for path in zar['ui']:
+        client.upload('%s/%s' % (args.target, path),
+                      tar.extractfile(path).read())
+
     if args.execute:
         print('job template:')
         from pprint import pprint
