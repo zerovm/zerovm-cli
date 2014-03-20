@@ -120,8 +120,9 @@ def _generate_job_desc(zar, swift_url):
         return value
 
     def translate_args(cmdline):
+        cmdline = cmdline.encode('utf8')
         args = shlex.split(cmdline)
-        return ' '.join(escape(arg) for arg in args)
+        return ' '.join(escape(arg.decode('utf8')) for arg in args)
 
     for zgroup in zar['execution']['groups']:
         jgroup = {'name': zgroup['name']}
