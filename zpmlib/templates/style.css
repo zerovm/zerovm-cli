@@ -1,0 +1,9 @@
+body {
+    font-family: sans;
+    margin: 1em;
+}
+
+#run {
+    padding: 1em;
+    font-weight: bold;
+}

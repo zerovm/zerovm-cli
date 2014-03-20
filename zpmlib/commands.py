@@ -25,6 +25,8 @@ except ImportError:
 
 from zpmlib import zpm, miniswift
 
+import jinja2
+
 # List of function that will be the top-level zpm commands.
 _commands = []
 
@@ -157,9 +159,17 @@ def deploy(args):
     job_json = json.dumps(job)
     client.upload('%s/%s.json' % (args.target, zar['meta']['name']), job_json)
 
-    for path in zar['ui']:
-        client.upload('%s/%s' % (args.target, path),
-                      tar.extractfile(path).read())
+    # TODO(mg): inserting the username and password in the uploaded
+    # file makes testing easy, but should not be done in production.
+    deploy = {'auth_url': args.os_auth_url,
+              'tenant': args.os_tenant_name,
+              'username': args.os_username,
+              'password': args.os_password}
+    for path in zar.get('ui', ['index.html', 'style.css', 'zebra.js']):
+        # Upload UI files after expanding deployment parameters
+        tmpl = jinja2.Template(tar.extractfile(path).read())
+        output = tmpl.render(deploy=deploy)
+        client.upload('%s/%s' % (args.target, path), output)
 
     if args.execute:
         print('job template:')

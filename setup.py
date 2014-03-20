@@ -32,7 +32,7 @@ setup(
     platforms=['any'],
     packages=find_packages(exclude=['zpmlib.tests', 'zpmlib.tests.*']),
     provides=['zpm (%s)' % VERSION],
-    install_requires=['requests'],
+    install_requires=['requests', 'jinja2'],
     license='Apache 2.0',
     keywords='zpm zerovm zvm',
     classifiers=(

@@ -24,6 +24,8 @@ except ImportError:
 
 from os import path
 
+import jinja2
+
 
 def create_project(location):
     """
@@ -93,6 +95,19 @@ def _generate_job_desc(zar):
     return job
 
 
+def _add_ui(tar, zar):
+    loader = jinja2.PackageLoader('zpmlib', 'templates')
+    env = jinja2.Environment(loader=loader)
+
+    for path in ['index.html', 'style.css', 'zebra.js']:
+        tmpl = env.get_template(path)
+        output = tmpl.render(zar=zar)
+        info = tarfile.TarInfo(name=path)
+        info.size = len(output)
+        print('adding %s' % path)
+        tar.addfile(info, StringIO.StringIO(output))
+
+
 def bundle_project(root):
     """
     Bundle the project under root.
@@ -112,12 +127,17 @@ def bundle_project(root):
     tar.addfile(info, StringIO.StringIO(job_json))
 
     zar['bundling'].append('zar.json')
-    for pattern in zar['bundling'] + zar['ui']:
+    ui = zar.get('ui', [])
+    for pattern in zar['bundling'] + ui:
         for path in glob.glob(os.path.join(root, pattern)):
             print('adding %s' % path)
             relpath = os.path.relpath(path, root)
             info = tarfile.TarInfo(name=relpath)
             info.size = os.path.getsize(path)
             tar.addfile(info, open(path, 'rb'))
+
+    if not ui:
+        _add_ui(tar, zar)
+
     tar.close()
     print('created %s' % zar_name)
