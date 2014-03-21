@@ -19,7 +19,7 @@ ZwiftClient.prototype.auth = function (success) {
     var self = this;
     $.ajax({
         'type': 'POST',
-        'url': this._authUrl,
+        'url': this._authUrl + '/tokens',
         'data': JSON.stringify(payload),
         'cache': false,
         'success': function (data) {
