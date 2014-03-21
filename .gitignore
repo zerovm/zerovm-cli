@@ -1,5 +1,6 @@
 *.py[cod]
 *~
+*.orig
 
 # Packages
 dist

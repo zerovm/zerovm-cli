@@ -16,8 +16,15 @@ import os
 import tarfile
 import glob
 import json
+import shlex
+try:
+    import cStringIO as StringIO
+except ImportError:
+    import io as StringIO
 
 from os import path
+
+import jinja2
 
 
 def create_project(location):
@@ -53,6 +60,54 @@ def find_project_root():
     return root
 
 
+def _generate_job_desc(zar):
+    job = []
+
+    def make_file_list(zgroup):
+        file_list = []
+        for device in zgroup['devices']:
+            dev = {'device': device['name']}
+            if 'path' in device:
+                dev['path'] = device['path']
+            file_list.append(dev)
+        return file_list
+
+    # TODO(mg): we should eventually reuse zvsh._nvram_escape
+    def escape(value):
+        for c in '\\", \n':
+            value = value.replace(c, '\\x%02x' % ord(c))
+        return value
+
+    def translate_args(cmdline):
+        cmdline = cmdline.encode('utf8')
+        args = shlex.split(cmdline)
+        return ' '.join(escape(arg.decode('utf8')) for arg in args)
+
+    for zgroup in zar['execution']['groups']:
+        jgroup = {'name': zgroup['name']}
+        jgroup['exec'] = {
+            'path': zgroup['path'],
+            'args': translate_args(zgroup['args']),
+        }
+
+        jgroup['file_list'] = make_file_list(zgroup)
+        job.append(jgroup)
+    return job
+
+
+def _add_ui(tar, zar):
+    loader = jinja2.PackageLoader('zpmlib', 'templates')
+    env = jinja2.Environment(loader=loader)
+
+    for path in ['index.html', 'style.css', 'zebra.js']:
+        tmpl = env.get_template(path)
+        output = tmpl.render(zar=zar)
+        info = tarfile.TarInfo(name=path)
+        info.size = len(output)
+        print('adding %s' % path)
+        tar.addfile(info, StringIO.StringIO(output))
+
+
 def bundle_project(root):
     """
     Bundle the project under root.
@@ -64,12 +119,25 @@ def bundle_project(root):
 
     tar = tarfile.open(zar_name, 'w:gz')
 
-    for pattern in zar['bundling'] + ['zar.json']:
+    job = _generate_job_desc(zar)
+    job_json = json.dumps(job)
+    info = tarfile.TarInfo(name='%s.json' % zar['meta']['name'])
+    info.size = len(job_json)
+    print('adding %s' % info.name)
+    tar.addfile(info, StringIO.StringIO(job_json))
+
+    zar['bundling'].append('zar.json')
+    ui = zar.get('ui', [])
+    for pattern in zar['bundling'] + ui:
         for path in glob.glob(os.path.join(root, pattern)):
             print('adding %s' % path)
             relpath = os.path.relpath(path, root)
             info = tarfile.TarInfo(name=relpath)
             info.size = os.path.getsize(path)
             tar.addfile(info, open(path, 'rb'))
+
+    if not ui:
+        _add_ui(tar, zar)
+
     tar.close()
     print('created %s' % zar_name)

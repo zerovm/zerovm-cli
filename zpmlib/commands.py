@@ -17,7 +17,6 @@ import json
 import operator
 import tarfile
 import gzip
-import shlex
 import argparse
 try:
     import urlparse
@@ -25,6 +24,8 @@ except ImportError:
     import urllib.parse as urlparse
 
 from zpmlib import zpm, miniswift
+
+import jinja2
 
 # List of function that will be the top-level zpm commands.
 _commands = []
@@ -101,42 +102,6 @@ def bundle(args):
     zpm.bundle_project(root)
 
 
-def _generate_job_desc(zar, swift_url):
-    job = []
-
-    def make_file_list(zgroup):
-        file_list = []
-        for device in zgroup['devices']:
-            dev = {'device': device['name']}
-            if 'path' in device:
-                dev['path'] = device['path']
-            file_list.append(dev)
-        return file_list
-
-    # TODO(mg): we should eventually reuse zvsh._nvram_escape
-    def escape(value):
-        for c in '\\", \n':
-            value = value.replace(c, '\\x%02x' % ord(c))
-        return value
-
-    def translate_args(cmdline):
-        cmdline = cmdline.encode('utf8')
-        args = shlex.split(cmdline)
-        return ' '.join(escape(arg.decode('utf8')) for arg in args)
-
-    for zgroup in zar['execution']['groups']:
-        jgroup = {'name': zgroup['name']}
-        jgroup['exec'] = {
-            'path': zgroup['path'],
-            'args': translate_args(zgroup['args']),
-        }
-
-        jgroup['file_list'] = make_file_list(zgroup)
-        jgroup['file_list'].append({'device': 'image', 'path': swift_url})
-        job.append(jgroup)
-    return job
-
-
 @command
 @arg('zar', help='A ZeroVM artifact')
 @arg('target', help='Swift path (directory) to deploy into')
@@ -186,10 +151,27 @@ def deploy(args):
     if swift_path.startswith('/v1/'):
         swift_path = swift_path[4:]
 
-    if args.execute:
-        swift_url = 'swift://%s/%s' % (swift_path, path)
-        job = _generate_job_desc(zar, swift_url)
+    swift_url = 'swift://%s/%s' % (swift_path, path)
+    job = json.load(tar.extractfile('%s.json' % zar['meta']['name']))
+    device = {'device': 'image', 'path': swift_url}
+    for group in job:
+        group['file_list'].append(device)
+    job_json = json.dumps(job)
+    client.upload('%s/%s.json' % (args.target, zar['meta']['name']), job_json)
 
+    # TODO(mg): inserting the username and password in the uploaded
+    # file makes testing easy, but should not be done in production.
+    deploy = {'auth_url': args.os_auth_url,
+              'tenant': args.os_tenant_name,
+              'username': args.os_username,
+              'password': args.os_password}
+    for path in zar.get('ui', ['index.html', 'style.css', 'zebra.js']):
+        # Upload UI files after expanding deployment parameters
+        tmpl = jinja2.Template(tar.extractfile(path).read())
+        output = tmpl.render(deploy=deploy)
+        client.upload('%s/%s' % (args.target, path), output)
+
+    if args.execute:
         print('job template:')
         from pprint import pprint
         pprint(job)
