@@ -161,6 +161,7 @@ def deploy(args):
 
     # TODO(mg): inserting the username and password in the uploaded
     # file makes testing easy, but should not be done in production.
+    # See issue #44.
     deploy = {'auth_url': args.os_auth_url,
               'tenant': args.os_tenant_name,
               'username': args.os_username,
