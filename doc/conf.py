@@ -34,6 +34,9 @@ class CommandDocumenter(autodoc.FunctionDocumenter):
     def add_directive_header(self, sig):
         pass
 
+    @classmethod
+    def can_document_member(cls, member, membername, isattr, parent):
+        return False
 
 def setup(app):
     app.add_autodocumenter(CommandDocumenter)
