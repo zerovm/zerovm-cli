@@ -15,6 +15,13 @@ Contents:
    commands
 
 
+API
+===
+
+.. toctree::
+   api
+
+
 Indices and tables
 ==================
 
