@@ -56,7 +56,6 @@ class SwiftClient(object):
                 print('found Swift: %s' % self._swift_url)
 
     def upload(self, path, data):
-        print('uploading %d bytes to %s' % (len(data), path))
         headers = {'X-Auth-Token': self._token}
         r = requests.put('%s/%s' % (self._swift_url, path),
                          data=data, headers=headers)
