@@ -14,6 +14,7 @@
 
 from zpmlib import commands
 
+
 def test_all_commands_sorted():
     cmd_names = [cmd.__name__ for cmd in commands.all_commands()]
     assert cmd_names == sorted(cmd_names)
