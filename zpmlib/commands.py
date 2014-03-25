@@ -181,6 +181,6 @@ def deploy(args):
         from pprint import pprint
         pprint(job)
         print('executing')
-        client.post_job(json.dumps(job))
+        client.post_job(job)
 
     print('app deployed to\n  %s/%s/' % (client._swift_url, args.target))
