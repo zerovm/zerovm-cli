@@ -87,8 +87,12 @@ def all_commands():
 def new(args):
     """Create a new ZeroVM application workspace"""
 
-    zpm.create_project(args.dir)
-    print('Created new project in "%s"' % args.dir)
+    try:
+        zpm.create_project(args.dir)
+    except RuntimeError as err:
+        print(err.message)
+    else:
+        print("Created new project in '%s'" % args.dir)
 
 
 @command
