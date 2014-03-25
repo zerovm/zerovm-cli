@@ -19,6 +19,23 @@ import requests
 
 
 class SwiftClient(object):
+    """
+    Lightweight Swift client. Supports authentication to Keystone and basic
+    Swift functions.
+
+    :param auth_url:
+        Keystone authorization URL, akin to `--os-auth-url` / `OS_AUTH_URL`.
+
+        The URL against which we can perform Swift operations is retrieved from
+        the Keystone service catalog, which is obtained when we authenticate to
+        this `auth_url`.
+    :param tenant:
+        Keystone tenant name, akin to `--os-tenant-name` / `OS_TENANT_NAME`).
+    :param username:
+        Keystone username, akin to `--os-username` / `OS_USERNAME`.
+    :param password:
+        Keystone password, akin to `--os-password` / `OS_PASSWORD`.
+    """
 
     def __init__(self, auth_url, tenant, username, password):
         self._auth_url = auth_url
@@ -30,6 +47,12 @@ class SwiftClient(object):
         self._swift_url = None
 
     def auth(self):
+        """
+        Connect to the Keystone service and cache the access token and Swift
+        endpoint URL (if available in the service catalog).
+
+        Calling this is a prequisite for any Swift operations.
+        """
         headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'}
         payload = {'auth':
@@ -56,6 +79,15 @@ class SwiftClient(object):
                 print('found Swift: %s' % self._swift_url)
 
     def upload(self, path, data):
+        """
+        Upload file contents in `data` to the `path` in Swift.
+
+        :param path:
+            <container>/<filename> in Swift where we want to upload the given
+            `data`.
+        :param data:
+            Contents of a file, as a string/bytes.
+        """
         headers = {'X-Auth-Token': self._token}
         r = requests.put('%s/%s' % (self._swift_url, path),
                          data=data, headers=headers)
@@ -69,8 +101,19 @@ class SwiftClient(object):
 
 
 class ZwiftClient(SwiftClient):
+    """
+    Extends :class:`SwiftClient` to add ZeroVM/zar execution functionality.
+    """
 
     def post_job(self, job):
+        """
+        Start a ZeroVM job, using a pre-uploaded zar.
+
+        :param str job:
+            JSON string containing the job/servlet configuration. For more
+            info, see:
+            https://github.com/zerovm/zerocloud/blob/icehouse/doc/Servlets.md
+        """
         headers = {'X-Auth-Token': self._token,
                    'Accept': 'application/json',
                    'X-Zerovm-Execute': '1.0',
