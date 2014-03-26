@@ -109,15 +109,16 @@ class ZwiftClient(SwiftClient):
         """
         Start a ZeroVM job, using a pre-uploaded zar.
 
-        :param str job:
-            JSON string containing the job/servlet configuration. For more
-            info, see:
+        :param object job:
+            Object that will be encoded as JSON sent to Zwift. For
+            more information about the job/servlet configuration, see
             https://github.com/zerovm/zerocloud/blob/icehouse/doc/Servlets.md
         """
         headers = {'X-Auth-Token': self._token,
                    'Accept': 'application/json',
                    'X-Zerovm-Execute': '1.0',
                    'Content-Type': 'application/json'}
-        r = requests.post(self._swift_url, data=job, headers=headers)
+        json_data = json.dumps(job)
+        r = requests.post(self._swift_url, data=json_data, headers=headers)
         print(r)
         print(r.content)
