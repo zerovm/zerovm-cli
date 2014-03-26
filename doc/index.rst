@@ -13,6 +13,7 @@ Contents:
 
    intro
    commands
+   zar-json
 
 
 API
