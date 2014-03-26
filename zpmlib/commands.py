@@ -142,10 +142,6 @@ def deploy(args):
     tar = tarfile.open(args.zar)
     zar = json.load(tar.extractfile('zar.json'))
 
-    #from pprint import pprint
-    #print('loaded zar:')
-    #pprint(zar)
-
     client = miniswift.ZwiftClient(args.os_auth_url,
                                    args.os_tenant_name,
                                    args.os_username,
