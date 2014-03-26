@@ -85,10 +85,18 @@ def all_commands():
      metavar='WORKING_DIR', nargs='?',
      default=os.getcwd())
 def new(args):
-    """Create a new ZeroVM application workspace"""
+    """
+    Create a default ZeroVM application ``zar.json`` specification in the
+    target directory. If no directory is specified, ``zar.json`` will be
+    created in the current directory.
+    """
 
-    zpm.create_project(args.dir)
-    print('Created new project in "%s"' % args.dir)
+    try:
+        zpm.create_project(args.dir)
+    except RuntimeError as err:
+        print(err.message)
+    else:
+        print("Created new project in '%s'" % args.dir)
 
 
 @command

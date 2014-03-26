@@ -26,29 +26,68 @@ from os import path
 
 import jinja2
 
+DEFAULT_ZAR_JSON = {
+    "execution": {
+        "groups": [
+            {
+                "path": "file://python2.7:python",
+                "args": "",
+                "name": "",
+                "devices": [
+                    {
+                        "name": "python2.7"
+                    },
+                    {
+                        "name": "stdout"
+                    },
+                ]
+            }
+        ]
+    },
+    "meta": {
+        "Version": "",
+        "name": "",
+        "Author-email": "",
+        "Summary": "",
+    },
+    "help": {
+        "description": "",
+    },
+    "bundling": [
+        ""
+    ],
+}
+
 
 def create_project(location):
     """
     Create an empty project in the specified directory `location`.
     """
     if path.exists(location):
-        if path.isdir(location) and len(os.listdir(location)) == 0:
-            # if it's an empty dir, create the project
-            _create_project(location)
+        if path.isdir(location):
+            # if it's a dir, create the `zar.json`
+            _create_zar_json(location)
         else:
             # target must be an empty directory
-            raise RuntimeError("Location must be an empty directory")
+            raise RuntimeError("Target `location` must be a directory")
     else:
         os.makedirs(location)
-        _create_project(location)
+        _create_zar_json(location)
 
 
-def _create_project(location):
+def _create_zar_json(location):
     """
-    Actually create the directories and ini files for the project.
+    Create a default `zar.json` file in the specified directory `location`.
+
+    Raises a `RuntimeError` if the `location` already contains a `zar.json`
+    file.
     """
-    for proj_dir in ('data', 'lib', 'src'):
-        os.makedirs(path.join(location, proj_dir))
+    filepath = os.path.join(location, 'zar.json')
+    if os.path.exists(filepath):
+        raise RuntimeError("'%s' already exists!" % filepath)
+
+    with open(os.path.join(location, 'zar.json'), 'w') as fp:
+        json.dump(DEFAULT_ZAR_JSON, fp, indent=4)
 
 
 def find_project_root():
