@@ -14,6 +14,7 @@ Contents:
    intro
    commands
    zar-json
+   glossary
 
 
 API

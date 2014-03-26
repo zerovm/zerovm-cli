@@ -84,22 +84,23 @@ The ``execution`` Section
 -------------------------
 
 This section describes the runtime behavior of your ZAR: which groups
-of nodes to create and which nexe to invoke for each. The ``groups``
-key is a list of individual groups. Each group has these keys:
+of nodes to create and which :term:`nexe` to invoke for each. The
+``groups`` key is a list of individual groups. Each group has these
+keys:
 
 ``name``
   The name of this group. You use reference this name when you connect
   a group of nodes to another group.
 
 ``path``
-  Path to the nexe that all nodes in this group will execute. You will
-  typically specify this as :file:`file://{image}:{nexe}`, which means
-  that the nexe is found in the system image called ``image`` under
-  the name ``nexe``. The path to the nexe is relative to the root of
-  the system image.
+  Path to the :term:`nexe` that all nodes in this group will execute.
+  You will typically specify this as :file:`file://{image}:{nexe}`,
+  which means that the nexe is found in the system image called
+  ``image`` under the name ``nexe``. The path to the nexe is relative
+  to the root of the system image.
 
 ``args``
-  Command line arguments that will be passed to the nexe.
+  Command line arguments that will be passed to the :term:`nexe`.
 
 ``devices``
   List of devices that this group need. Each device has a ``name``
@@ -124,11 +125,12 @@ key is a list of individual groups. Each group has these keys:
     to specify where the output should be stored using a ``swift://``
     URL in ``path``. Otherwise the error output will be discarded.
 
-  In addition a Zwift installation can offer a number of system
-  images. They will have to be installed by the system adminitrator of
-  the system your users deploy the ZAR onto. Referencing a system
-  image will cause it to be mounted as the root filesystem when nexe
-  is executed. These are the initially supported system images:
+  In addition a Zwift installation can offer a number of :term:`system
+  images <system image>`. They will have to be installed by the system
+  adminitrator of the system your users deploy the ZAR onto.
+  Referencing a system image will cause it to be mounted as the root
+  filesystem when nexe is executed. These are the initially supported
+  system images:
 
   ``python27``
     This gives you a Python 2.7 environment. The interpreter should be
