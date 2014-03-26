@@ -63,8 +63,8 @@ The ``zar.json`` file will look like this:
 The file is in `JSON format <json_>`_ and describes the program to
 execute, some meta data about it, help about the program and its
 arguments (this program has none), and finally information about which
-files to include when bundling. We will get into more detail later
-about the different sections of the file.
+files to include when bundling. The different sections are described
+in more detail in :ref:`zar-json`.
 
 
 Bundling

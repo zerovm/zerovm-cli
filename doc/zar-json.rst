@@ -1,4 +1,6 @@
 
+.. _zar-json:
+
 The ``zar.json`` File
 =====================
 
