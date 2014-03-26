@@ -61,18 +61,18 @@ DEFAULT_ZAR_JSON = {
 
 def create_project(location):
     """
-    Create an empty project in the specified directory `location`.
+    Create a ZeroVM application project by writing a default `zar.json` in the
+    specified directory `location`.
+
+    :returns: Full path to the created `zar.json` file.
     """
     if path.exists(location):
-        if path.isdir(location):
-            # if it's a dir, create the `zar.json`
-            _create_zar_json(location)
-        else:
+        if not path.isdir(location):
             # target must be an empty directory
             raise RuntimeError("Target `location` must be a directory")
     else:
         os.makedirs(location)
-        _create_zar_json(location)
+    return _create_zar_json(location)
 
 
 def _create_zar_json(location):
@@ -88,6 +88,8 @@ def _create_zar_json(location):
 
     with open(os.path.join(location, 'zar.json'), 'w') as fp:
         json.dump(DEFAULT_ZAR_JSON, fp, indent=4)
+
+    return filepath
 
 
 def find_project_root():
