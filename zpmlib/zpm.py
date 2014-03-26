@@ -15,14 +15,20 @@
 import os
 import tarfile
 import glob
+import gzip
 import json
 import shlex
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
 try:
     import cStringIO as StringIO
 except ImportError:
     import io as StringIO
 
 from os import path
+from zpmlib import miniswift
 
 import jinja2
 
@@ -182,3 +188,51 @@ def bundle_project(root):
 
     tar.close()
     print('created %s' % zar_name)
+
+
+def deploy_project(args):
+    tar = tarfile.open(args.zar)
+    zar = json.load(tar.extractfile('zar.json'))
+
+    client = miniswift.ZwiftClient(args.os_auth_url,
+                                   args.os_tenant_name,
+                                   args.os_username,
+                                   args.os_password)
+    client.auth()
+
+    path = '%s/%s' % (args.target, os.path.basename(args.zar))
+    client.upload(path, gzip.open(args.zar).read())
+
+    swift_path = urlparse.urlparse(client._swift_url).path
+    if swift_path.startswith('/v1/'):
+        swift_path = swift_path[4:]
+
+    swift_url = 'swift://%s/%s' % (swift_path, path)
+    job = json.load(tar.extractfile('%s.json' % zar['meta']['name']))
+    device = {'device': 'image', 'path': swift_url}
+    for group in job:
+        group['file_list'].append(device)
+    job_json = json.dumps(job)
+    client.upload('%s/%s.json' % (args.target, zar['meta']['name']), job_json)
+
+    # TODO(mg): inserting the username and password in the uploaded
+    # file makes testing easy, but should not be done in production.
+    # See issue #44.
+    deploy = {'auth_url': args.os_auth_url,
+              'tenant': args.os_tenant_name,
+              'username': args.os_username,
+              'password': args.os_password}
+    for path in zar.get('ui', ['index.html', 'style.css', 'zebra.js']):
+        # Upload UI files after expanding deployment parameters
+        tmpl = jinja2.Template(tar.extractfile(path).read())
+        output = tmpl.render(deploy=deploy)
+        client.upload('%s/%s' % (args.target, path), output)
+
+    if args.execute:
+        print('job template:')
+        from pprint import pprint
+        pprint(job)
+        print('executing')
+        client.post_job(job)
+
+    print('app deployed to\n  %s/%s/' % (client._swift_url, args.target))
