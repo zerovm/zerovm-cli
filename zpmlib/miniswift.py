@@ -14,6 +14,7 @@
 
 import json
 import requests
+import zpmlib
 
 """Small Swift client library."""
 
@@ -78,6 +79,11 @@ class SwiftClient(object):
                 # self._swift_url = urlparse.urlunparse(parts)
                 print('found Swift: %s' % self._swift_service_url)
                 break
+        else:
+            # No swift found; we can't really do anything without this.
+            # This is a 'SwiftClient', afterall. =)
+            raise zpmlib.ZPMException("'swift' was not found in the service "
+                                      "catalog at '%s'" % self._auth_url)
 
     def upload(self, path, data):
         """
