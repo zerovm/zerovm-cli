@@ -1,0 +1,60 @@
+/* -*- css -*- */
+
+@import url("nature.css");
+
+div.document {
+    background-color: {{ theme_sidebarbgcolor }};
+}
+
+div.sphinxsidebar h3, div.sphinxsidebar h4 {
+    text-shadow: none;
+}
+
+div.sphinxsidebar li, div.sphinxsidebar a {
+    color: {{ theme_sidebarcolor }};
+}
+
+div.sphinxsidebar .searchtip {
+    color: {{ theme_sidebarcolor }};
+}
+
+div.related {
+    background-color: {{ theme_navbarbgcolor }};
+    text-shadow: none;
+}
+
+div.body {
+    color: {{ theme_bodycolor }};
+    background-color: {{ theme_bodybgcolor }};
+}
+
+div.body h1 {
+    color: {{ theme_titlecolor }};
+}
+
+div.body h2, div.body h3 {
+    color: {{ theme_subtitlecolor }};
+}
+
+div.body h1, div.body h2, div.body h3 {
+    background: none;
+    padding-left: 0;
+    text-shadow: none;
+}
+
+div.body a.headerlink {
+    color: {{ theme_linkcolor }};
+}
+
+div.body a.headerlink:hover {
+    color: white;
+    background-color: {{ theme_linkcolor }};
+}
+
+a, a:hover {
+    color: {{ theme_linkcolor }};
+}
+
+tt {
+    color: inherit;
+}
