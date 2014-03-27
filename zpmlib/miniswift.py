@@ -77,6 +77,7 @@ class SwiftClient(object):
                 # parts[1] = 'localhost:%d' % p.port
                 # self._swift_url = urlparse.urlunparse(parts)
                 print('found Swift: %s' % self._swift_service_url)
+                break
 
     def upload(self, path, data):
         """
