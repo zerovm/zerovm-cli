@@ -84,9 +84,10 @@ class TestCreateZarJSON:
 
         try:
             assert not os.path.exists(filepath)
-            zpm._create_zar_json(tempdir)
+            zarjson = zpm._create_zar_json(tempdir)
             assert os.path.exists(filepath)
             with open(filepath) as fp:
                 assert zpm.DEFAULT_ZAR_JSON == json.load(fp)
+            assert os.path.abspath(filepath) == os.path.abspath(zarjson)
         finally:
             shutil.rmtree(tempdir)

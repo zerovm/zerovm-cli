@@ -92,11 +92,11 @@ def new(args):
     """
 
     try:
-        zpm.create_project(args.dir)
+        zarjson = zpm.create_project(args.dir)
     except RuntimeError as err:
         print(err.message)
     else:
-        print("Created new project in '%s'" % args.dir)
+        print("Created '%s'" % zarjson)
 
 
 @command
