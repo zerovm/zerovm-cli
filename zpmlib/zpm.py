@@ -157,6 +157,34 @@ def _add_ui(tar, zar):
         tar.addfile(info, StringIO.StringIO(output))
 
 
+def _get_swift_zar_url(swift_service_url, zar_path):
+    """
+    :param str swift_service_url:
+        The Swift service URL returned from a Keystone service catalog.
+        Example: http://localhost:8080/v1/AUTH_469a9cd20b5a4fc5be9438f66bb5ee04
+
+    :param str zar_path:
+        <container>/<zar-file-name>. Example:
+
+            test_container/myapp.zar
+
+    Here's a typical usage example, with typical input and output:
+
+    >>> swift_service_url = ('http://localhost:8080/v1/'
+    ...                      'AUTH_469a9cd20b5a4fc5be9438f66bb5ee04')
+    >>> zar_path = 'test_container/myapp.zar'
+    >>> _get_swift_zar_url(swift_service_url, zar_path)
+    'swift://AUTH_469a9cd20b5a4fc5be9438f66bb5ee04/test_container/myapp.zar'
+    """
+    swift_path = urlparse.urlparse(swift_service_url).path
+    # TODO(larsbutler): Why do we need to check if the path contains '/v1/'?
+    # This is here due to legacy reasons, but it's not clear to me why this is
+    # needed.
+    if swift_path.startswith('/v1/'):
+        swift_path = swift_path[4:]
+    return 'swift://%s/%s' % (swift_path, zar_path)
+
+
 def bundle_project(root):
     """
     Bundle the project under root.
@@ -216,11 +244,8 @@ def deploy_project(args):
     path = '%s/%s' % (args.target, os.path.basename(args.zar))
     client.upload(path, gzip.open(args.zar).read())
 
-    swift_path = urlparse.urlparse(client._swift_service_url).path
-    if swift_path.startswith('/v1/'):
-        swift_path = swift_path[4:]
+    swift_url = _get_swift_zar_url(client._swift_service_url, path)
 
-    swift_url = 'swift://%s/%s' % (swift_path, path)
     job = json.load(tar.extractfile('%s.json' % zar['meta']['name']))
     device = {'device': 'image', 'path': swift_url}
     for group in job:
