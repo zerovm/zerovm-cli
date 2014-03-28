@@ -185,6 +185,54 @@ def _get_swift_zar_url(swift_service_url, zar_path):
     return 'swift://%s/%s' % (swift_path, zar_path)
 
 
+def _prepare_job(tar, zar, zar_swift_url):
+    """
+    :param tar:
+        The application .zar file, as a :class:`tarfile.TarFile` object.
+    :param dict zar:
+        Parsed contents of the application `zar.json` specification, as a
+        `dict`.
+    :param str zar_swift_url:
+        Path of the .zar in Swift, which looks like this::
+
+            'swift://AUTH_abcdef123/test_container/hello.zar'
+
+        See :func:`_get_swift_zar_url`.
+
+    :returns:
+        Extracted contents of the app json (example: hello.json) with the swift
+        path to the .zar added to the `file_list` for each `group`.
+
+        So if the job looks like this::
+
+            [{'exec': {'args': 'hello.py', 'path': 'file://python2.7:python'},
+              'file_list': [{'device': 'python2.7'}, {'device': 'stdout'}],
+              'name': 'hello'}]
+
+        the output will look like something like this::
+
+            [{'exec': {u'args': 'hello.py', 'path': 'file://python2.7:python'},
+              'file_list': [
+                {'device': 'python2.7'},
+                {'device': 'stdout'},
+                {'device': 'image',
+                 'path': 'swift://AUTH_abcdef123/test_container/hello.zar'},
+              ],
+              'name': 'hello'}]
+
+
+    """
+    job = json.loads(
+        # NOTE(larsbutler): the `decode` is needed for python3 compatibility
+        tar.extractfile('%s.json' % zar['meta']['name']).read().decode('utf-8')
+    )
+    device = {'device': 'image', 'path': zar_swift_url}
+    for group in job:
+        group['file_list'].append(device)
+
+    return job
+
+
 def bundle_project(root):
     """
     Bundle the project under root.
@@ -246,12 +294,9 @@ def deploy_project(args):
 
     swift_url = _get_swift_zar_url(client._swift_service_url, path)
 
-    job = json.load(tar.extractfile('%s.json' % zar['meta']['name']))
-    device = {'device': 'image', 'path': swift_url}
-    for group in job:
-        group['file_list'].append(device)
-    job_json = json.dumps(job)
-    client.upload('%s/%s.json' % (args.target, zar['meta']['name']), job_json)
+    job = _prepare_job(tar, zar, swift_url)
+    client.upload('%s/%s.json' % (args.target, zar['meta']['name']),
+                  json.dumps(job))
 
     # TODO(mg): inserting the username and password in the uploaded
     # file makes testing easy, but should not be done in production.
