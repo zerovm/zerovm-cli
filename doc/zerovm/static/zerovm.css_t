@@ -2,8 +2,19 @@
 
 @import url("nature.css");
 
+@import url("fonts.css");
+
+body {
+    font-family: {{ theme_sansseriffont }};
+}
+
 div.document {
     background-color: {{ theme_sidebarbgcolor }};
+}
+
+div.sphinxsidebar {
+    font-family: {{ theme_lightfont }};
+    font-size: 100%;
 }
 
 div.sphinxsidebar h3, div.sphinxsidebar h4 {
@@ -55,6 +66,8 @@ a, a:hover {
     color: {{ theme_linkcolor }};
 }
 
-tt {
+tt, pre {
+    font-family: {{ theme_monospacefont }};
+    font-size: 1em;
     color: inherit;
 }
