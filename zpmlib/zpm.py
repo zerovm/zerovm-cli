@@ -18,6 +18,7 @@ import glob
 import gzip
 import json
 import shlex
+import fnmatch
 try:
     import urlparse
 except ImportError:
@@ -192,6 +193,17 @@ def bundle_project(root):
     print('created %s' % zar_name)
 
 
+def _find_ui_uploads(zar, tar):
+    if 'ui' not in zar:
+        return _DEFAULT_UI_TEMPLATES
+
+    matches = set()
+    names = tar.getnames()
+    for pattern in zar['ui']:
+        matches.update(fnmatch.filter(names, pattern))
+    return matches
+
+
 def deploy_project(args):
     tar = tarfile.open(args.zar)
     zar = json.load(tar.extractfile('zar.json'))
@@ -224,7 +236,7 @@ def deploy_project(args):
               'tenant': args.os_tenant_name,
               'username': args.os_username,
               'password': args.os_password}
-    for path in zar.get('ui', _DEFAULT_UI_TEMPLATES):
+    for path in _find_ui_uploads(zar, tar):
         # Upload UI files after expanding deployment parameters
         tmpl = jinja2.Template(tar.extractfile(path).read())
         output = tmpl.render(deploy=deploy)

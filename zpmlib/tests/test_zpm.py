@@ -91,3 +91,25 @@ class TestCreateZarJSON:
             assert os.path.abspath(filepath) == os.path.abspath(zarjson)
         finally:
             shutil.rmtree(tempdir)
+
+
+class TestFindUIUploads:
+    """
+    Tests for :func:`zpmlib.zpm._find_ui_uploads`.
+    """
+
+    def test_without_ui(self):
+        matches = zpm._find_ui_uploads({}, None)
+        assert matches == zpm._DEFAULT_UI_TEMPLATES
+
+    def test_with_ui(self):
+        zar = {'ui': ['x']}
+        tar = mock.Mock(getnames=lambda: ['x', 'y'])
+        matches = zpm._find_ui_uploads(zar, tar)
+        assert sorted(matches) == ['x']
+
+    def test_with_glob(self):
+        zar = {'ui': ['x', 'ui/*']}
+        tar = mock.Mock(getnames=lambda: ['x', 'y', 'ui/x', 'ui/y'])
+        matches = zpm._find_ui_uploads(zar, tar)
+        assert sorted(matches) == ['ui/x', 'ui/y', 'x']
