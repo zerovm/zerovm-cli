@@ -203,7 +203,7 @@ def deploy_project(args):
     path = '%s/%s' % (args.target, os.path.basename(args.zar))
     client.upload(path, gzip.open(args.zar).read())
 
-    swift_path = urlparse.urlparse(client._swift_url).path
+    swift_path = urlparse.urlparse(client._swift_service_url).path
     if swift_path.startswith('/v1/'):
         swift_path = swift_path[4:]
 
@@ -235,4 +235,5 @@ def deploy_project(args):
         print('executing')
         client.post_job(job)
 
-    print('app deployed to\n  %s/%s/' % (client._swift_url, args.target))
+    print('app deployed to\n  %s/%s/' % (client._swift_service_url,
+                                         args.target))

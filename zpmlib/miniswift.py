@@ -14,6 +14,7 @@
 
 import json
 import requests
+import zpmlib
 
 """Small Swift client library."""
 
@@ -44,7 +45,7 @@ class SwiftClient(object):
         self._password = password
 
         self._token = None
-        self._swift_url = None
+        self._swift_service_url = None
 
     def auth(self):
         """
@@ -69,14 +70,20 @@ class SwiftClient(object):
 
         for service in data['access']['serviceCatalog']:
             if service['name'] == 'swift':
-                self._swift_url = service['endpoints'][0]['publicURL']
+                self._swift_service_url = service['endpoints'][0]['publicURL']
                 # Force hostname to be localhost -- for testing with a
                 # SSH tunnel when Swift cannot be reached directly.
                 # p = list(urlparse.urlparse(self._swift_url))
                 # parts = list(p)
                 # parts[1] = 'localhost:%d' % p.port
                 # self._swift_url = urlparse.urlunparse(parts)
-                print('found Swift: %s' % self._swift_url)
+                print('found Swift: %s' % self._swift_service_url)
+                break
+        else:
+            # No swift found; we can't really do anything without this.
+            # This is a 'SwiftClient', afterall. =)
+            raise zpmlib.ZPMException("'swift' was not found in the service "
+                                      "catalog at '%s'" % self._auth_url)
 
     def upload(self, path, data):
         """
@@ -89,7 +96,7 @@ class SwiftClient(object):
             Contents of a file, as a string/bytes.
         """
         headers = {'X-Auth-Token': self._token}
-        r = requests.put('%s/%s' % (self._swift_url, path),
+        r = requests.put('%s/%s' % (self._swift_service_url, path),
                          data=data, headers=headers)
         if r.status_code == 200:
             print('created %s succesfully' % path)
@@ -119,6 +126,7 @@ class ZwiftClient(SwiftClient):
                    'X-Zerovm-Execute': '1.0',
                    'Content-Type': 'application/json'}
         json_data = json.dumps(job)
-        r = requests.post(self._swift_url, data=json_data, headers=headers)
+        r = requests.post(self._swift_service_url, data=json_data,
+                          headers=headers)
         print(r)
         print(r.content)
