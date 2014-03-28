@@ -64,6 +64,8 @@ DEFAULT_ZAR_JSON = {
     ],
 }
 
+_DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zebra.js']
+
 
 def create_project(location):
     """
@@ -146,7 +148,7 @@ def _add_ui(tar, zar):
     loader = jinja2.PackageLoader('zpmlib', 'templates')
     env = jinja2.Environment(loader=loader)
 
-    for path in ['index.html', 'style.css', 'zebra.js']:
+    for path in _DEFAULT_UI_TEMPLATES:
         tmpl = env.get_template(path)
         output = tmpl.render(zar=zar)
         info = tarfile.TarInfo(name=path)
@@ -222,7 +224,7 @@ def deploy_project(args):
               'tenant': args.os_tenant_name,
               'username': args.os_username,
               'password': args.os_password}
-    for path in zar.get('ui', ['index.html', 'style.css', 'zebra.js']):
+    for path in zar.get('ui', _DEFAULT_UI_TEMPLATES):
         # Upload UI files after expanding deployment parameters
         tmpl = jinja2.Template(tar.extractfile(path).read())
         output = tmpl.render(deploy=deploy)
