@@ -28,7 +28,6 @@ try:
 except ImportError:
     import io as StringIO
 
-from os import path
 from zpmlib import miniswift
 
 import jinja2
@@ -75,8 +74,8 @@ def create_project(location):
 
     :returns: Full path to the created `zar.json` file.
     """
-    if path.exists(location):
-        if not path.isdir(location):
+    if os.path.exists(location):
+        if not os.path.isdir(location):
             # target must be an empty directory
             raise RuntimeError("Target `location` must be a directory")
     else:
