@@ -129,7 +129,7 @@ For testing, you can execute the job after it has been deployed::
    <Response [200]>
    Hello from ZeroVM!
 
-There currently no support for executing the application later. `Issue
+There currently is no support for executing the application later. `Issue
 #37 <issue37_>`_ deals with that.
 
 .. _json: http://www.json.org/
