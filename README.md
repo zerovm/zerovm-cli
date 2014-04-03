@@ -3,6 +3,25 @@
 ZeroVM Package Manager
 
 
+## Installation
+
+There are currently two options for installing `zpm`.
+
+- Clone and install:
+
+    ```bash
+    $ git clone https://github.com/zerovm/zpm.git
+    $ cd zpm
+    $ python setup.py install
+    ```
+
+- Install directly from `git` using `pip`:
+
+    ```bash
+    $ pip install git+https://github.com/zerovm/zpm.git
+    ```
+
+
 ## Packaging
 
 1. Install debian packaging dependencies:
