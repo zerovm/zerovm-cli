@@ -1,11 +1,9 @@
-zpm
-===
+# zpm
 
 ZeroVM Package Manager
 
 
-Packaging
----------
+## Packaging
 
 1. Install debian packaging dependencies:
 
