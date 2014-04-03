@@ -24,6 +24,9 @@ There are currently two options for installing `zpm`.
 
 ## Packaging
 
+Note: This section is interesting only for project maintainers and packagers.
+This is not required for installing and using `zpm`.
+
 1. Install debian packaging dependencies:
 
     $ sudo apt-get install devscripts debhelper
