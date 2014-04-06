@@ -333,8 +333,8 @@ if __name__ == '__main__':
                                                 ACCESS_READABLE)
             nvram_file, manifest_file, report_file = \
                 local_fs.create_temp_files(node_config['name'])
-            manifest = parser.prepare_zerovm_files(node_config, nvram_file,
-                                                   None, nexe_path)
+            manifest = parser.prepare_for_standalone(node_config, nvram_file,
+                                                     nexe_path, None)
             fd = open(manifest_file, 'wb')
             fd.write(manifest)
             fd.close()
