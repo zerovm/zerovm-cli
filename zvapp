@@ -18,13 +18,16 @@ except ImportError:
     import json
 
 try:
-    from zerocloud.configparser import ClusterConfigParser, ClusterConfigParsingError
-    from zerocloud.common import CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME, NodeEncoder, \
+    from zerocloud.configparser import ClusterConfigParser, \
+        ClusterConfigParsingError
+    from zerocloud.common import CLUSTER_CONFIG_FILENAME, \
+        NODE_CONFIG_FILENAME, NodeEncoder, \
         parse_location, is_swift_path, is_image_path, \
         ACCESS_WRITABLE, ACCESS_READABLE, ACCESS_CDR, ACCESS_NETWORK
     from zerocloud.proxyquery import NameService
 except ImportError:
-    sys.stderr.write('Please install python-zerocloud before running %s\n' % sys.argv[0])
+    sys.stderr.write('Please install python-zerocloud before running %s\n'
+                     % sys.argv[0])
     sys.exit(1)
 
 
@@ -55,18 +58,24 @@ class AppRunner(ZvRunner):
 class AppArgs(ZvArgs):
 
     def add_agruments(self):
-        self.parser.add_argument('exec_file', help='ZeroVM application archive or map file\n')
+        self.parser.add_argument('exec_file',
+                                 help='ZeroVM application archive '
+                                      'or map file\n')
         self.parser.add_argument('--swift-root-path',
-                                 help='Root path for resolving swift:// urls, ex.\n'
+                                 help='Root path for resolving swift:// urls, '
+                                      'ex.\n'
                                       'swift://account/container/object ->'
-                                      ' swift-root-path/account/container/object\n')
+                                      ' swift-root-path/account/container/'
+                                      'object\n')
         self.parser.add_argument('--swift-account-path',
                                  help='Account path for all urls\n'
-                                      'to serve all swift://account/ urls from one path')
+                                      'to serve all swift://account/ '
+                                      'urls from one path')
         self.parser.add_argument('--sysimage-root-path',
                                  help='Root path for system image files\n')
         self.parser.add_argument('--zvm-save-dir',
-                                 help='Save ZeroVM environment files into provided directory,\n'
+                                 help='Save ZeroVM environment files into '
+                                      'provided directory,\n'
                                       'directory will be created/re-created\n')
 
 
@@ -98,7 +107,8 @@ class ZvLocalFilesystem(object):
             sysimage_root_path = config.get('sysimage_path', None)
         if sysimage_root_path:
             self.sysimage_devices = \
-                self._list_sysimage_devices(os.path.abspath(sysimage_root_path))
+                self._list_sysimage_devices(
+                    os.path.abspath(sysimage_root_path))
         self.immediate_responses = {}
 
     def list_account(self, account, mask=None):
@@ -156,7 +166,8 @@ class ZvLocalFilesystem(object):
         elif is_image_path(loc) and access & (ACCESS_READABLE | ACCESS_CDR):
             if 'image' == loc.image:
                 if os.path.isdir(self.image_path):
-                    return os.path.join(os.path.abspath(self.image_path), loc.path)
+                    return os.path.join(os.path.abspath(self.image_path),
+                                        loc.path)
                 else:
                     return self._extract_file(self.image_path, loc.path)
             sysimage = self.sysimage_devices.get(loc.image, None)
@@ -245,17 +256,19 @@ if __name__ == '__main__':
                             arcname=NODE_CONFIG_FILENAME)
                     boot = NODE_CONFIG_FILENAME
                 except OSError:
-                    sys.stderr.write('Cannot find boot map anywhere in %s\n' % app_dir)
+                    sys.stderr.write('Cannot find boot map anywhere in %s\n'
+                                     % app_dir)
                     sys.exit(1)
 
             def tar_filter(tar_info):
-                if tar_info.name in [CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME]:
+                if tar_info.name in [CLUSTER_CONFIG_FILENAME,
+                                     NODE_CONFIG_FILENAME]:
                     return None
                 return tar_info
 
             for item in os.listdir(app_dir):
-                tar.add(os.path.join(app_dir, item), arcname=item, filter=tar_filter)
-            #print tar.getnames()
+                tar.add(os.path.join(app_dir, item), arcname=item,
+                        filter=tar_filter)
             tar.close()
             image_path = os.path.abspath(tar_file)
             cluster_config = json.load(open(os.path.join(app_dir, boot), 'rb'))
@@ -268,14 +281,16 @@ if __name__ == '__main__':
             try:
                 # let's load the file as a cluster map
                 cluster_config = json.load(cluster_config_fd)
-                image_path = os.path.dirname(os.path.abspath(app_args.args.exec_file))
+                image_path = os.path.dirname(
+                    os.path.abspath(app_args.args.exec_file))
             except Exception:
                 # it's not a cluster map file
                 # try to load it as zvm app archive
                 try:
                     tar = tarfile.open(app_args.args.exec_file)
                     for name in tar.getnames():
-                        if name in [CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME]:
+                        if name in [CLUSTER_CONFIG_FILENAME,
+                                    NODE_CONFIG_FILENAME]:
                             cluster_config = json.load(tar.extractfile(name))
                             break
                     image_path = os.path.abspath(app_args.args.exec_file)
@@ -314,21 +329,19 @@ if __name__ == '__main__':
 
             local_fs.resolve_local_paths(node_config)
             nexe_path = local_fs.get_local_path('boot',
-                                                node_config['exe'], ACCESS_READABLE)
+                                                node_config['exe'],
+                                                ACCESS_READABLE)
             nvram_file, manifest_file, report_file = \
                 local_fs.create_temp_files(node_config['name'])
-            #print json.dumps(node_config, indent=2)
-            manifest = parser.prepare_zerovm_files(node_config,
-                                                   nvram_file, None, nexe_path)
+            manifest = parser.prepare_zerovm_files(node_config, nvram_file,
+                                                   None, nexe_path)
             fd = open(manifest_file, 'wb')
             fd.write(manifest)
             fd.close()
             command_line = ['zerovm', '-PQ', manifest_file]
             runner = AppRunner(command_line, report_file)
-            #print manifest
-            #print open(nvram_file).read()
-            #print os.system('ls -al %s' % temp_dir)
-            threads[node_config['name']] = (report_file, node_config['id'], runner)
+            threads[node_config['name']] = (report_file, node_config['id'],
+                                            runner)
         for name in sorted(threads.keys()):
             runner = threads[name][2]
             threadpool.spawn_n(runner.run)
