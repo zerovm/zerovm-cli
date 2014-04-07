@@ -157,6 +157,82 @@ def _add_ui(tar, zar):
         tar.addfile(info, StringIO.StringIO(output))
 
 
+def _get_swift_zar_url(swift_service_url, zar_path):
+    """
+    :param str swift_service_url:
+        The Swift service URL returned from a Keystone service catalog.
+        Example: http://localhost:8080/v1/AUTH_469a9cd20b5a4fc5be9438f66bb5ee04
+
+    :param str zar_path:
+        <container>/<zar-file-name>. Example:
+
+            test_container/myapp.zar
+
+    Here's a typical usage example, with typical input and output:
+
+    >>> swift_service_url = ('http://localhost:8080/v1/'
+    ...                      'AUTH_469a9cd20b5a4fc5be9438f66bb5ee04')
+    >>> zar_path = 'test_container/myapp.zar'
+    >>> _get_swift_zar_url(swift_service_url, zar_path)
+    'swift://AUTH_469a9cd20b5a4fc5be9438f66bb5ee04/test_container/myapp.zar'
+    """
+    swift_path = urlparse.urlparse(swift_service_url).path
+    # TODO(larsbutler): Why do we need to check if the path contains '/v1/'?
+    # This is here due to legacy reasons, but it's not clear to me why this is
+    # needed.
+    if swift_path.startswith('/v1/'):
+        swift_path = swift_path[4:]
+    return 'swift://%s/%s' % (swift_path, zar_path)
+
+
+def _prepare_job(tar, zar, zar_swift_url):
+    """
+    :param tar:
+        The application .zar file, as a :class:`tarfile.TarFile` object.
+    :param dict zar:
+        Parsed contents of the application `zar.json` specification, as a
+        `dict`.
+    :param str zar_swift_url:
+        Path of the .zar in Swift, which looks like this::
+
+            'swift://AUTH_abcdef123/test_container/hello.zar'
+
+        See :func:`_get_swift_zar_url`.
+
+    :returns:
+        Extracted contents of the app json (example: hello.json) with the swift
+        path to the .zar added to the `file_list` for each `group`.
+
+        So if the job looks like this::
+
+            [{'exec': {'args': 'hello.py', 'path': 'file://python2.7:python'},
+              'file_list': [{'device': 'python2.7'}, {'device': 'stdout'}],
+              'name': 'hello'}]
+
+        the output will look like something like this::
+
+            [{'exec': {u'args': 'hello.py', 'path': 'file://python2.7:python'},
+              'file_list': [
+                {'device': 'python2.7'},
+                {'device': 'stdout'},
+                {'device': 'image',
+                 'path': 'swift://AUTH_abcdef123/test_container/hello.zar'},
+              ],
+              'name': 'hello'}]
+
+
+    """
+    job = json.loads(
+        # NOTE(larsbutler): the `decode` is needed for python3 compatibility
+        tar.extractfile('%s.json' % zar['meta']['name']).read().decode('utf-8')
+    )
+    device = {'device': 'image', 'path': zar_swift_url}
+    for group in job:
+        group['file_list'].append(device)
+
+    return job
+
+
 def bundle_project(root):
     """
     Bundle the project under root.
@@ -216,17 +292,11 @@ def deploy_project(args):
     path = '%s/%s' % (args.target, os.path.basename(args.zar))
     client.upload(path, gzip.open(args.zar).read())
 
-    swift_path = urlparse.urlparse(client._swift_service_url).path
-    if swift_path.startswith('/v1/'):
-        swift_path = swift_path[4:]
+    swift_url = _get_swift_zar_url(client._swift_service_url, path)
 
-    swift_url = 'swift://%s/%s' % (swift_path, path)
-    job = json.load(tar.extractfile('%s.json' % zar['meta']['name']))
-    device = {'device': 'image', 'path': swift_url}
-    for group in job:
-        group['file_list'].append(device)
-    job_json = json.dumps(job)
-    client.upload('%s/%s.json' % (args.target, zar['meta']['name']), job_json)
+    job = _prepare_job(tar, zar, swift_url)
+    client.upload('%s/%s.json' % (args.target, zar['meta']['name']),
+                  json.dumps(job))
 
     # TODO(mg): inserting the username and password in the uploaded
     # file makes testing easy, but should not be done in production.
