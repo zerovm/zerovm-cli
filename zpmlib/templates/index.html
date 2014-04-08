@@ -42,7 +42,8 @@
 
     {% for arg, label in zar.help.args %}
     <p>
-      {{ label }}: <input id="{{ arg }}" type="text" />
+      <label for="{{ arg }}">{{ label }}:</label>
+      <input id="{{ arg }}" type="text" />
     </p>
     {% endfor %}
 
