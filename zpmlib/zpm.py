@@ -98,7 +98,9 @@ def _create_zar_json(location):
     with open(os.path.join(location, 'zar.json'), 'w') as fp:
         zar = copy.deepcopy(DEFAULT_ZAR_JSON)
         zar['meta']['name'] = os.path.basename(os.path.abspath(location))
-        json.dump(zar, fp, indent=4)
+        zar_json = json.dumps(zar, indent=4)
+        zar_json = '\n'.join(line.rstrip() for line in zar_json.splitlines())
+        fp.write(zar_json)
 
     return filepath
 
