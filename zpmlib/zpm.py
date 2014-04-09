@@ -20,6 +20,7 @@ import json
 import shlex
 import fnmatch
 import copy
+import collections
 try:
     import urlparse
 except ImportError:
@@ -33,8 +34,8 @@ from zpmlib import miniswift
 
 import jinja2
 
-DEFAULT_ZAR_JSON = {
-    "execution": {
+DEFAULT_ZAR_JSON = collections.OrderedDict([
+    ("execution", {
         "groups": [
             {
                 "path": "file://python2.7:python",
@@ -50,23 +51,23 @@ DEFAULT_ZAR_JSON = {
                 ]
             }
         ]
-    },
-    "meta": {
+    }),
+    ("meta", {
         "Version": "",
         "name": "",
         "Author-email": "",
         "Summary": "",
-    },
-    "help": {
+    }),
+    ("help", {
         "description": "",
         "args": [
             ["", ""],
         ]
-    },
-    "bundling": [
+    }),
+    ("bundling", [
         ""
-    ],
-}
+    ]),
+])
 
 _DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zebra.js']
 

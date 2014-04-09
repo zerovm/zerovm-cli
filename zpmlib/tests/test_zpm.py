@@ -20,6 +20,7 @@ import pytest
 import shutil
 import tarfile
 import tempfile
+import collections
 
 from zpmlib import zpm
 
@@ -94,6 +95,20 @@ class TestCreateZarJSON:
                 expected['meta']['name'] = name
                 assert expected == json.load(fp)
             assert os.path.abspath(filepath) == os.path.abspath(zarjson)
+        finally:
+            shutil.rmtree(tempdir)
+
+    def test_key_ordering(self):
+        # Test the creation of zar.json.
+        tempdir = tempfile.mkdtemp()
+        filepath = os.path.join(tempdir, 'zar.json')
+
+        try:
+            zpm._create_zar_json(tempdir)
+            with open(filepath) as fp:
+                od = collections.OrderedDict
+                loaded = json.load(fp, object_pairs_hook=od)
+                assert loaded.keys() == zpm.DEFAULT_ZAR_JSON.keys()
         finally:
             shutil.rmtree(tempdir)
 
