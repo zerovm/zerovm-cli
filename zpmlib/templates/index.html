@@ -28,7 +28,7 @@
 
                       clone[0].exec.args += ' ' + args.join(' ');
                       client.execute(clone, function (result) {
-                          $('#stdout').val(result);
+                          $('#stdout').text(result);
                       });
                   });
               });
@@ -52,8 +52,6 @@
     </p>
 
     <h2>Output</h2>
-    <p>
-      <textarea id="stdout" rows="8" cols="80"></textarea>
-    </p>
+    <pre id="stdout"></pre>
   </body>
 </html>
