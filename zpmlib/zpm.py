@@ -59,6 +59,9 @@ DEFAULT_ZAR_JSON = {
     },
     "help": {
         "description": "",
+        "args": [
+            ["", ""],
+        ]
     },
     "bundling": [
         ""
