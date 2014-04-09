@@ -19,6 +19,7 @@ import gzip
 import json
 import shlex
 import fnmatch
+import copy
 try:
     import urlparse
 except ImportError:
@@ -95,7 +96,9 @@ def _create_zar_json(location):
         raise RuntimeError("'%s' already exists!" % filepath)
 
     with open(os.path.join(location, 'zar.json'), 'w') as fp:
-        json.dump(DEFAULT_ZAR_JSON, fp, indent=4)
+        zar = copy.deepcopy(DEFAULT_ZAR_JSON)
+        zar['meta']['name'] = os.path.basename(os.path.abspath(location))
+        json.dump(zar, fp, indent=4)
 
     return filepath
 
