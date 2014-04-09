@@ -28,7 +28,7 @@
 
                       clone[0].exec.args += ' ' + args.join(' ');
                       client.execute(clone, function (result) {
-                          $('#stdout').val(result);
+                          $('#stdout').text(result);
                       });
                   });
               });
@@ -42,7 +42,8 @@
 
     {% for arg, label in zar.help.args %}
     <p>
-      {{ label }}: <input id="{{ arg }}" type="text" />
+      <label for="{{ arg }}">{{ label }}:</label>
+      <input id="{{ arg }}" type="text" />
     </p>
     {% endfor %}
 
@@ -50,8 +51,7 @@
       <input id="run" type="submit" value="Execute" />
     </p>
 
-    <p>
-      <textarea id="stdout" rows="8" cols="80"></textarea>
-    </p>
+    <h2>Output</h2>
+    <pre id="stdout"></pre>
   </body>
 </html>
