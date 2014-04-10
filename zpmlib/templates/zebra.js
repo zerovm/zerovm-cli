@@ -85,6 +85,15 @@ ZwiftClient.prototype.execute = function (job, success) {
 };
 
 /*
+ * Compute a Swift URL. This is a URL of the form
+ * swift://<user>/<relativePath>.
+ */
+ZwiftClient.prototype.swiftPath = function (relativePath) {
+    var user = this._swiftUrl.slice(this._swiftUrl.lastIndexOf('/') + 1);
+    return 'swift://' + user + '/' + relativePath;
+}
+
+/*
  * Escape command line argument. Command line arguments in a job
  * description should be separated with spaces after being escaped
  * with this function.

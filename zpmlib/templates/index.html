@@ -27,6 +27,21 @@
                       {% endfor %}
 
                       clone[0].exec.args += ' ' + args.join(' ');
+
+                      $.each(clone, function (i, group) {
+                          $.each(group.file_list, function (i, file) {
+                              var input = null;
+                              if (file.device == 'input') {
+                                  input = $('#input-' + group.name);
+                              } else if (file.device == 'output') {
+                                  input = $('#output-' + group.name);
+                              }
+                              if (input) {
+                                  file.path = client.swiftPath(input.val());
+                              }
+                          });
+                      });
+
                       client.execute(clone, function (result) {
                           $('#stdout').text(result);
                       });
@@ -45,6 +60,29 @@
       <label for="{{ arg }}">{{ label }}:</label>
       <input id="{{ arg }}" type="text" />
     </p>
+    {% endfor %}
+
+    <h2>Input/Output Paths</h2>
+
+    {% for group in zar.execution.groups %}
+        {% for device in group.devices %}
+            {% if device.name == "input" %}
+                <p>
+                  <label for="input-{{ group.name }}">
+                    {{ group.name | capitalize }} input:
+                  </label>
+                  <input id="input-{{ group.name }}" type="text" />
+                </p>
+            {% endif %}
+            {% if device.name == "output" %}
+                <p>
+                  <label for="output-{{ group.name }}">
+                    {{ group.name | capitalize }} output:
+                  </label>
+                  <input id="output-{{ group.name }}" type="text" />
+                </p>
+            {% endif %}
+        {% endfor %}
     {% endfor %}
 
     <p>
