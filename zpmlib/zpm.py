@@ -164,6 +164,10 @@ def _add_ui(tar, zar):
     for path in _DEFAULT_UI_TEMPLATES:
         tmpl = env.get_template(path)
         output = tmpl.render(zar=zar)
+        # NOTE(larsbutler): Python 2.7.2 has a bug related to unicode and
+        # cStringIO. To work around this, we need the following explicit
+        # encoding. See http://bugs.python.org/issue1548891.
+        output = output.encode('utf-8')
         info = tarfile.TarInfo(name=path)
         info.size = len(output)
         print('adding %s' % path)
