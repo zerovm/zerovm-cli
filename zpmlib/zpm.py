@@ -19,6 +19,8 @@ import gzip
 import json
 import shlex
 import fnmatch
+import copy
+import collections
 try:
     import urlparse
 except ImportError:
@@ -32,8 +34,8 @@ from zpmlib import miniswift
 
 import jinja2
 
-DEFAULT_ZAR_JSON = {
-    "execution": {
+DEFAULT_ZAR_JSON = collections.OrderedDict([
+    ("execution", {
         "groups": [
             {
                 "path": "file://python2.7:python",
@@ -49,20 +51,23 @@ DEFAULT_ZAR_JSON = {
                 ]
             }
         ]
-    },
-    "meta": {
+    }),
+    ("meta", {
         "Version": "",
         "name": "",
         "Author-email": "",
         "Summary": "",
-    },
-    "help": {
+    }),
+    ("help", {
         "description": "",
-    },
-    "bundling": [
+        "args": [
+            ["", ""],
+        ]
+    }),
+    ("bundling", [
         ""
-    ],
-}
+    ]),
+])
 
 _DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zebra.js']
 
@@ -95,7 +100,11 @@ def _create_zar_json(location):
         raise RuntimeError("'%s' already exists!" % filepath)
 
     with open(os.path.join(location, 'zar.json'), 'w') as fp:
-        json.dump(DEFAULT_ZAR_JSON, fp, indent=4)
+        zar = copy.deepcopy(DEFAULT_ZAR_JSON)
+        zar['meta']['name'] = os.path.basename(os.path.abspath(location))
+        zar_json = json.dumps(zar, indent=4)
+        zar_json = '\n'.join(line.rstrip() for line in zar_json.splitlines())
+        fp.write(zar_json)
 
     return filepath
 
