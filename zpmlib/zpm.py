@@ -149,6 +149,10 @@ def _generate_job_desc(zar):
         }
 
         jgroup['file_list'] = make_file_list(zgroup)
+
+        if 'connect' in zgroup:
+            jgroup['connect'] = zgroup['connect']
+
         job.append(jgroup)
     return job
 

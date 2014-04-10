@@ -138,6 +138,35 @@ keys:
     This gives you a Python 2.7 environment. The interpreter should be
     specified as ``file://python27:python`` in the ``path`` key.
 
+``connect``
+
+  List of other groups that this group should be connected with.
+  Before the execution starts, devices will automatically be created
+  to connect the nodes in the groups.
+
+  If a group with *n* nodes named ``foo`` connects to a group with *m*
+  nodes called ``bar``, then. Nodes in the ``foo`` group will find
+  devices named::
+
+    /dev/out/bar-1
+    /dev/out/bar-2
+    ...
+    /dev/out/bar-m
+
+  corresponding to each of the *m* instances in the ``bar`` group.
+  Each of the *n* nodes in ``bar`` will find these devices::
+
+    /dev/in/foo-1
+    /dev/in/foo-2
+    ...
+    /dev/in/foo-n
+
+  If there is only a single node in a group, the corresponding device
+  is named `/dev/out/bar` or `/dev/in/foo`.
+
+  What is written on channel in `/dev/out` appears on the
+  corresponding channel in `/dev/in`.
+
 
 The ``help`` Section
 --------------------
