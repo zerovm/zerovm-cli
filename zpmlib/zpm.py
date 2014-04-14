@@ -36,9 +36,9 @@ import yaml
 ZAR_TMPL = """
 execution:
   groups:
+    name: ""
     path: file://python2.7:python
     args: ""
-    name: ""
     devices:
     - name: python2.7
     - name: stdout
