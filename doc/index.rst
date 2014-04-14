@@ -13,7 +13,7 @@ Contents:
 
    intro
    commands
-   zar-json
+   zar-yaml
    glossary
 
 

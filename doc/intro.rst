@@ -23,48 +23,41 @@ the expected content::
    print "Hello from ZeroVM!"
 
 To bundle this into a ZAR, ZPM needs a configuration file called
-``zar.json``.
+``zar.yaml``.
 
 Configuration File
 """"""""""""""""""
 
-The ``zar.json`` file will look like this:
+The ``zar.yaml`` file will look like this:
 
-.. code-block:: json
+.. code-block:: yaml
 
-   {
-       "execution": {
-           "groups" : [
-               {
-                   "name": "hello",
-                   "path": "file://python2.7:python",
-                   "args": "hello.py",
-                   "devices": [
-                       {"name": "python2.7"},
-                       {"name": "stdout"}
-                   ]
-               }
-           ]
-       },
-       "meta" : {
-           "name": "hello",
-           "Summary": "The hello app",
-           "Author-email": "Martin Geisler <martin@geisler.net>",
-           "Version": "0.1"
-       },
-       "help" : {
-           "description": "A small \"Hello World\" app."
-       },
-       "bundling": [
-           "hello.py"
-       ]
-   }
+   meta:
+     Version: "0.1"
+     name: hello
+     Author-email: Martin Geisler <martin@geisler.net>
+     Summary: A small Hello World app
 
-The file is in `JSON format <json_>`_ and describes the program to
+   execution:
+     groups:
+       - path: file://python2.7:python
+         args: /hello.py
+         name: hello
+         devices:
+         - name: python2.7
+         - name: stdout
+
+   help:
+     description: A small "Hello World" app.
+
+   bundling:
+     - hello.py
+
+The file is in `YAML format <yaml_>`_ and describes the program to
 execute, some meta data about it, help about the program and its
 arguments (this program has none), and finally information about which
 files to include when bundling. The different sections are described
-in more detail in :ref:`zar-json`.
+in more detail in :ref:`zar-yaml`.
 
 
 Bundling
@@ -74,11 +67,11 @@ Simply running ``zpm bundle`` will create the ``hello.zar``::
 
    $ zpm bundle
    adding /home/mg/src/hello/hello.py
-   adding /home/mg/src/hello/zar.json
+   adding /home/mg/src/hello/zar.yaml
    created hello.zar
 
 You see the files added to the ZAR --- here it's simply ``hello.py``
-together with the ``zar.json`` file containing the meta data.
+together with the ``zar.yaml`` file containing the meta data.
 
 You can now publish ``hello.zar`` on your webserver, send it to your
 friends, etc. They will be able to run it after they deploy it like we
@@ -132,5 +125,5 @@ For testing, you can execute the job after it has been deployed::
 There currently is no support for executing the application later. `Issue
 #37 <issue37_>`_ deals with that.
 
-.. _json: http://www.json.org/
+.. _yaml: http://www.yaml.org/
 .. _issue37: https://github.com/zerovm/zpm/issues/37

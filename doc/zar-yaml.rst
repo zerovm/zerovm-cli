@@ -1,10 +1,10 @@
 
-.. _zar-json:
+.. _zar-yaml:
 
-The ``zar.json`` File
+The ``zar.yaml`` File
 =====================
 
-The ``zar.json`` plays a central role when writing an application for
+The ``zar.yaml`` plays a central role when writing an application for
 deployment on Zwift. This is where you specify things such as:
 
 * Meta-data about the ZAR, such as the name of the author and the
@@ -17,46 +17,38 @@ deployment on Zwift. This is where you specify things such as:
 * Arguments that must be specifed when the application is execution.
   These will be invocation specific.
 
-A sample ``zar.json`` file for a simple "Hello World" application
+A sample ``zar.yaml`` file for a simple "Hello World" application
 looks like this:
 
-.. code-block:: json
+.. code-block:: yaml
 
-   {
-       "meta" : {
-           "name": "hello",
-           "Summary": "A small Hello World app",
-           "Author-email": "Your Name <your.name@example.net>",
-           "Version": "0.1"
-       },
-       "execution": {
-           "groups" : [
-               {
-                   "name": "hello",
-                   "path": "file://python2.7:python",
-                   "args": "/hello.py",
-                   "devices": [
-                       {"name": "python2.7"},
-                       {"name": "stdout"}
-                   ]
-               }
-           ]
-       },
-       "help" : {
-           "description": "Enter your name and you will be greeted",
-           "args": [
-               ["name", "Your name"]
-           ]
-       },
-       "bundling": [
-           "hello.py"
-       ]
-   }
+   meta:
+     Version: "0.1"
+     name: hello
+     Author-email: Your Name <your.name@example.net>
+     Summary: A small Hello World app
 
-The file is a simple JSON document. The top-level object has a number
-of keys which we will call "sections" in the following. Each section
-describes part of the ZAR file produced. We will go throught the
-sections now.
+   execution:
+     groups:
+       - path: file://python2.7:python
+         args: /hello.py
+         name: hello
+         devices:
+         - name: python2.7
+         - name: stdout
+
+   help:
+     description: Enter your name and you will be greeted
+     args:
+     - [name, Your name]
+
+   bundling:
+     - hello.py
+
+The file is a simple YAML document. At the top, there is a mapping
+with a number of keys which we will call "sections" in the following.
+Each section describes part of the ZAR file produced. We will go
+throught the sections now.
 
 
 The ``meta`` Section
@@ -191,7 +183,7 @@ The ``bundling`` Section
 For ``zpm bundle`` to work, it needs to know which files to include in
 the ZAR. You specify them here as a list of `glob patterns`__ (such as
 ``src/*.py``). The patterns are expanded relative to the project root,
-i.e., the directory containing the ``zar.json`` file.
+i.e., the directory containing the ``zar.yaml`` file.
 
 .. __: http://en.wikipedia.org/wiki/Glob_%28programming%29
 
