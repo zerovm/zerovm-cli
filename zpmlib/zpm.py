@@ -19,8 +19,6 @@ import gzip
 import json
 import shlex
 import fnmatch
-import copy
-import collections
 try:
     import urlparse
 except ImportError:
@@ -33,51 +31,44 @@ except ImportError:
 from zpmlib import miniswift
 
 import jinja2
+import yaml
 
-DEFAULT_ZAR_JSON = collections.OrderedDict([
-    ("execution", {
-        "groups": [
-            {
-                "path": "file://python2.7:python",
-                "args": "",
-                "name": "",
-                "devices": [
-                    {
-                        "name": "python2.7"
-                    },
-                    {
-                        "name": "stdout"
-                    },
-                ]
-            }
-        ]
-    }),
-    ("meta", {
-        "Version": "",
-        "name": "",
-        "Author-email": "",
-        "Summary": "",
-    }),
-    ("help", {
-        "description": "",
-        "args": [
-            ["", ""],
-        ]
-    }),
-    ("bundling", [
-        ""
-    ]),
-])
+ZAR_TMPL = """
+execution:
+  groups:
+    path: file://python2.7:python
+    args: ""
+    name: ""
+    devices:
+    - name: python2.7
+    - name: stdout
+
+meta:
+  Version: ""
+  name: "{{ name }}"
+  Author-email: ""
+  Summary: ""
+
+help:
+  description: ""
+  args:
+  - ["", ""]
+
+bundling:
+  - ""
+
+"""
+
 
 _DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zebra.js']
 
 
 def create_project(location):
     """
-    Create a ZeroVM application project by writing a default `zar.json` in the
+    Create a ZeroVM application project by writing a default `zar.yaml` in the
     specified directory `location`.
 
-    :returns: Full path to the created `zar.json` file.
+    :returns: Full path to the created `zar.yaml` file.
     """
     if os.path.exists(location):
         if not os.path.isdir(location):
@@ -85,36 +76,35 @@ def create_project(location):
             raise RuntimeError("Target `location` must be a directory")
     else:
         os.makedirs(location)
-    return _create_zar_json(location)
+    return _create_zar_yaml(location)
 
 
-def _create_zar_json(location):
+def _create_zar_yaml(location):
     """
-    Create a default `zar.json` file in the specified directory `location`.
+    Create a default `zar.yaml` file in the specified directory `location`.
 
-    Raises a `RuntimeError` if the `location` already contains a `zar.json`
+    Raises a `RuntimeError` if the `location` already contains a `zar.yaml`
     file.
     """
-    filepath = os.path.join(location, 'zar.json')
+    filepath = os.path.join(location, 'zar.yaml')
     if os.path.exists(filepath):
         raise RuntimeError("'%s' already exists!" % filepath)
 
-    with open(os.path.join(location, 'zar.json'), 'w') as fp:
-        zar = copy.deepcopy(DEFAULT_ZAR_JSON)
-        zar['meta']['name'] = os.path.basename(os.path.abspath(location))
-        zar_json = json.dumps(zar, indent=4)
-        zar_json = '\n'.join(line.rstrip() for line in zar_json.splitlines())
-        fp.write(zar_json)
+    with open(os.path.join(location, 'zar.yaml'), 'w') as fp:
+        tmpl = jinja2.Template(ZAR_TMPL)
+        name = os.path.basename(os.path.abspath(location))
+        output = tmpl.render(name=name)
+        fp.write(output)
 
     return filepath
 
 
 def find_project_root():
     root = os.getcwd()
-    while not os.path.isfile(os.path.join(root, 'zar.json')):
+    while not os.path.isfile(os.path.join(root, 'zar.yaml')):
         oldroot, root = root, os.path.dirname(root)
         if root == oldroot:
-            raise RuntimeError("no zar.json file found")
+            raise RuntimeError("no zar.yaml file found")
     return root
 
 
@@ -207,7 +197,7 @@ def _prepare_job(tar, zar, zar_swift_url):
     :param tar:
         The application .zar file, as a :class:`tarfile.TarFile` object.
     :param dict zar:
-        Parsed contents of the application `zar.json` specification, as a
+        Parsed contents of the application `zar.yaml` specification, as a
         `dict`.
     :param str zar_swift_url:
         Path of the .zar in Swift, which looks like this::
@@ -254,8 +244,8 @@ def bundle_project(root):
     """
     Bundle the project under root.
     """
-    zar_json = os.path.join(root, 'zar.json')
-    zar = json.load(open(zar_json))
+    zar_yaml = os.path.join(root, 'zar.yaml')
+    zar = yaml.safe_load(open(zar_yaml))
 
     zar_name = zar['meta']['name'] + '.zar'
 
@@ -268,7 +258,7 @@ def bundle_project(root):
     print('adding %s' % info.name)
     tar.addfile(info, StringIO.StringIO(job_json))
 
-    zar['bundling'].append('zar.json')
+    zar['bundling'].append('zar.yaml')
     ui = zar.get('ui', [])
     for pattern in zar['bundling'] + ui:
         for path in glob.glob(os.path.join(root, pattern)):
@@ -298,7 +288,7 @@ def _find_ui_uploads(zar, tar):
 
 def deploy_project(args):
     tar = tarfile.open(args.zar)
-    zar = json.load(tar.extractfile('zar.json'))
+    zar = yaml.safe_load(tar.extractfile('zar.yaml'))
 
     client = miniswift.ZwiftClient(args.os_auth_url,
                                    args.os_tenant_name,
