@@ -33,54 +33,6 @@ from zpmlib import miniswift
 import jinja2
 import yaml
 
-ZAR_TMPL = """
-# This section describes the runtime behavior of your ZAR: which
-# groups of nodes to create and which nexe to invoke for each.
-execution:
-
-  # Your application can consist of multiple groups. This is typically
-  # used for map-reduce style jobs.
-  groups:
-
-    # Name of this group. This is used if you need to connect groups
-    # with each other.
-    name: ""
-
-    # The NaCl executable (nexe) to run on the nodes in this group.
-    path: file://python2.7:python
-
-    # Command line arguments for the nexe.
-    args: ""
-
-    # Input and output devices for this group.
-    devices:
-    - name: python2.7
-    - name: stdout
-
-# Meta-information about your ZAR.
-meta:
-  Version: ""
-  name: "{{ name }}"
-  Author-email: ""
-  Summary: ""
-
-help:
-  # Short description of your ZAP. This is used for auto-generated help.
-  description: ""
-
-  # Help for the command line arguments. Each entry is a two-tuple
-  # with an option name and an option help text.
-  args:
-  - ["", ""]
-
-# Files to include in your ZAP. Your can use glob patterns here, they
-# will be resolved relative to the location of this file.
-bundling:
-  - ""
-
-"""
-
-
 _DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zebra.js']
 
 
@@ -100,6 +52,14 @@ def create_project(location):
     return _create_zar_yaml(location)
 
 
+def _render_zar_yaml(name):
+    """Load and render the zar.yaml template."""
+    loader = jinja2.PackageLoader('zpmlib', 'templates')
+    env = jinja2.Environment(loader=loader)
+    tmpl = env.get_template('zar.yaml')
+    return tmpl.render(name=name)
+
+
 def _create_zar_yaml(location):
     """
     Create a default `zar.yaml` file in the specified directory `location`.
@@ -112,10 +72,8 @@ def _create_zar_yaml(location):
         raise RuntimeError("'%s' already exists!" % filepath)
 
     with open(os.path.join(location, 'zar.yaml'), 'w') as fp:
-        tmpl = jinja2.Template(ZAR_TMPL)
         name = os.path.basename(os.path.abspath(location))
-        output = tmpl.render(name=name)
-        fp.write(output)
+        fp.write(render_zar_yaml(name))
 
     return filepath
 

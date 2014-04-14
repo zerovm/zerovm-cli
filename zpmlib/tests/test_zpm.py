@@ -93,8 +93,7 @@ class TestCreateZarYAML:
             zaryaml = zpm._create_zar_yaml(tempdir)
             assert os.path.exists(filepath)
             with open(filepath) as fp:
-                expected = yaml.load(zpm.ZAR_TMPL)
-                expected['meta']['name'] = name
+                expected = yaml.load(zpm.render_zar_yaml(name))
                 assert expected == yaml.load(fp)
             assert os.path.abspath(filepath) == os.path.abspath(zaryaml)
         finally:
@@ -115,7 +114,7 @@ class TestCreateZarYAML:
             zpm._create_zar_yaml(tempdir)
             with open(filepath) as fp:
                 loaded = yaml.safe_load(fp)
-                tmpl = yaml.safe_load(zpm.ZAR_TMPL)
+                tmpl = yaml.safe_load(zpm.render_zar_yaml(''))
                 assert loaded.keys() == tmpl.keys()
         finally:
             shutil.rmtree(tempdir)
