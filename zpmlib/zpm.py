@@ -52,7 +52,7 @@ def create_project(location):
     return _create_zar_yaml(location)
 
 
-def _render_zar_yaml(name):
+def render_zar_yaml(name):
     """Load and render the zar.yaml template."""
     loader = jinja2.PackageLoader('zpmlib', 'templates')
     env = jinja2.Environment(loader=loader)

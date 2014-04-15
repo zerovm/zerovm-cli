@@ -40,9 +40,9 @@ The ``zar.yaml`` file will look like this:
 
    execution:
      groups:
-       - path: file://python2.7:python
+       - name: hello
+         path: file://python2.7:python
          args: /hello.py
-         name: hello
          devices:
          - name: python2.7
          - name: stdout
