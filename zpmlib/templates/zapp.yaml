@@ -30,7 +30,7 @@ meta:
   Summary: ""
 
 help:
-  # Short description of your ZAP. This is used for auto-generated
+  # Short description of your zapp. This is used for auto-generated
   # help.
   description: ""
 
@@ -39,7 +39,7 @@ help:
   args:
   - ["", ""]
 
-# Files to include in your ZAP. Your can use glob patterns here, they
+# Files to include in your zapp. Your can use glob patterns here, they
 # will be resolved relative to the location of this file.
 bundling:
   - ""
