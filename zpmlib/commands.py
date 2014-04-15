@@ -77,24 +77,24 @@ def all_commands():
      default=os.getcwd())
 def new(args):
     """
-    Create a default ZeroVM application ``zar.json`` specification in the
-    target directory. If no directory is specified, ``zar.json`` will be
+    Create a default ZeroVM application ``zar.yaml`` specification in the
+    target directory. If no directory is specified, ``zar.yaml`` will be
     created in the current directory.
     """
 
     try:
-        zarjson = zpm.create_project(args.dir)
+        zaryaml = zpm.create_project(args.dir)
     except RuntimeError as err:
         print(err.message)
     else:
-        print("Created '%s'" % zarjson)
+        print("Created '%s'" % zaryaml)
 
 
 @command
 def bundle(args):
     """Bundle a ZeroVM application
 
-    This command creates a ZAR using the instructions in ``zar.json``.
+    This command creates a ZAR using the instructions in ``zar.yaml``.
     The file is read from the project root.
     """
     root = zpm.find_project_root()

@@ -24,6 +24,8 @@ import collections
 
 from zpmlib import zpm
 
+import yaml
+
 
 class TestCreateProject:
     """
@@ -34,10 +36,10 @@ class TestCreateProject:
         # A RuntimeError should be thrown if the target path exists and is
         # not a dir.
         _, tf = tempfile.mkstemp()
-        with mock.patch('zpmlib.zpm._create_zar_json') as czj:
+        with mock.patch('zpmlib.zpm._create_zar_yaml') as czy:
             with pytest.raises(RuntimeError):
                 zpm.create_project(tf)
-            assert czj.call_count == 0
+            assert czy.call_count == 0
 
     def test_path_does_not_exist(self):
         # If the path does not exist, `create_project` should create the
@@ -47,9 +49,9 @@ class TestCreateProject:
         target_dir = os.path.join(tempdir, 'foo', 'bar')
 
         try:
-            with mock.patch('zpmlib.zpm._create_zar_json') as czj:
+            with mock.patch('zpmlib.zpm._create_zar_yaml') as czy:
                 zpm.create_project(target_dir)
-                assert czj.call_count == 1
+                assert czy.call_count == 1
         finally:
             shutil.rmtree(tempdir)
 
@@ -57,58 +59,63 @@ class TestCreateProject:
         # In this case, the target is a dir and it exists already.
         tempdir = tempfile.mkdtemp()
         try:
-            with mock.patch('zpmlib.zpm._create_zar_json') as czj:
+            with mock.patch('zpmlib.zpm._create_zar_yaml') as czy:
                 zpm.create_project(tempdir)
-                assert czj.call_count == 1
+                assert czy.call_count == 1
         finally:
             shutil.rmtree(tempdir)
 
 
-class TestCreateZarJSON:
+class TestCreateZarYAML:
     """
-    Tests for :func:`zpmlib.zpm._create_zar_json`.
+    Tests for :func:`zpmlib.zpm._create_zar_yaml`.
     """
 
     def test_file_already_exists(self):
         tempdir = tempfile.mkdtemp()
-        filepath = os.path.join(tempdir, 'zar.json')
+        filepath = os.path.join(tempdir, 'zar.yaml')
         # "touch" the file
         open(filepath, 'w').close()
         try:
             with pytest.raises(RuntimeError):
-                zpm._create_zar_json(tempdir)
+                zpm._create_zar_yaml(tempdir)
         finally:
             shutil.rmtree(tempdir)
 
-    def test_create_zar_json(self):
-        # Test the creation of zar.json.
+    def test_create_zar_yaml(self):
+        # Test the creation of zar.yaml.
         tempdir = tempfile.mkdtemp()
-        filepath = os.path.join(tempdir, 'zar.json')
+        filepath = os.path.join(tempdir, 'zar.yaml')
         name = os.path.basename(tempdir)
 
         try:
             assert not os.path.exists(filepath)
-            zarjson = zpm._create_zar_json(tempdir)
+            zaryaml = zpm._create_zar_yaml(tempdir)
             assert os.path.exists(filepath)
             with open(filepath) as fp:
-                expected = copy.deepcopy(zpm.DEFAULT_ZAR_JSON)
-                expected['meta']['name'] = name
-                assert expected == json.load(fp)
-            assert os.path.abspath(filepath) == os.path.abspath(zarjson)
+                expected = yaml.load(zpm.render_zar_yaml(name))
+                assert expected == yaml.load(fp)
+            assert os.path.abspath(filepath) == os.path.abspath(zaryaml)
         finally:
             shutil.rmtree(tempdir)
 
-    def test_key_ordering(self):
-        # Test the creation of zar.json.
+    @mock.patch('yaml.constructor.SafeConstructor.construct_yaml_map')
+    def test_key_ordering(self, yaml_map):
+        # This makes yaml.safe_load use an OrderedDict instead of a
+        # normal dict when loading a YAML mapping.
+        ordered_dict = collections.OrderedDict()
+        yaml_map.__iter__.return_value = iter(ordered_dict)
+
+        # Test the creation of zar.yaml.
         tempdir = tempfile.mkdtemp()
-        filepath = os.path.join(tempdir, 'zar.json')
+        filepath = os.path.join(tempdir, 'zar.yaml')
 
         try:
-            zpm._create_zar_json(tempdir)
+            zpm._create_zar_yaml(tempdir)
             with open(filepath) as fp:
-                od = collections.OrderedDict
-                loaded = json.load(fp, object_pairs_hook=od)
-                assert loaded.keys() == zpm.DEFAULT_ZAR_JSON.keys()
+                loaded = yaml.safe_load(fp)
+                tmpl = yaml.safe_load(zpm.render_zar_yaml(''))
+                assert loaded.keys() == tmpl.keys()
         finally:
             shutil.rmtree(tempdir)
 
