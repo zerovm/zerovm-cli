@@ -1,23 +1,23 @@
 
-.. _zar-yaml:
+.. _zapp-yaml:
 
-The ``zar.yaml`` File
-=====================
+The ``zapp.yaml`` File
+======================
 
-The ``zar.yaml`` plays a central role when writing an application for
+The ``zapp.yaml`` plays a central role when writing an application for
 deployment on Zwift. This is where you specify things such as:
 
-* Meta-data about the ZAR, such as the name of the author and the
+* Meta-data about the ZAPP, such as the name of the author and the
   version number.
 
 * Where to find the NaCl executables ("nexes") and other files that
   make up the ZeroVM applicaiton. These are the files that ``zpm
-  bundle`` include into the ZAR.
+  bundle`` include into the ZAPP.
 
 * Arguments that must be specifed when the application is execution.
   These will be invocation specific.
 
-A sample ``zar.yaml`` file for a simple "Hello World" application
+A sample ``zapp.yaml`` file for a simple "Hello World" application
 looks like this:
 
 .. code-block:: yaml
@@ -47,37 +47,37 @@ looks like this:
 
 The file is a simple YAML document. At the top, there is a mapping
 with a number of keys which we will call "sections" in the following.
-Each section describes part of the ZAR file produced. We will go
+Each section describes part of the ZAPP file produced. We will go
 throught the sections now.
 
 
 The ``meta`` Section
 --------------------
 
-This section describes the generated ZAR. The meta data here is
-currently unused, but we expect it to be used for a future ZAR
-repository, i.e., a website where you can upload a ZAR and let others
+This section describes the generated ZAPP. The meta data here is
+currently unused, but we expect it to be used for a future ZAPP
+repository, i.e., a website where you can upload a ZAPP and let others
 download it.
 
 The keys in this section are:
 
 ``name``
-  The short name of your ZAR.
+  The short name of your ZAPP.
 
 ``summary``
-  A short summary of what your ZAR does.
+  A short summary of what your ZAPP does.
 
 ``author-email``
   Your name and email.
 
 ``version``
-  The version number of your ZAR.
+  The version number of your ZAPP.
 
 
 The ``execution`` Section
 -------------------------
 
-This section describes the runtime behavior of your ZAR: which groups
+This section describes the runtime behavior of your ZAPP: which groups
 of nodes to create and which :term:`nexe` to invoke for each. The
 ``groups`` key is a list of individual groups. Each group has these
 keys:
@@ -121,7 +121,7 @@ keys:
 
   In addition a Zwift installation can offer a number of :term:`system
   images <system image>`. They will have to be installed by the system
-  adminitrator of the system your users deploy the ZAR onto.
+  adminitrator of the system your users deploy the ZAPP onto.
   Referencing a system image will cause it to be mounted as the root
   filesystem when nexe is executed. These are the initially supported
   system images:
@@ -181,9 +181,9 @@ The ``bundling`` Section
 ------------------------
 
 For ``zpm bundle`` to work, it needs to know which files to include in
-the ZAR. You specify them here as a list of `glob patterns`__ (such as
+the ZAPP. You specify them here as a list of `glob patterns`__ (such as
 ``src/*.py``). The patterns are expanded relative to the project root,
-i.e., the directory containing the ``zar.yaml`` file.
+i.e., the directory containing the ``zapp.yaml`` file.
 
 .. __: http://en.wikipedia.org/wiki/Glob_%28programming%29
 
@@ -194,5 +194,5 @@ The ``ui`` Section
 You can optionally include a ``ui`` section. If it is left out,
 ``zpm`` will create a simple web UI for you. The section works like
 the ``bundling`` section: you specify a list of glob patterns and
-these files will be included in the ZAR. The UI files are extracted
+these files will be included in the ZAPP. The UI files are extracted
 when ``zpm deploy`` is run.
