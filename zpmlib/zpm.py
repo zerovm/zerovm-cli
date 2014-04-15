@@ -208,10 +208,10 @@ def _prepare_job(tar, zar, zar_swift_url):
 
 
     """
-    job = json.loads(
-        # NOTE(larsbutler): the `decode` is needed for python3 compatibility
-        tar.extractfile('%s.json' % zar['meta']['name']).read().decode('utf-8')
-    )
+    fp = tar.extractfile('%s.json' % zar['meta']['name'])
+    # NOTE(larsbutler): the `decode` is needed for python3
+    # compatibility
+    job = json.loads(fp.read().decode('utf-8'))
     device = {'device': 'image', 'path': zar_swift_url}
     for group in job:
         group['file_list'].append(device)
