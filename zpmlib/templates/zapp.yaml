@@ -1,4 +1,4 @@
-# This section describes the runtime behavior of your ZAPP: which
+# This section describes the runtime behavior of your zapp: which
 # groups of nodes to create and which nexe to invoke for each.
 execution:
 
@@ -22,7 +22,7 @@ execution:
       - name: python2.7
       - name: stdout
 
-# Meta-information about your ZAPP.
+# Meta-information about your zapp.
 meta:
   Version: ""
   name: "{{ name }}"

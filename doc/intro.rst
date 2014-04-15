@@ -22,7 +22,7 @@ the expected content::
 
    print "Hello from ZeroVM!"
 
-To bundle this into a ZAPP, ZPM needs a configuration file called
+To bundle this into a zapp, ZPM needs a configuration file called
 ``zapp.yaml``.
 
 Configuration File
@@ -70,7 +70,7 @@ Simply running ``zpm bundle`` will create the ``hello.zapp``::
    adding /home/mg/src/hello/zapp.yaml
    created hello.zapp
 
-You see the files added to the ZAPP --- here it's simply ``hello.py``
+You see the files added to the zapp --- here it's simply ``hello.py``
 together with the ``zapp.yaml`` file containing the meta data.
 
 You can now publish ``hello.zapp`` on your webserver, send it to your
