@@ -31,6 +31,8 @@ setup(
     long_description=__doc__,
     platforms=['any'],
     packages=find_packages(exclude=['zpmlib.tests', 'zpmlib.tests.*']),
+    package_data={'zpmlib': ['templates/*.html', 'templates/*.css',
+                             'templates/*.js', 'templates/*.yaml']},
     provides=['zpm (%s)' % VERSION],
     install_requires=['requests', 'jinja2<2.7', 'pyyaml'],
     license='Apache 2.0',
