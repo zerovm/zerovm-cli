@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>The {{ zar.meta.name }} App</title>
+    <title>The {{ zapp.meta.name }} App</title>
 
     <link rel="stylesheet" href="style.css" />
 
@@ -19,10 +19,10 @@
 
           $('#run').click(function () {
               client.auth(function () {
-                  $.getJSON('{{ zar.meta.name }}.json', function (job) {
+                  $.getJSON('{{ zapp.meta.name }}.json', function (job) {
                       var clone = JSON.parse(JSON.stringify(job));  // clone job
                       var args = [];
-                      {% for arg, label in zar.help.args %}
+                      {% for arg, label in zapp.help.args %}
                           args.push(escapeArg($('#{{ arg }}').val()));
                       {% endfor %}
 
@@ -53,9 +53,9 @@
   </head>
 
   <body>
-    <h1>The {{ zar.meta.name }} App</h1>
+    <h1>The {{ zapp.meta.name }} App</h1>
 
-    {% for arg, label in zar.help.args %}
+    {% for arg, label in zapp.help.args %}
     <p>
       <label for="{{ arg }}">{{ label }}:</label>
       <input id="{{ arg }}" type="text" />
@@ -64,7 +64,7 @@
 
     <h2>Input/Output Paths</h2>
 
-    {% for group in zar.execution.groups %}
+    {% for group in zapp.execution.groups %}
         {% for device in group.devices %}
             {% if device.name == "input" %}
                 <p>

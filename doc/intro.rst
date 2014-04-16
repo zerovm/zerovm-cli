@@ -22,13 +22,13 @@ the expected content::
 
    print "Hello from ZeroVM!"
 
-To bundle this into a ZAR, ZPM needs a configuration file called
-``zar.yaml``.
+To bundle this into a zapp, ZPM needs a configuration file called
+``zapp.yaml``.
 
 Configuration File
 """"""""""""""""""
 
-The ``zar.yaml`` file will look like this:
+The ``zapp.yaml`` file will look like this:
 
 .. code-block:: yaml
 
@@ -57,30 +57,30 @@ The file is in `YAML format <yaml_>`_ and describes the program to
 execute, some meta data about it, help about the program and its
 arguments (this program has none), and finally information about which
 files to include when bundling. The different sections are described
-in more detail in :ref:`zar-yaml`.
+in more detail in :ref:`zapp-yaml`.
 
 
 Bundling
 """"""""
 
-Simply running ``zpm bundle`` will create the ``hello.zar``::
+Simply running ``zpm bundle`` will create the ``hello.zapp``::
 
    $ zpm bundle
    adding /home/mg/src/hello/hello.py
-   adding /home/mg/src/hello/zar.yaml
-   created hello.zar
+   adding /home/mg/src/hello/zapp.yaml
+   created hello.zapp
 
-You see the files added to the ZAR --- here it's simply ``hello.py``
-together with the ``zar.yaml`` file containing the meta data.
+You see the files added to the zapp --- here it's simply ``hello.py``
+together with the ``zapp.yaml`` file containing the meta data.
 
-You can now publish ``hello.zar`` on your webserver, send it to your
+You can now publish ``hello.zapp`` on your webserver, send it to your
 friends, etc. They will be able to run it after they deploy it like we
 describe next.
 
 Deployment
 """"""""""
 
-To deploy ``hello.zar``, you need access to a Zwift cluster (Swift
+To deploy ``hello.zapp``, you need access to a Zwift cluster (Swift
 running the ZeroVM middleware). Like the ``swift`` command line client
 for Swift, ``zpm`` will read your credentials from environemnt
 variables if you don't pass them on the command line. The environment
@@ -96,27 +96,27 @@ variables are:
 We will deploy it to a ``test`` container under the folder
 ``hello``::
 
-   $ zpm deploy hello.zar test/hello
-   deploying hello.zar
+   $ zpm deploy hello.zapp test/hello
+   deploying hello.zapp
    found token: MIIGjwYJKoZIhvcNAQcC...
    found Swift: http://localhost:8080/v1/account
-   uploading 398 bytes to test/hello/hello.zar
-   updated test/hello/hello.zar succesfully
+   uploading 398 bytes to test/hello/hello.zapp
+   updated test/hello/hello.zapp succesfully
 
 For testing, you can execute the job after it has been deployed::
 
-   $ zpm deploy hello.zar test/hello --execute
-   deploying hello.zar
+   $ zpm deploy hello.zapp test/hello --execute
+   deploying hello.zapp
    found token: MIIGjwYJKoZIhvcNAQcC...
    found Swift: http://localhost:8080/v1/account
-   uploading 398 bytes to test/hello/hello.zar
-   updated test/hello/hello.zar succesfully
+   uploading 398 bytes to test/hello/hello.zapp
+   updated test/hello/hello.zapp succesfully
    job template:
    [{'exec': {'args': '/hello.py', 'path': u'file://python2.7:python'},
      'file_list': [{'device': u'python2.7'},
                    {'device': u'stdout'},
                    {'device': 'image',
-                    'path': u'swift://account/test/hello/hello.zar'}],
+                    'path': u'swift://account/test/hello/hello.zapp'}],
      'name': u'hello'}]
    executing
    <Response [200]>

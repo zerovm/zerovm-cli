@@ -109,12 +109,12 @@ class SwiftClient(object):
 
 class ZwiftClient(SwiftClient):
     """
-    Extends :class:`SwiftClient` to add ZeroVM/zar execution functionality.
+    Extends :class:`SwiftClient` to add ZeroVM/zapp execution functionality.
     """
 
     def post_job(self, job):
         """
-        Start a ZeroVM job, using a pre-uploaded zar.
+        Start a ZeroVM job, using a pre-uploaded zapp.
 
         :param object job:
             Object that will be encoded as JSON sent to Zwift. For

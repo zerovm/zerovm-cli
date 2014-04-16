@@ -13,7 +13,7 @@ Contents:
 
    intro
    commands
-   zar-yaml
+   zapp-yaml
    glossary
 
 

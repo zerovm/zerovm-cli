@@ -77,24 +77,24 @@ def all_commands():
      default=os.getcwd())
 def new(args):
     """
-    Create a default ZeroVM application ``zar.yaml`` specification in the
-    target directory. If no directory is specified, ``zar.yaml`` will be
+    Create a default ZeroVM application ``zapp.yaml`` specification in the
+    target directory. If no directory is specified, ``zapp.yaml`` will be
     created in the current directory.
     """
 
     try:
-        zaryaml = zpm.create_project(args.dir)
+        zappyaml = zpm.create_project(args.dir)
     except RuntimeError as err:
         print(err.message)
     else:
-        print("Created '%s'" % zaryaml)
+        print("Created '%s'" % zappyaml)
 
 
 @command
 def bundle(args):
     """Bundle a ZeroVM application
 
-    This command creates a ZAR using the instructions in ``zar.yaml``.
+    This command creates a Zapp using the instructions in ``zapp.yaml``.
     The file is read from the project root.
     """
     root = zpm.find_project_root()
@@ -102,10 +102,10 @@ def bundle(args):
 
 
 @command
-@arg('zar', help='A ZeroVM artifact')
+@arg('zapp', help='A ZeroVM application')
 @arg('target', help='Swift path (directory) to deploy into')
 @arg('--execute', action='store_true', help='Immediatedly '
-     'execute the deployed Zar (for testing)')
+     'execute the deployed Zapp (for testing)')
 @arg('--os-auth-url', default=os.environ.get('OS_AUTH_URL'),
      help='OpenStack auth URL. Defaults to $OS_AUTH_URL.')
 @arg('--os-tenant-name', default=os.environ.get('OS_TENANT_NAME'),
@@ -117,7 +117,7 @@ def bundle(args):
 def deploy(args):
     """Deploy a ZeroVM application
 
-    This deploys a zar onto Swift. The zar can be one you have
+    This deploys a zapp onto Swift. The zapp can be one you have
     downloaded or produced yourself :ref:`zpm-bundle`.
 
     You will need to know the Swift authentication URL, username,
@@ -128,5 +128,5 @@ def deploy(args):
     user-guide/content/swift_commands.html>`_, so if you're already
     using that to upload files to Swift, you will be ready to go.
     """
-    print('deploying %s' % args.zar)
+    print('deploying %s' % args.zapp)
     zpm.deploy_project(args)
