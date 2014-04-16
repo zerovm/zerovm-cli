@@ -14,10 +14,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import argparse
+
 from zpmlib import commands
 
 
 if __name__ == "__main__":
     arg_parser = commands.set_up_arg_parser()
     args = arg_parser.parse_args()
+    if args == argparse.Namespace():
+        arg_parser.error('too few arguments')
     args.func(args)
