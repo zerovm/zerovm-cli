@@ -106,9 +106,17 @@ def _generate_job_desc(zapp):
         return value
 
     def translate_args(cmdline):
-        cmdline = cmdline.encode('utf8')
+        # On Python 2, the yaml module loads non-ASCII strings as
+        # unicode objects. In Python 2.7.2 and earlier, we must give
+        # shlex.split a str -- but it is an error to give shlex.split
+        # a bytes object in Python 3.
+        need_decode = not isinstance(cmdline, str)
+        if need_decode:
+            cmdline = cmdline.encode('utf8')
         args = shlex.split(cmdline)
-        return ' '.join(escape(arg.decode('utf8')) for arg in args)
+        if need_decode:
+            args = [arg.decode('utf8') for arg in args]
+        return ' '.join(escape(arg) for arg in args)
 
     for zgroup in zapp['execution']['groups']:
         jgroup = {'name': zgroup['name']}
