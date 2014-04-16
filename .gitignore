@@ -12,6 +12,7 @@ zpm.egg-info
 .coverage
 .tox
 nosetests.xml
+coverage.xml
 htmlcov/
 junit.xml
 
