@@ -13,3 +13,8 @@ Test inside existing directory:
   $ zpm new
   Created '*/bar/zapp.yaml' (glob)
   $ cd ..
+
+Test with exising zapp.yaml:
+
+  $ zpm new bar
+  'bar/zapp.yaml' already exists!
