@@ -20,7 +20,10 @@ import pytest
 import shutil
 import tarfile
 import tempfile
-import collections
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 
 from zpmlib import zpm
 
@@ -103,8 +106,7 @@ class TestCreateZappYAML:
     def test_key_ordering(self, yaml_map):
         # This makes yaml.safe_load use an OrderedDict instead of a
         # normal dict when loading a YAML mapping.
-        ordered_dict = collections.OrderedDict()
-        yaml_map.__iter__.return_value = iter(ordered_dict)
+        yaml_map.__iter__.return_value = iter(OrderedDict())
 
         # Test the creation of zapp.yaml.
         tempdir = tempfile.mkdtemp()
@@ -165,14 +167,16 @@ def test__prepare_job():
     tempdir = tempfile.mkdtemp()
     try:
         tempzapp = os.path.join(tempdir, 'myapp.zapp')
-        with tarfile.open(tempzapp, 'w:gz') as tf:
-            temp_myapp_json = os.path.join(tempdir, 'myapp.json')
-            with open(temp_myapp_json, 'w') as fp:
-                json.dump(myapp_json, fp)
-            tf.add(temp_myapp_json, arcname='myapp.json')
+        tf = tarfile.open(tempzapp, 'w:gz')
+        temp_myapp_json = os.path.join(tempdir, 'myapp.json')
+        with open(temp_myapp_json, 'w') as fp:
+            json.dump(myapp_json, fp)
+        tf.add(temp_myapp_json, arcname='myapp.json')
+        tf.close()
 
-        with tarfile.open(tempzapp, 'r:gz') as tf:
-            job = zpm._prepare_job(tf, zapp, zapp_swift_url)
+        tf = tarfile.open(tempzapp, 'r:gz')
+        job = zpm._prepare_job(tf, zapp, zapp_swift_url)
+        tf.close()
         assert exp_job_json == job
     finally:
         shutil.rmtree(tempdir)
