@@ -17,7 +17,12 @@ import os
 import pytest
 import tempfile
 
-from collections import OrderedDict
+try:
+    from collections import OrderedDict
+except ImportError:
+    # Python 2.6 fallback
+    from ordereddict import OrderedDict
+
 from zvshlib import zvsh
 
 
