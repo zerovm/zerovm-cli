@@ -4,6 +4,8 @@ ZeroVM Package Manager
 
 Supported Python versions: 2.6, 2.7, 3.2, 3.3, and 3.4.
 
+[![Build Status](http://ci.oslab.cc/job/zpm/badge/icon)](http://ci.oslab.cc/job/zpm/)
+
 
 ## Installation
 
