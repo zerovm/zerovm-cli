@@ -15,7 +15,7 @@
           tenant = '{{ "{{ deploy.tenant }}" }}';
           username = '{{ "{{ deploy.username }}" }}';
           password = '{{ "{{ deploy.password }}" }}';
-          client = new ZwiftClient(auth_url, tenant, username, password);
+          client = new ZwiftClient(auth_url, username, password, tenant);
 
           $('#run').click(function () {
               client.auth(function () {

@@ -15,11 +15,11 @@
 /*
  *  ZeroVM on Swift (Zwift) client.
  */
-function ZwiftClient(authUrl, tenant, username, password) {
+function ZwiftClient(authUrl, username, password, tenant) {
     this._authUrl = authUrl;
-    this._tenant = tenant;
     this._username = username;
     this._password = password;
+    this._tenant = tenant;
 
     this._token = null;
     this._swiftUrl = null;
