@@ -19,6 +19,7 @@ import gzip
 import json
 import shlex
 import fnmatch
+import zpmlib
 try:
     import urlparse
 except ImportError:
@@ -282,14 +283,38 @@ def _find_ui_uploads(zapp, tar):
 
 
 def deploy_project(args):
+    version = args.auth_version
+    if version in ('1.0', '1', 1.0, 1):
+        if not all([arg is not None for arg in
+                   (args.auth, args.user, args.key)]):
+            raise zpmlib.ZPMException(
+                "Version 1 auth requires `--auth`, `--user`, and `--key`."
+                "\nSee `zpm deploy --help` for more information."
+            )
+
+        client = miniswift.ZwiftClient(args.auth, args.user, args.key)
+    elif version in ('2.0', '2', 2.0, 2):
+        if not all([arg is not None for arg in
+                   (args.os_auth_url, args.os_username, args.os_tenant_name,
+                    args.os_password)]):
+            raise zpmlib.ZPMException(
+                "Version 2 auth requires `--os-auth-url`, `--os-username`, "
+                "`--os-password`, and `--os-tenant-name`."
+                "\nSee `zpm deploy --help` for more information."
+            )
+
+        client = miniswift.ZwiftClient(
+            args.os_auth_url,
+            args.os_username,
+            args.os_password,
+            tenant=args.os_tenant_name,
+            auth_version=2,
+        )
+
+    client.auth()
+
     tar = tarfile.open(args.zapp)
     zapp = yaml.safe_load(tar.extractfile('zapp.yaml'))
-
-    client = miniswift.ZwiftClient(args.os_auth_url,
-                                   args.os_tenant_name,
-                                   args.os_username,
-                                   args.os_password)
-    client.auth()
 
     path = '%s/%s' % (args.target, os.path.basename(args.zapp))
     client.upload(path, gzip.open(args.zapp).read())
