@@ -76,9 +76,10 @@ class TestSwiftClient:
         self.username = 'admin'
         self.password = 'admin-password'
         self.client = miniswift.SwiftClient(self.auth_url,
-                                            self.tenant,
                                             self.username,
-                                            self.password)
+                                            self.password,
+                                            tenant=self.tenant,
+                                            auth_version=2)
         # mocked auth response data
         self.auth_resp_data = dict()
         self.auth_resp_data['access'] = dict(

@@ -21,69 +21,107 @@ import zpmlib
 
 class SwiftClient(object):
     """
-    Lightweight Swift client. Supports authentication to Keystone and basic
-    Swift functions.
+    Lightweight Swift client. Supports authentication Keystone (v2 auth),
+    authentication to Swift (v1 auth), and basic Swift functions.
 
     :param auth_url:
-        Keystone authorization URL, akin to `--os-auth-url` / `OS_AUTH_URL`.
+        Auth v1:
+            Swift authorization URL, akin to ``--auth`` / ``ST_AUTH``.
 
-        The URL against which we can perform Swift operations is retrieved from
-        the Keystone service catalog, which is obtained when we authenticate to
-        this `auth_url`.
-    :param tenant:
-        Keystone tenant name, akin to `--os-tenant-name` / `OS_TENANT_NAME`).
+        Auth v2:
+            Keystone authorization URL, akin to ``--os-auth-url`` /
+            ``OS_AUTH_URL``.
+
+            The URL against which we can perform Swift operations is retrieved
+            from the Keystone service catalog, which is obtained when we
+            authenticate to this ``auth_url``.
+
+        See also ``auth_version``.
     :param username:
-        Keystone username, akin to `--os-username` / `OS_USERNAME`.
+        Auth v1:
+            Swift username, akin to ``--user`` / ``ST_USER``.
+        Auth v2:
+            Keystone username, akin to ``--os-username`` / ``OS_USERNAME``.
     :param password:
-        Keystone password, akin to `--os-password` / `OS_PASSWORD`.
+        Auth v1:
+            Swift key, akin to ``--key`` / ``ST_KEY``.
+        Auth v2:
+            Keystone password, akin to ``--os-password`` / ``OS_PASSWORD``.
+    :param tenant:
+        Only used if ``auth_version`` is 2 (not 1).
+
+        Keystone tenant name, akin to ``--os-tenant-name`` /
+        ``OS_TENANT_NAME``).
+    :param int auth_version:
+        Use auth version 1 or 2. Defaults to 1.
     """
 
-    def __init__(self, auth_url, tenant, username, password):
+    def __init__(self, auth_url, username, password, tenant=None,
+                 auth_version=1):
         self._auth_url = auth_url
-        self._tenant = tenant
         self._username = username
         self._password = password
+        self._auth_version = auth_version
+
+        self._tenant = tenant
 
         self._token = None
         self._swift_service_url = None
 
     def auth(self):
         """
-        Connect to the Keystone service and cache the access token and Swift
-        endpoint URL (if available in the service catalog).
+        Connect to the authentication service and cache the access token and
+        Swift endpoint URL.
 
         Calling this is a prequisite for any Swift operations.
         """
-        headers = {'Content-Type': 'application/json',
-                   'Accept': 'application/json'}
-        payload = {'auth':
-                   {'tenantName': self._tenant,
-                    'passwordCredentials':
-                    {'username': self._username, 'password': self._password}}}
-        r = requests.post(self._auth_url + '/tokens',
-                          data=json.dumps(payload),
-                          headers=headers)
-        data = r.json()
+        if self._auth_version == 1:
+            headers = {
+                'X-Auth-User': self._username,
+                'X-Auth-Key': self._password,
+            }
+            r = requests.get(self._auth_url, headers=headers)
+            self._token = r.headers['x-auth-token']
+            self._swift_service_url = r.headers['x-storage-url']
+        elif self._auth_version == 2:
+            headers = {'Content-Type': 'application/json',
+                       'Accept': 'application/json'}
+            payload = {'auth':
+                       {'tenantName': self._tenant,
+                        'passwordCredentials':
+                        {'username': self._username,
+                         'password': self._password}}}
+            r = requests.post(self._auth_url + '/tokens',
+                              data=json.dumps(payload),
+                              headers=headers)
+            data = r.json()
 
-        self._token = data['access']['token']['id']
-        print('found token: %s...' % self._token[:20])
+            self._token = data['access']['token']['id']
+            print('found token: %s...' % self._token[:20])
 
-        for service in data['access']['serviceCatalog']:
-            if service['name'] == 'swift':
-                self._swift_service_url = service['endpoints'][0]['publicURL']
-                # Force hostname to be localhost -- for testing with a
-                # SSH tunnel when Swift cannot be reached directly.
-                # p = list(urlparse.urlparse(self._swift_url))
-                # parts = list(p)
-                # parts[1] = 'localhost:%d' % p.port
-                # self._swift_url = urlparse.urlunparse(parts)
-                print('found Swift: %s' % self._swift_service_url)
-                break
+            for service in data['access']['serviceCatalog']:
+                if service['name'] == 'swift':
+                    self._swift_service_url = (
+                        service['endpoints'][0]['publicURL']
+                    )
+                    # Force hostname to be localhost -- for testing with a
+                    # SSH tunnel when Swift cannot be reached directly.
+                    # p = list(urlparse.urlparse(self._swift_url))
+                    # parts = list(p)
+                    # parts[1] = 'localhost:%d' % p.port
+                    # self._swift_url = urlparse.urlunparse(parts)
+                    print('found Swift: %s' % self._swift_service_url)
+                    break
+            else:
+                # No swift found; we can't really do anything without this.
+                # This is a 'SwiftClient', afterall. =)
+                raise zpmlib.ZPMException(
+                    "'swift' was not found in the service catalog at '%s'"
+                    % self._auth_url
+                )
         else:
-            # No swift found; we can't really do anything without this.
-            # This is a 'SwiftClient', afterall. =)
-            raise zpmlib.ZPMException("'swift' was not found in the service "
-                                      "catalog at '%s'" % self._auth_url)
+            raise zpmlib.ZPMException("Unsupported auth version '%s'"
+                                      % self._auth_version)
 
     def upload(self, path, data):
         """
