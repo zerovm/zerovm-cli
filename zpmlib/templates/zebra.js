@@ -13,9 +13,9 @@
 //  governing permissions and limitations under the License.
 
 /*
- *  ZeroVM on Swift (Zwift) client.
+ *  ZeroVM on Swift (ZeroCloud) client.
  */
-function ZwiftClient() {
+function ZeroCloudClient() {
     this._token = null;
 }
 
@@ -28,7 +28,7 @@ function ZwiftClient() {
  * Otherwise the authentication requests made by this function wont be
  * allowed by the browser.
  */
-ZwiftClient.prototype.auth = function (opts, success) {
+ZeroCloudClient.prototype.auth = function (opts, success) {
     var defaults = {'version': 2, 'success': $.noop};
     var args = {'success': success};
     var merged = $.extend(defaults, opts, args);
@@ -53,7 +53,7 @@ ZwiftClient.prototype.auth = function (opts, success) {
  *
  * - swiftUrl
  */
-ZwiftClient.prototype._auth0 = function (opts) {
+ZeroCloudClient.prototype._auth0 = function (opts) {
     this._swiftUrl = opts.swiftUrl;
     opts.success();
 }
@@ -67,7 +67,7 @@ ZwiftClient.prototype._auth0 = function (opts) {
  * - username
  * - password
  */
-ZwiftClient.prototype._auth1 = function (opts) {
+ZeroCloudClient.prototype._auth1 = function (opts) {
     var self = this;
     $.ajax({
         'type': 'GET',
@@ -96,7 +96,7 @@ ZwiftClient.prototype._auth1 = function (opts) {
  * - password
  * - tenant
  */
-ZwiftClient.prototype._auth2 = function (opts) {
+ZeroCloudClient.prototype._auth2 = function (opts) {
     var headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'};
     var payload = {'auth':
@@ -131,7 +131,7 @@ ZwiftClient.prototype._auth2 = function (opts) {
  * sent to Swift. The "stdout" from the job, if any, will be passed to
  * the success callback function.
  */
-ZwiftClient.prototype.execute = function (job, success) {
+ZeroCloudClient.prototype.execute = function (job, success) {
     var headers = {'X-Zerovm-Execute': '1.0'};
     if (this._token) {
         headers['X-Auth-Token'] = this._token;
@@ -151,7 +151,7 @@ ZwiftClient.prototype.execute = function (job, success) {
  * Compute a Swift URL. This is a URL of the form
  * swift://<user>/<relativePath>.
  */
-ZwiftClient.prototype.swiftPath = function (relativePath) {
+ZeroCloudClient.prototype.swiftPath = function (relativePath) {
     var user = this._swiftUrl.slice(this._swiftUrl.lastIndexOf('/') + 1);
     return 'swift://' + user + '/' + relativePath;
 }

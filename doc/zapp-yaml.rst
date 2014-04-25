@@ -5,7 +5,7 @@ The ``zapp.yaml`` File
 ======================
 
 The ``zapp.yaml`` plays a central role when writing an application for
-deployment on Zwift. This is where you specify things such as:
+deployment on ZeroCloud. This is where you specify things such as:
 
 * Meta-data about the zapp, such as the name of the author and the
   version number.
@@ -104,7 +104,7 @@ keys:
   ``stdin``
     This device feeds standard input to your program. You need to
     specify a ``path`` as well as ``name``. The ``path`` can be a
-    ``swift://`` URL pointing to an object, which will make Zwift
+    ``swift://`` URL pointing to an object, which will make ZeroCloud
     execute the application on a Swift nodes that holds his object.
 
   ``stdout``
@@ -119,7 +119,7 @@ keys:
     to specify where the output should be stored using a ``swift://``
     URL in ``path``. Otherwise the error output will be discarded.
 
-  In addition a Zwift installation can offer a number of :term:`system
+  In addition a ZeroCloud installation can offer a number of :term:`system
   images <system image>`. They will have to be installed by the system
   adminitrator of the system your users deploy the zapp onto.
   Referencing a system image will cause it to be mounted as the root

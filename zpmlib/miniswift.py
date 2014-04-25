@@ -145,7 +145,7 @@ class SwiftClient(object):
                                % (path, r.status_code))
 
 
-class ZwiftClient(SwiftClient):
+class ZeroCloudClient(SwiftClient):
     """
     Extends :class:`SwiftClient` to add ZeroVM/zapp execution functionality.
     """
@@ -155,7 +155,7 @@ class ZwiftClient(SwiftClient):
         Start a ZeroVM job, using a pre-uploaded zapp.
 
         :param object job:
-            Object that will be encoded as JSON sent to Zwift. For
+            Object that will be encoded as JSON sent to ZeroCloud. For
             more information about the job/servlet configuration, see
             https://github.com/zerovm/zerocloud/blob/icehouse/doc/Servlets.md
         """
