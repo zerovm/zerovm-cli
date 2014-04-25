@@ -85,7 +85,7 @@ def new(args):
     try:
         zappyaml = zpm.create_project(args.dir)
     except RuntimeError as err:
-        print(err.message)
+        print(err)
     else:
         print("Created '%s'" % zappyaml)
 

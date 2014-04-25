@@ -24,9 +24,9 @@ try:
 except ImportError:
     import urllib.parse as urlparse
 try:
-    import cStringIO as StringIO
+    from cStringIO import StringIO as BytesIO
 except ImportError:
-    import io as StringIO
+    from io import BytesIO
 
 from zpmlib import miniswift
 
@@ -106,9 +106,17 @@ def _generate_job_desc(zapp):
         return value
 
     def translate_args(cmdline):
-        cmdline = cmdline.encode('utf8')
+        # On Python 2, the yaml module loads non-ASCII strings as
+        # unicode objects. In Python 2.7.2 and earlier, we must give
+        # shlex.split a str -- but it is an error to give shlex.split
+        # a bytes object in Python 3.
+        need_decode = not isinstance(cmdline, str)
+        if need_decode:
+            cmdline = cmdline.encode('utf8')
         args = shlex.split(cmdline)
-        return ' '.join(escape(arg.decode('utf8')) for arg in args)
+        if need_decode:
+            args = [arg.decode('utf8') for arg in args]
+        return ' '.join(escape(arg) for arg in args)
 
     for zgroup in zapp['execution']['groups']:
         jgroup = {'name': zgroup['name']}
@@ -140,7 +148,7 @@ def _add_ui(tar, zapp):
         info = tarfile.TarInfo(name=path)
         info.size = len(output)
         print('adding %s' % path)
-        tar.addfile(info, StringIO.StringIO(output))
+        tar.addfile(info, BytesIO(output))
 
 
 def _get_swift_zapp_url(swift_service_url, zapp_path):
@@ -233,9 +241,17 @@ def bundle_project(root):
     job = _generate_job_desc(zapp)
     job_json = json.dumps(job)
     info = tarfile.TarInfo(name='%s.json' % zapp['meta']['name'])
+    # This size is only correct because json.dumps uses
+    # ensure_ascii=True by default and we thus have a 1-1
+    # correspondence between Unicode characters and bytes.
     info.size = len(job_json)
+
     print('adding %s' % info.name)
-    tar.addfile(info, StringIO.StringIO(job_json))
+    # In Python 3, we cannot use a str or bytes object with addfile,
+    # we need a BytesIO object. In Python 2, BytesIO is just StringIO.
+    # Since json.dumps produces an ASCII-only Unicode string in Python
+    # 3, it is safe to encode it to ASCII.
+    tar.addfile(info, BytesIO(job_json.encode('ascii')))
 
     zapp['bundling'].append('zapp.yaml')
     ui = zapp.get('ui', [])

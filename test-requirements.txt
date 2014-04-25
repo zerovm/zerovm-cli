@@ -2,3 +2,7 @@ pytest
 pytest-cov
 mock
 ordereddict
+
+# Until https://bitbucket.org/brodie/cram/pull-request/4/ is merged we
+# use this fork.
+-e hg+https://bitbucket.org/mg/cram/#egg=cram

@@ -1,0 +1,1 @@
+recursive-include zpmlib/templates *.html *.css *.js *.yaml
