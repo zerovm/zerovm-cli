@@ -24,7 +24,17 @@ class TestSwiftClient:
     Tests for :class:`zpmlib.miniswift.SwiftClient`.
     """
 
-    def setup_method(self, _method):
+    def _setup_auth_v1(self):
+        self.v1_auth_url = 'http://example.com/auth/v1.0'
+        self.user = 'test_tenant:test_user'
+        self.key = '13dd08f4-ad7b-45ec-8f83-ce1d8a3b4796'
+        self.v1_client = miniswift.SwiftClient(
+            self.v1_auth_url,
+            self.user,
+            self.key
+        )
+
+    def _setup_auth_v2(self):
         self.tenant = dict(
             enabled=True,
             description=None,
@@ -71,15 +81,16 @@ class TestSwiftClient:
             ),
         ]
 
-        self.auth_url = 'http://localhost:5000/v2.0'
-        self.tenant = 'demo'
         self.username = 'admin'
         self.password = 'admin-password'
-        self.client = miniswift.SwiftClient(self.auth_url,
-                                            self.username,
-                                            self.password,
-                                            tenant=self.tenant,
-                                            auth_version=2)
+
+        self.v2_auth_url = 'http://localhost:5000/v2.0'
+        self.v2_tenant = 'demo'
+        self.v2_client = miniswift.SwiftClient(self.v2_auth_url,
+                                               self.username,
+                                               self.password,
+                                               tenant=self.tenant,
+                                               auth_version=2)
         # mocked auth response data
         self.auth_resp_data = dict()
         self.auth_resp_data['access'] = dict(
@@ -87,28 +98,59 @@ class TestSwiftClient:
             serviceCatalog=self.service_catalog,
         )
 
-    def test_auth(self):
+    def test_auth_v1(self):
+        # 1) Test that the correct parameters are passed to the v1 auth request
+        # 2) Test that the swift url and auth token are cached correctly
+        self._setup_auth_v1()
+
+        exp_auth_token = 'AUTH_tk028ec863d0c5490db62b3bfc02b56336'
+        exp_swift_url = (
+            'http://example.com/v1/AUTH_81b8a52b-7fc7-4afa-bf01-acc41626498b'
+        )
+        exp_get_args = (
+            (self.v1_auth_url, ),
+            {'headers': {'X-Auth-User': self.user, 'X-Auth-Key': self.key}}
+        )
+
+        with mock.patch('requests.get') as get:
+            resp = mock.Mock()
+            resp.headers = {
+                'x-storage-url': exp_swift_url,
+                'x-auth-token': exp_auth_token,
+            }
+            get.return_value = resp
+
+            self.v1_client.auth()
+            assert get.call_args[0] == exp_get_args[0]  # pos args
+            assert get.call_args[1] == exp_get_args[1]  # kwargs
+            assert self.v1_client._swift_service_url == exp_swift_url
+            assert self.v1_client._token == exp_auth_token
+
+    def test_auth_v2(self):
         # This is the basic auth case. By hitting a known auth url, we expect
         # to receive and cache two pieces of information:
         #  * token
         #  * swift url (from the service catalog)
         # The actual request to the auth url is mocked so we can focus on the
         # logic surrounding the response.
+        self._setup_auth_v2()
+
         with mock.patch('requests.post') as post:
             resp = mock.Mock()
             resp.json = lambda: self.auth_resp_data
             post.return_value = resp
 
-            assert self.client._swift_service_url is None
-            assert self.client._token is None
-            self.client.auth()
-            assert self.client._swift_service_url == self.swift_service_url
-            assert self.client._token == self.token['id']
+            assert self.v2_client._swift_service_url is None
+            assert self.v2_client._token is None
+            self.v2_client.auth()
+            assert self.v2_client._swift_service_url == self.swift_service_url
+            assert self.v2_client._token == self.token['id']
 
-    def test_auth_no_swift_service(self):
+    def test_auth_v2_no_swift_service(self):
         # Test what happens when there's no swift in the service catalog.
         # This is kind of crucial, so we expect an exception here if there's no
         # swift service.
+        self._setup_auth_v2()
 
         # remove swift from a the service catalog:
         self.service_catalog.pop(0)
@@ -118,7 +160,17 @@ class TestSwiftClient:
             resp.json = lambda: self.auth_resp_data
             post.return_value = resp
 
-            assert self.client._swift_service_url is None
-            assert self.client._token is None
+            assert self.v2_client._swift_service_url is None
+            assert self.v2_client._token is None
             with pytest.raises(zpmlib.ZPMException):
-                self.client.auth()
+                self.v2_client.auth()
+
+    def test_auth_unknown_version(self):
+        with pytest.raises(zpmlib.ZPMException):
+            client = miniswift.SwiftClient(
+                'http://example.com:5000/v2.0',
+                'admin',
+                'admin-password',
+                auth_version=3
+            )
+            client.auth()
