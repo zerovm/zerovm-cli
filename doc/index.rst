@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
 
    intro
+   zerocloud-auth-config
    commands
    zapp-yaml
    glossary
