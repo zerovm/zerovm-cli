@@ -16,8 +16,7 @@
 ZeroVM Shell
 """
 
-from setuptools import find_packages
-from setuptools import setup
+from distutils.core import setup
 
 import sys
 
@@ -36,7 +35,7 @@ setup(
     description='ZeroVM Shell',
     long_description=__doc__,
     platforms=['any'],
-    packages=find_packages(exclude=['zvshlib.tests', 'zvshlib.tests.*']),
+    packages=['zvshlib'],
     provides=['zvsh (%s)' % VERSION],
     install_requires=requires,
     license='Apache 2.0',
