@@ -26,9 +26,8 @@ function ZwiftClient(authUrl, username, password, tenant) {
 }
 
 /*
- * Authenticate to Keystone. This will login to Keystone and obtain an
- * authentication token. Call this before calling other methods that
- * talk with Swift.
+ * Authenticate to Keystone. Call this before calling other methods
+ * that talk with Swift.
  *
  * If Keystone and Swift are served from differnet domains, you must
  * install a CORS (Cross-Origin Resource Sharing) middleware in Swift.
@@ -36,6 +35,14 @@ function ZwiftClient(authUrl, username, password, tenant) {
  * allowed by the browser.
  */
 ZwiftClient.prototype.auth = function (success) {
+    this._auth2(success);
+}
+
+/*
+ * Swift v2 authentication. This will login to Keystone and obtain an
+ * authentication token.
+ */
+ZwiftClient.prototype._auth2 = function (success) {
     var headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'};
     var payload = {'auth':
