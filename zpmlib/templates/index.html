@@ -13,11 +13,7 @@
       $(document).ready(function () {
           client = new ZwiftClient();
           {% raw %}
-              var opts = {'version': 2,
-                          'authUrl': '{{ deploy.auth_url }}',
-                          'username': '{{ deploy.username }}',
-                          'password': '{{ deploy.password }}',
-                          'tenant': '{{ deploy.tenant }}'};
+              var opts = {{ auth_opts }};
           {% endraw %}
 
           $('#run').click(function () {

@@ -292,6 +292,7 @@ def deploy_project(args):
                 "\nSee `zpm deploy --help` for more information."
             )
 
+        version = 1
         client = miniswift.ZwiftClient(args.auth, args.user, args.key)
     elif version in ('2.0', '2', 2.0, 2):
         if not all([arg is not None for arg in
@@ -303,6 +304,7 @@ def deploy_project(args):
                 "\nSee `zpm deploy --help` for more information."
             )
 
+        version = 2
         client = miniswift.ZwiftClient(
             args.os_auth_url,
             args.os_username,
@@ -325,17 +327,24 @@ def deploy_project(args):
     client.upload('%s/%s.json' % (args.target, zapp['meta']['name']),
                   json.dumps(job))
 
-    # TODO(mg): inserting the username and password in the uploaded
-    # file makes testing easy, but should not be done in production.
-    # See issue #44.
-    deploy = {'auth_url': args.os_auth_url,
-              'tenant': args.os_tenant_name,
-              'username': args.os_username,
-              'password': args.os_password}
+    deploy = {'version': version}
+    if version == 1:
+        deploy['authUrl'] = args.auth
+        deploy['username'] = args.user
+        deploy['password'] = args.key
+    else:
+        # TODO(mg): inserting the username and password in the
+        # uploaded file makes testing easy, but should not be done in
+        # production. See issue #44.
+        deploy['authUrl'] = args.os_auth_url
+        deploy['tenant'] = args.os_tenant_name
+        deploy['username'] = args.os_username
+        deploy['password'] = args.os_password
+    auth_opts = jinja2.Markup(json.dumps(deploy))
     for path in _find_ui_uploads(zapp, tar):
         # Upload UI files after expanding deployment parameters
         tmpl = jinja2.Template(tar.extractfile(path).read())
-        output = tmpl.render(deploy=deploy)
+        output = tmpl.render(auth_opts=auth_opts)
         client.upload('%s/%s' % (args.target, path), output)
 
     if args.execute:
