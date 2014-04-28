@@ -33,7 +33,12 @@ import pty
 import threading
 import tty
 
-from collections import OrderedDict
+try:
+    from collections import OrderedDict
+except ImportError:
+    # Python 2.6 fallback
+    from ordereddict import OrderedDict
+
 from os import path
 from subprocess import Popen, PIPE
 from tempfile import mkdtemp

@@ -16,8 +16,13 @@
 ZeroVM Shell
 """
 
-from setuptools import find_packages
-from setuptools import setup
+from distutils.core import setup
+
+import sys
+
+requires = []
+if sys.version_info < (2, 7):
+    requires.append('ordereddict')
 
 VERSION = '0.9.4'
 
@@ -30,8 +35,9 @@ setup(
     description='ZeroVM Shell',
     long_description=__doc__,
     platforms=['any'],
-    packages=find_packages(exclude=['zvshlib.tests', 'zvshlib.tests.*']),
+    packages=['zvshlib'],
     provides=['zvsh (%s)' % VERSION],
+    install_requires=requires,
     license='Apache 2.0',
     keywords='zvsh zerovm zvm',
     classifiers=(
