@@ -42,6 +42,12 @@ ZwiftClient.prototype.auth = function (opts, success) {
 
 /*
  * Swift v1 authentication.
+ *
+ * The opts argument is a plain object with these keys:
+ *
+ * - authURL
+ * - username
+ * - password
  */
 ZwiftClient.prototype._auth1 = function (opts) {
     var self = this;
@@ -64,6 +70,13 @@ ZwiftClient.prototype._auth1 = function (opts) {
 /*
  * Swift v2 authentication. This will login to Keystone and obtain an
  * authentication token.
+ *
+ * The opts argument is a plain object with these keys:
+ *
+ * - authURL
+ * - username
+ * - password
+ * - tenant
  */
 ZwiftClient.prototype._auth2 = function (opts) {
     var headers = {'Content-Type': 'application/json',
