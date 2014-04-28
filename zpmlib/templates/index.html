@@ -13,7 +13,8 @@
       $(document).ready(function () {
           client = new ZwiftClient();
           {% raw %}
-              var opts = {'authUrl': '{{ deploy.auth_url }}',
+              var opts = {'version': 2,
+                          'authUrl': '{{ deploy.auth_url }}',
                           'username': '{{ deploy.username }}',
                           'password': '{{ deploy.password }}',
                           'tenant': '{{ deploy.tenant }}'};

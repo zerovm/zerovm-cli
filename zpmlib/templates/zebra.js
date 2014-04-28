@@ -30,10 +30,35 @@ function ZwiftClient(swiftUrl) {
  * allowed by the browser.
  */
 ZwiftClient.prototype.auth = function (opts, success) {
-    var defaults = {'success': $.noop};
+    var defaults = {'version': 2, 'success': $.noop};
     var args = {'success': success};
     var merged = $.extend(defaults, opts, args);
-    this._auth2(merged);
+    if (merged.version == 1) {
+        this._auth1(merged);
+     } else {
+        this._auth2(merged);
+    }
+}
+
+/*
+ * Swift v1 authentication.
+ */
+ZwiftClient.prototype._auth1 = function (opts) {
+    var self = this;
+    $.ajax({
+        'type': 'GET',
+        'url': opts.authUrl,
+        'cache': false,
+        'headers': {
+            'X-Auth-User': opts.username,
+            'X-Auth-Key': opts.password
+        },
+        'success': function (data, status, xhr) {
+            self._token = xhr.getResponseHeader('X-Auth-Token');
+            self._swiftUrl = xhr.getResponseHeader('X-Storage-Url');
+            opts.success();
+        }
+    });
 }
 
 /*
