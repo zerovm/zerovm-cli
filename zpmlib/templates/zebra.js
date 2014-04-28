@@ -15,38 +15,99 @@
 /*
  *  ZeroVM on Swift (Zwift) client.
  */
-function ZwiftClient(authUrl, tenant, username, password) {
-    this._authUrl = authUrl;
-    this._tenant = tenant;
-    this._username = username;
-    this._password = password;
-
+function ZwiftClient() {
     this._token = null;
-    this._swiftUrl = null;
 }
 
 /*
- * Authenticate to Keystone. This will login to Keystone and obtain an
- * authentication token. Call this before calling other methods that
- * talk with Swift.
+ * Authenticate to Keystone. Call this before calling other methods
+ * that talk with Swift.
  *
  * If Keystone and Swift are served from differnet domains, you must
  * install a CORS (Cross-Origin Resource Sharing) middleware in Swift.
  * Otherwise the authentication requests made by this function wont be
  * allowed by the browser.
  */
-ZwiftClient.prototype.auth = function (success) {
+ZwiftClient.prototype.auth = function (opts, success) {
+    var defaults = {'version': 2, 'success': $.noop};
+    var args = {'success': success};
+    var merged = $.extend(defaults, opts, args);
+    switch (merged.version) {
+    case 0:
+        this._auth0(merged);
+        break;
+    case 1:
+        this._auth1(merged);
+        break;
+    default:
+        this._auth2(merged);
+        break;
+    }
+}
+
+/*
+ * No authentication. This is used when no authentication is
+ * necessary.
+ *
+ * The opts argument is a plain object with these keys:
+ *
+ * - swiftUrl
+ */
+ZwiftClient.prototype._auth0 = function (opts) {
+    this._swiftUrl = opts.swiftUrl;
+    opts.success();
+}
+
+/*
+ * Swift v1 authentication.
+ *
+ * The opts argument is a plain object with these keys:
+ *
+ * - authURL
+ * - username
+ * - password
+ */
+ZwiftClient.prototype._auth1 = function (opts) {
+    var self = this;
+    $.ajax({
+        'type': 'GET',
+        'url': opts.authUrl,
+        'cache': false,
+        'headers': {
+            'X-Auth-User': opts.username,
+            'X-Auth-Key': opts.password
+        },
+        'success': function (data, status, xhr) {
+            self._token = xhr.getResponseHeader('X-Auth-Token');
+            self._swiftUrl = xhr.getResponseHeader('X-Storage-Url');
+            opts.success();
+        }
+    });
+}
+
+/*
+ * Swift v2 authentication. This will login to Keystone and obtain an
+ * authentication token.
+ *
+ * The opts argument is a plain object with these keys:
+ *
+ * - authURL
+ * - username
+ * - password
+ * - tenant
+ */
+ZwiftClient.prototype._auth2 = function (opts) {
     var headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'};
     var payload = {'auth':
-                   {'tenantName': this._tenant,
+                   {'tenantName': opts.tenant,
                     'passwordCredentials':
-                    {'username': this._username,
-                     'password': this._password}}};
+                    {'username': opts.username,
+                     'password': opts.password}}};
     var self = this;
     $.ajax({
         'type': 'POST',
-        'url': this._authUrl + '/tokens',
+        'url': opts.authUrl + '/tokens',
         'data': JSON.stringify(payload),
         'cache': false,
         'success': function (data) {
@@ -57,7 +118,7 @@ ZwiftClient.prototype.auth = function (success) {
                     return false;  // break for-each loop
                 }
             });
-            (success || $.noop)();
+            opts.success();
         },
         'dataType': 'json',
         'contentType': 'application/json',
@@ -71,8 +132,10 @@ ZwiftClient.prototype.auth = function (success) {
  * the success callback function.
  */
 ZwiftClient.prototype.execute = function (job, success) {
-    var headers = {'X-Auth-Token': this._token,
-                   'X-Zerovm-Execute': '1.0'}
+    var headers = {'X-Zerovm-Execute': '1.0'};
+    if (this._token) {
+        headers['X-Auth-Token'] = this._token;
+    }
     $.ajax({
         'type': 'POST',
         'url': this._swiftUrl,

@@ -123,6 +123,8 @@ def bundle(args):
      help='(Auth v2.0) OpenStack username. Defaults to $OS_USERNAME.')
 @arg('--os-password', default=os.environ.get('OS_PASSWORD'),
      help='(Auth v2.0) OpenStack password. Defaults to $OS_PASSWORD.')
+@arg('--no-ui-auth', action='store_true',
+     help='Do not generate any authentication code for the web UI.')
 def deploy(args):
     """Deploy a ZeroVM application
 

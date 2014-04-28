@@ -11,14 +11,13 @@
 
     <script type="text/javascript">
       $(document).ready(function () {
-          auth_url = '{{ "{{ deploy.auth_url }}" }}';
-          tenant = '{{ "{{ deploy.tenant }}" }}';
-          username = '{{ "{{ deploy.username }}" }}';
-          password = '{{ "{{ deploy.password }}" }}';
-          client = new ZwiftClient(auth_url, tenant, username, password);
+          client = new ZwiftClient();
+          {% raw %}
+              var opts = {{ auth_opts }};
+          {% endraw %}
 
           $('#run').click(function () {
-              client.auth(function () {
+              client.auth(opts, function () {
                   $.getJSON('{{ zapp.meta.name }}.json', function (job) {
                       var clone = JSON.parse(JSON.stringify(job));  // clone job
                       var args = [];
