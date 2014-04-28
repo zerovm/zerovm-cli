@@ -11,11 +11,13 @@
 
     <script type="text/javascript">
       $(document).ready(function () {
-          auth_url = '{{ "{{ deploy.auth_url }}" }}';
-          tenant = '{{ "{{ deploy.tenant }}" }}';
-          username = '{{ "{{ deploy.username }}" }}';
-          password = '{{ "{{ deploy.password }}" }}';
-          client = new ZwiftClient(auth_url, username, password, tenant);
+          {% raw %}
+              auth_url = '{{ deploy.auth_url }}';
+              tenant = '{{ deploy.tenant }}';
+              username = '{{ deploy.username }}';
+              password = '{{ deploy.password }}';
+              client = new ZwiftClient(auth_url, username, password, tenant);
+          {% endraw %}
 
           $('#run').click(function () {
               client.auth(function () {
