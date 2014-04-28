@@ -15,14 +15,9 @@
 /*
  *  ZeroVM on Swift (Zwift) client.
  */
-function ZwiftClient(authUrl, username, password, tenant) {
-    this._authUrl = authUrl;
-    this._username = username;
-    this._password = password;
-    this._tenant = tenant;
-
+function ZwiftClient(swiftUrl) {
+    this._swiftUrl = swiftUrl;
     this._token = null;
-    this._swiftUrl = null;
 }
 
 /*
@@ -34,26 +29,26 @@ function ZwiftClient(authUrl, username, password, tenant) {
  * Otherwise the authentication requests made by this function wont be
  * allowed by the browser.
  */
-ZwiftClient.prototype.auth = function (success) {
-    this._auth2(success);
+ZwiftClient.prototype.auth = function (opts, success) {
+    this._auth2(opts, success);
 }
 
 /*
  * Swift v2 authentication. This will login to Keystone and obtain an
  * authentication token.
  */
-ZwiftClient.prototype._auth2 = function (success) {
+ZwiftClient.prototype._auth2 = function (opts, success) {
     var headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'};
     var payload = {'auth':
-                   {'tenantName': this._tenant,
+                   {'tenantName': opts.tenant,
                     'passwordCredentials':
-                    {'username': this._username,
-                     'password': this._password}}};
+                    {'username': opts.username,
+                     'password': opts.password}}};
     var self = this;
     $.ajax({
         'type': 'POST',
-        'url': this._authUrl + '/tokens',
+        'url': opts.authUrl + '/tokens',
         'data': JSON.stringify(payload),
         'cache': false,
         'success': function (data) {
