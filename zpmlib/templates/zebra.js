@@ -15,14 +15,13 @@
 /*
  *  ZeroVM on Swift (Zwift) client.
  */
-function ZwiftClient(swiftUrl) {
-    this._swiftUrl = swiftUrl;
+function ZwiftClient() {
     this._token = null;
 }
 
 /*
  * Authenticate to Keystone. Call this before calling other methods
- * that talk with Swift, if you're not already authenticated.
+ * that talk with Swift.
  *
  * If Keystone and Swift are served from differnet domains, you must
  * install a CORS (Cross-Origin Resource Sharing) middleware in Swift.
@@ -33,11 +32,30 @@ ZwiftClient.prototype.auth = function (opts, success) {
     var defaults = {'version': 2, 'success': $.noop};
     var args = {'success': success};
     var merged = $.extend(defaults, opts, args);
-    if (merged.version == 1) {
+    switch (merged.version) {
+    case 0:
+        this._auth0(merged);
+        break;
+    case 1:
         this._auth1(merged);
-     } else {
+        break;
+    default:
         this._auth2(merged);
+        break;
     }
+}
+
+/*
+ * No authentication. This is used when no authentication is
+ * necessary.
+ *
+ * The opts argument is a plain object with these keys:
+ *
+ * - swiftUrl
+ */
+ZwiftClient.prototype._auth0 = function (opts) {
+    this._swiftUrl = opts.swiftUrl;
+    opts.success();
 }
 
 /*

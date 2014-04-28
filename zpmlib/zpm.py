@@ -327,8 +327,12 @@ def deploy_project(args):
     client.upload('%s/%s.json' % (args.target, zapp['meta']['name']),
                   json.dumps(job))
 
+    if args.no_ui_auth:
+        version = 0
     deploy = {'version': version}
-    if version == 1:
+    if version == 0:
+        deploy['swiftUrl'] = client._swift_service_url
+    elif version == 1:
         deploy['authUrl'] = args.auth
         deploy['username'] = args.user
         deploy['password'] = args.key
