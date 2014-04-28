@@ -30,14 +30,17 @@ function ZwiftClient(swiftUrl) {
  * allowed by the browser.
  */
 ZwiftClient.prototype.auth = function (opts, success) {
-    this._auth2(opts, success);
+    var defaults = {'success': $.noop};
+    var args = {'success': success};
+    var merged = $.extend(defaults, opts, args);
+    this._auth2(merged);
 }
 
 /*
  * Swift v2 authentication. This will login to Keystone and obtain an
  * authentication token.
  */
-ZwiftClient.prototype._auth2 = function (opts, success) {
+ZwiftClient.prototype._auth2 = function (opts) {
     var headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'};
     var payload = {'auth':
@@ -59,7 +62,7 @@ ZwiftClient.prototype._auth2 = function (opts, success) {
                     return false;  // break for-each loop
                 }
             });
-            (success || $.noop)();
+            opts.success();
         },
         'dataType': 'json',
         'contentType': 'application/json',
