@@ -22,7 +22,7 @@ function ZwiftClient(swiftUrl) {
 
 /*
  * Authenticate to Keystone. Call this before calling other methods
- * that talk with Swift.
+ * that talk with Swift, if you're not already authenticated.
  *
  * If Keystone and Swift are served from differnet domains, you must
  * install a CORS (Cross-Origin Resource Sharing) middleware in Swift.
@@ -73,8 +73,10 @@ ZwiftClient.prototype._auth2 = function (opts, success) {
  * the success callback function.
  */
 ZwiftClient.prototype.execute = function (job, success) {
-    var headers = {'X-Auth-Token': this._token,
-                   'X-Zerovm-Execute': '1.0'}
+    var headers = {'X-Zerovm-Execute': '1.0'};
+    if (this._token) {
+        headers['X-Auth-Token'] = this._token;
+    }
     $.ajax({
         'type': 'POST',
         'url': this._swiftUrl,
