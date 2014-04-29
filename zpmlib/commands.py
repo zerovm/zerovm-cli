@@ -107,24 +107,24 @@ def bundle(args):
 @arg('--execute', action='store_true', help='Immediatedly '
      'execute the deployed Zapp (for testing)')
 @arg('--auth-version', '-V', default='1.0', choices=['1.0', '2.0'],
-     help='Swift auth version.  Defaults to 1.0.')
+     help='Swift auth version (default: %(default)s)')
 @arg('--auth', '-A', default=os.environ.get('ST_AUTH'),
-     help='(Auth v1.0) URL for obtaining an auth token. Defaults to $ST_AUTH.')
+     help='(Auth v1.0) URL for obtaining an auth token (default: $ST_AUTH)')
 @arg('--user', '-U', default=os.environ.get('ST_USER'),
-     help=('(Auth v1.0) User name for obtaining an auth token. Defaults to '
-           '$ST_AUTH.'))
+     help='(Auth v1.0) User name for obtaining an auth token '
+     '(default: $ST_AUTH)')
 @arg('--key', '-K', default=os.environ.get('ST_KEY'),
-     help='(Auth v1.0) Key for obtaining an auth token. Defaults to $ST_KEY.')
+     help='(Auth v1.0) Key for obtaining an auth token (default: $ST_KEY)')
 @arg('--os-auth-url', default=os.environ.get('OS_AUTH_URL'),
-     help='(Auth v2.0) OpenStack auth URL. Defaults to $OS_AUTH_URL.')
+     help='(Auth v2.0) OpenStack auth URL (default: $OS_AUTH_URL)')
 @arg('--os-tenant-name', default=os.environ.get('OS_TENANT_NAME'),
-     help='(Auth v2.0) OpenStack tenant. Defaults to $OS_TENANT_NAME.')
+     help='(Auth v2.0) OpenStack tenant (default: $OS_TENANT_NAME)')
 @arg('--os-username', default=os.environ.get('OS_USERNAME'),
-     help='(Auth v2.0) OpenStack username. Defaults to $OS_USERNAME.')
+     help='(Auth v2.0) OpenStack username (default: $OS_USERNAME)')
 @arg('--os-password', default=os.environ.get('OS_PASSWORD'),
-     help='(Auth v2.0) OpenStack password. Defaults to $OS_PASSWORD.')
+     help='(Auth v2.0) OpenStack password (default: $OS_PASSWORD)')
 @arg('--no-ui-auth', action='store_true',
-     help='Do not generate any authentication code for the web UI.')
+     help='Do not generate any authentication code for the web UI')
 def deploy(args):
     """Deploy a ZeroVM application
 
