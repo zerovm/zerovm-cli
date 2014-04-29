@@ -284,7 +284,7 @@ def _find_ui_uploads(zapp, tar):
 
 def deploy_project(args):
     version = args.auth_version
-    if version in ('1.0', '1', 1.0, 1):
+    if version == '1.0':
         if not all([arg is not None for arg in
                    (args.auth, args.user, args.key)]):
             raise zpmlib.ZPMException(
@@ -294,7 +294,7 @@ def deploy_project(args):
 
         version = 1
         client = miniswift.ZeroCloudClient(args.auth, args.user, args.key)
-    elif version in ('2.0', '2', 2.0, 2):
+    elif version == '2.0':
         if not all([arg is not None for arg in
                    (args.os_auth_url, args.os_username, args.os_tenant_name,
                     args.os_password)]):
