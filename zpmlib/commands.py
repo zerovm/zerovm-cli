@@ -141,3 +141,10 @@ def deploy(args):
     """
     print('deploying %s' % args.zapp)
     zpm.deploy_project(args)
+
+
+@command
+def help(args):
+    """Show this help"""
+    parser = set_up_arg_parser()
+    parser.print_help()
