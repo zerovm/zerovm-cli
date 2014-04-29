@@ -11,7 +11,7 @@ Test inside existing directory:
   $ mkdir bar
   $ cd bar
   $ zpm new
-  Created '*/bar/zapp.yaml' (glob)
+  Created './zapp.yaml' (glob)
   $ cd ..
 
 Test with exising zapp.yaml:

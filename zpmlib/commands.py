@@ -72,9 +72,9 @@ def all_commands():
 
 
 @command
-@arg('dir', help='Non-existent or empty directory',
+@arg('dir', help='Non-existent or empty directory (default: %(default)s)',
      metavar='WORKING_DIR', nargs='?',
-     default=os.getcwd())
+     default='.')
 def new(args):
     """
     Create a default ZeroVM application ``zapp.yaml`` specification in the
