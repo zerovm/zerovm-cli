@@ -144,7 +144,14 @@ def deploy(args):
 
 
 @command
+@arg('command', nargs='?', help='A zpm command')
 def help(args):
     """Show this help"""
     parser = set_up_arg_parser()
-    parser.print_help()
+    cmd_names = [c.__name__ for c in _commands]
+    if args.command is None or args.command not in cmd_names:
+        if args.command is not None:
+            print('no such command: %s' % args.command)
+        parser.print_help()
+    else:
+        parser.parse_args([args.command, '-h'])
