@@ -13,23 +13,10 @@ Main help text is shown when no command is given:
     available subcommands
   
     COMMAND
-      bundle    Bundle a ZeroVM application This command creates a Zapp using
-                the instructions in ``zapp.yaml``. The file is read from the
-                project root.
-      deploy    Deploy a ZeroVM application This deploys a zapp onto Swift. The
-                zapp can be one you have downloaded or produced yourself :ref
-                :`zpm-bundle`. You will need to know the Swift authentication
-                URL, username, password, and tenant name. These can be supplied
-                with command line flags (see below) or you can set the
-                corresponding environment variables. The environment variables
-                are the same as the ones used by the `Swift command line tool
-                <http://docs.openstack.org/ user-
-                guide/content/swift_commands.html>`_, so if you're already using
-                that to upload files to Swift, you will be ready to go.
+      bundle    Bundle a ZeroVM application
+      deploy    Deploy a ZeroVM application
       help      Show this help
-      new       Create a default ZeroVM application ``zapp.yaml`` specification
-                in the target directory. If no directory is specified,
-                ``zapp.yaml`` will be created in the current directory.
+      new
   
   See 'zpm <command> --help' for more information on a specific command.
 
@@ -37,6 +24,10 @@ Test with existing command:
 
   $ zpm help new
   usage: zpm new [-h] [WORKING_DIR]
+  
+  Create a default ZeroVM application ``zapp.yaml`` specification in the target
+  directory. If no directory is specified, ``zapp.yaml`` will be created in the
+  current directory.
   
   positional arguments:
     WORKING_DIR  Non-existent or empty directory (default: .)
@@ -59,22 +50,9 @@ Test with non-existing command:
     available subcommands
   
     COMMAND
-      bundle    Bundle a ZeroVM application This command creates a Zapp using
-                the instructions in ``zapp.yaml``. The file is read from the
-                project root.
-      deploy    Deploy a ZeroVM application This deploys a zapp onto Swift. The
-                zapp can be one you have downloaded or produced yourself :ref
-                :`zpm-bundle`. You will need to know the Swift authentication
-                URL, username, password, and tenant name. These can be supplied
-                with command line flags (see below) or you can set the
-                corresponding environment variables. The environment variables
-                are the same as the ones used by the `Swift command line tool
-                <http://docs.openstack.org/ user-
-                guide/content/swift_commands.html>`_, so if you're already using
-                that to upload files to Swift, you will be ready to go.
+      bundle    Bundle a ZeroVM application
+      deploy    Deploy a ZeroVM application
       help      Show this help
-      new       Create a default ZeroVM application ``zapp.yaml`` specification
-                in the target directory. If no directory is specified,
-                ``zapp.yaml`` will be created in the current directory.
+      new
   
   See 'zpm <command> --help' for more information on a specific command.
