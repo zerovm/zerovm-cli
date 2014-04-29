@@ -32,7 +32,12 @@ def set_up_arg_parser():
                                        metavar='COMMAND')
 
     for cmd in all_commands():
-        subparser = subparsers.add_parser(cmd.__name__, help=cmd.__doc__)
+        doclines = cmd.__doc__.splitlines()
+        summary = doclines[0]
+        description = '\n'.join(doclines[1:])
+        subparser = subparsers.add_parser(cmd.__name__,
+                                          help=summary,
+                                          description=description)
         # Add arguments in reverse order: the last decorator
         # (bottom-most in the source) is called first, so its
         # arguments will be at the front of the list.
@@ -76,7 +81,8 @@ def all_commands():
      metavar='WORKING_DIR', nargs='?',
      default='.')
 def new(args):
-    """
+    """Create template ``zapp.yaml`` file
+
     Create a default ZeroVM application ``zapp.yaml`` specification in the
     target directory. If no directory is specified, ``zapp.yaml`` will be
     created in the current directory.
@@ -141,3 +147,17 @@ def deploy(args):
     """
     print('deploying %s' % args.zapp)
     zpm.deploy_project(args)
+
+
+@command
+@arg('command', nargs='?', help='A zpm command')
+def help(args):
+    """Show this help"""
+    parser = set_up_arg_parser()
+    cmd_names = [c.__name__ for c in _commands]
+    if args.command is None or args.command not in cmd_names:
+        if args.command is not None:
+            print('no such command: %s' % args.command)
+        parser.print_help()
+    else:
+        parser.parse_args([args.command, '-h'])

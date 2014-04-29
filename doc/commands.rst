@@ -49,3 +49,16 @@ For help on configuring authentication, see
    :func: set_up_arg_parser
    :prog: zpm
    :path: bundle
+
+.. _zpm-help:
+
+``zpm help``
+------------
+
+.. autocommand:: zpmlib.commands.help
+
+.. argparse::
+   :module: zpmlib.commands
+   :func: set_up_arg_parser
+   :prog: zpm
+   :path: help
