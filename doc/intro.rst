@@ -80,7 +80,7 @@ describe next.
 Deployment
 """"""""""
 
-To deploy ``hello.zapp``, you need access to a Zwift cluster (Swift
+To deploy ``hello.zapp``, you need access to a ZeroCloud cluster (Swift
 running the ZeroVM middleware). Like the ``swift`` command line client
 for Swift, ``zpm`` will read your credentials from environemnt
 variables if you don't pass them on the command line. The environment

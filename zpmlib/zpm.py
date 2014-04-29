@@ -293,7 +293,7 @@ def deploy_project(args):
             )
 
         version = 1
-        client = miniswift.ZwiftClient(args.auth, args.user, args.key)
+        client = miniswift.ZeroCloudClient(args.auth, args.user, args.key)
     elif version in ('2.0', '2', 2.0, 2):
         if not all([arg is not None for arg in
                    (args.os_auth_url, args.os_username, args.os_tenant_name,
@@ -305,7 +305,7 @@ def deploy_project(args):
             )
 
         version = 2
-        client = miniswift.ZwiftClient(
+        client = miniswift.ZeroCloudClient(
             args.os_auth_url,
             args.os_username,
             args.os_password,
