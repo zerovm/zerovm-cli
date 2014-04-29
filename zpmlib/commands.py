@@ -106,8 +106,8 @@ def bundle(args):
 @arg('target', help='Deployment target (Swift container name)')
 @arg('--execute', action='store_true', help='Immediatedly '
      'execute the deployed Zapp (for testing)')
-@arg('--auth-version', '-V', default='1.0',
-     help='Swift auth version (1.0 or 2.0).  Defaults to 1.0.')
+@arg('--auth-version', '-V', default='1.0', choices=['1.0', '2.0'],
+     help='Swift auth version.  Defaults to 1.0.')
 @arg('--auth', '-A', default=os.environ.get('ST_AUTH'),
      help='(Auth v1.0) URL for obtaining an auth token. Defaults to $ST_AUTH.')
 @arg('--user', '-U', default=os.environ.get('ST_USER'),

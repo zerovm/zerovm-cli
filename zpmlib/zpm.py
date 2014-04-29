@@ -293,7 +293,7 @@ def deploy_project(args):
             )
 
         client = miniswift.ZeroCloudClient(args.auth, args.user, args.key)
-    elif version == '2.0':
+    else:
         if not all([arg is not None for arg in
                    (args.os_auth_url, args.os_username, args.os_tenant_name,
                     args.os_password)]):
