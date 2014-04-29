@@ -81,7 +81,8 @@ def all_commands():
      metavar='WORKING_DIR', nargs='?',
      default='.')
 def new(args):
-    """
+    """Create template ``zapp.yaml`` file
+
     Create a default ZeroVM application ``zapp.yaml`` specification in the
     target directory. If no directory is specified, ``zapp.yaml`` will be
     created in the current directory.

@@ -16,7 +16,7 @@ Main help text is shown when no command is given:
       bundle    Bundle a ZeroVM application
       deploy    Deploy a ZeroVM application
       help      Show this help
-      new
+      new       Create template ``zapp.yaml`` file
   
   See 'zpm <command> --help' for more information on a specific command.
 
@@ -53,6 +53,6 @@ Test with non-existing command:
       bundle    Bundle a ZeroVM application
       deploy    Deploy a ZeroVM application
       help      Show this help
-      new
+      new       Create template ``zapp.yaml`` file
   
   See 'zpm <command> --help' for more information on a specific command.
