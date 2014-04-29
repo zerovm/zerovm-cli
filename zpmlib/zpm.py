@@ -285,8 +285,7 @@ def _find_ui_uploads(zapp, tar):
 def deploy_project(args):
     version = args.auth_version
     if version == '1.0':
-        if not all([arg is not None for arg in
-                   (args.auth, args.user, args.key)]):
+        if any([arg is None for arg in (args.auth, args.user, args.key)]):
             raise zpmlib.ZPMException(
                 "Version 1 auth requires `--auth`, `--user`, and `--key`."
                 "\nSee `zpm deploy --help` for more information."
@@ -294,9 +293,9 @@ def deploy_project(args):
 
         client = miniswift.ZeroCloudClient(args.auth, args.user, args.key)
     else:
-        if not all([arg is not None for arg in
-                   (args.os_auth_url, args.os_username, args.os_tenant_name,
-                    args.os_password)]):
+        if any([arg is None for arg in
+                (args.os_auth_url, args.os_username, args.os_tenant_name,
+                 args.os_password)]):
             raise zpmlib.ZPMException(
                 "Version 2 auth requires `--os-auth-url`, `--os-username`, "
                 "`--os-password`, and `--os-tenant-name`."
