@@ -81,17 +81,8 @@ Deployment
 """"""""""
 
 To deploy ``hello.zapp``, you need access to a ZeroCloud cluster (Swift
-running the ZeroVM middleware). Like the ``swift`` command line client
-for Swift, ``zpm`` will read your credentials from environemnt
-variables if you don't pass them on the command line. The environment
-variables are:
-
-.. code-block:: sh
-
-   export OS_TENANT_NAME=demo
-   export OS_USERNAME=demo
-   export OS_PASSWORD=pw
-   export OS_AUTH_URL=http://localhost:5000/v2.0
+running the ZeroVM middleware). For help on configuring ``zpm`` to access
+a ZeroCloud cluster, see :doc:`zerocloud-auth-config`.
 
 We will deploy it to a ``test`` container under the folder
 ``hello``::
