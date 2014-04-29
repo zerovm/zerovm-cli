@@ -284,7 +284,7 @@ def _find_ui_uploads(zapp, tar):
 
 def deploy_project(args):
     version = args.auth_version
-    if version in ('1.0', '1', 1.0, 1):
+    if version == '1.0':
         if not all([arg is not None for arg in
                    (args.auth, args.user, args.key)]):
             raise zpmlib.ZPMException(
@@ -292,9 +292,8 @@ def deploy_project(args):
                 "\nSee `zpm deploy --help` for more information."
             )
 
-        version = 1
         client = miniswift.ZeroCloudClient(args.auth, args.user, args.key)
-    elif version in ('2.0', '2', 2.0, 2):
+    else:
         if not all([arg is not None for arg in
                    (args.os_auth_url, args.os_username, args.os_tenant_name,
                     args.os_password)]):
@@ -304,7 +303,6 @@ def deploy_project(args):
                 "\nSee `zpm deploy --help` for more information."
             )
 
-        version = 2
         client = miniswift.ZeroCloudClient(
             args.os_auth_url,
             args.os_username,
@@ -314,6 +312,10 @@ def deploy_project(args):
         )
 
     client.auth()
+
+    # We can now reset the auth for the web UI, if needed
+    if args.no_ui_auth:
+        version = '0.0'
 
     tar = tarfile.open(args.zapp)
     zapp = yaml.safe_load(tar.extractfile('zapp.yaml'))
@@ -327,12 +329,10 @@ def deploy_project(args):
     client.upload('%s/%s.json' % (args.target, zapp['meta']['name']),
                   json.dumps(job))
 
-    if args.no_ui_auth:
-        version = 0
     deploy = {'version': version}
-    if version == 0:
+    if version == '0.0':
         deploy['swiftUrl'] = client._swift_service_url
-    elif version == 1:
+    elif version == '1.0':
         deploy['authUrl'] = args.auth
         deploy['username'] = args.user
         deploy['password'] = args.key
