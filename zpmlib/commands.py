@@ -16,6 +16,7 @@ import os
 import operator
 import argparse
 
+import zpmlib
 from zpmlib import zpm
 
 # List of function that will be the top-level zpm commands.
@@ -161,3 +162,9 @@ def help(args):
         parser.print_help()
     else:
         parser.parse_args([args.command, '-h'])
+
+
+@command
+def version(args):
+    """Show the version number"""
+    print('zpm version %s' % zpmlib.__version__)

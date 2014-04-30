@@ -17,6 +17,7 @@ Main help text is shown when no command is given:
       deploy    Deploy a ZeroVM application
       help      Show this help
       new       Create template ``zapp.yaml`` file
+      version   Show the version number
   
   See 'zpm <command> --help' for more information on a specific command.
 
@@ -54,5 +55,6 @@ Test with non-existing command:
       deploy    Deploy a ZeroVM application
       help      Show this help
       new       Create template ``zapp.yaml`` file
+      version   Show the version number
   
   See 'zpm <command> --help' for more information on a specific command.
