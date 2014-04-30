@@ -29,6 +29,10 @@ def set_up_arg_parser():
         epilog=("See 'zpm <command> --help' for more information on a specific"
                 " command."),
     )
+    parser.add_argument('--version', action='version',
+                        help='show the version number and exit',
+                        version='zpm version %s' % zpmlib.__version__)
+
     subparsers = parser.add_subparsers(description='available subcommands',
                                        metavar='COMMAND')
 
@@ -167,4 +171,5 @@ def help(args):
 @command
 def version(args):
     """Show the version number"""
-    print('zpm version %s' % zpmlib.__version__)
+    parser = set_up_arg_parser()
+    parser.parse_args(['--version'])

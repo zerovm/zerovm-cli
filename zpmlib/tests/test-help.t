@@ -2,12 +2,13 @@
 Main help text is shown when no command is given:
 
   $ zpm help
-  usage: zpm [-h] COMMAND ...
+  usage: zpm [-h] [--version] COMMAND ...
   
   ZeroVM Package Manager
   
   optional arguments:
     -h, --help  show this help message and exit
+    --version   show the version number and exit
   
   subcommands:
     available subcommands
@@ -40,12 +41,13 @@ Test with non-existing command:
 
   $ zpm help no-such-command
   no such command: no-such-command
-  usage: zpm [-h] COMMAND ...
+  usage: zpm [-h] [--version] COMMAND ...
   
   ZeroVM Package Manager
   
   optional arguments:
     -h, --help  show this help message and exit
+    --version   show the version number and exit
   
   subcommands:
     available subcommands
