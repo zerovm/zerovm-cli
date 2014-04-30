@@ -67,6 +67,11 @@ def arg(*args, **kwargs):
     If `kwargs` has an `envvar` key, then the default value for the
     command line argument will be taken from the environment variable
     with this name.
+
+    The default value is automatically added to the help string. We do
+    it here instead of using argparse.ArgumentDefaultsHelpFormatter
+    since we format the help in more than one place (cmdline and
+    Sphinx doc).
     """
     envvar = kwargs.get('envvar')
     if envvar:
@@ -76,6 +81,10 @@ def arg(*args, **kwargs):
         # documentation with tox.
         if '_TOX_SPHINX' not in os.environ:
             kwargs['default'] = os.environ.get(envvar)
+        kwargs['help'] += ' (default: $%s)' % envvar
+    else:
+        if 'default' in kwargs:
+            kwargs['help'] += ' (default: %s)' % kwargs['default']
 
     def decorator(func):
         if not hasattr(func, '_args'):
@@ -90,7 +99,7 @@ def all_commands():
 
 
 @command
-@arg('dir', help='Non-existent or empty directory (default: %(default)s)',
+@arg('dir', help='Non-existent or empty directory',
      metavar='WORKING_DIR', nargs='?',
      default='.')
 def new(args):
@@ -126,22 +135,21 @@ def bundle(args):
 @arg('--execute', action='store_true', help='Immediatedly '
      'execute the deployed Zapp (for testing)')
 @arg('--auth-version', '-V', default='1.0', choices=['1.0', '2.0'],
-     help='Swift auth version (default: %(default)s)')
+     help='Swift auth version')
 @arg('--auth', '-A', envvar='ST_AUTH',
-     help='(Auth v1.0) URL for obtaining an auth token (default: $ST_AUTH)')
+     help='(Auth v1.0) URL for obtaining an auth token')
 @arg('--user', '-U', envvar='ST_USER',
-     help='(Auth v1.0) User name for obtaining an auth token '
-     '(default: $ST_AUTH)')
+     help='(Auth v1.0) User name for obtaining an auth token')
 @arg('--key', '-K', envvar='ST_KEY',
-     help='(Auth v1.0) Key for obtaining an auth token (default: $ST_KEY)')
+     help='(Auth v1.0) Key for obtaining an auth token')
 @arg('--os-auth-url', envvar='OS_AUTH_URL',
-     help='(Auth v2.0) OpenStack auth URL (default: $OS_AUTH_URL)')
+     help='(Auth v2.0) OpenStack auth URL')
 @arg('--os-tenant-name', envvar='OS_TENANT_NAME',
-     help='(Auth v2.0) OpenStack tenant (default: $OS_TENANT_NAME)')
+     help='(Auth v2.0) OpenStack tenant')
 @arg('--os-username', envvar='OS_USERNAME',
-     help='(Auth v2.0) OpenStack username (default: $OS_USERNAME)')
+     help='(Auth v2.0) OpenStack username')
 @arg('--os-password', envvar='OS_PASSWORD',
-     help='(Auth v2.0) OpenStack password (default: $OS_PASSWORD)')
+     help='(Auth v2.0) OpenStack password')
 @arg('--no-ui-auth', action='store_true',
      help='Do not generate any authentication code for the web UI')
 def deploy(args):

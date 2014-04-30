@@ -56,3 +56,48 @@ Test with non-existing command:
       new       Create template ``zapp.yaml`` file
   
   See 'zpm <command> --help' for more information on a specific command.
+
+Test default value shown when flag takes default from environment:
+
+  $ zpm help deploy
+  usage: zpm deploy [-h] [--execute] [--auth-version {1.0,2.0}] [--auth AUTH]
+                    [--user USER] [--key KEY] [--os-auth-url OS_AUTH_URL]
+                    [--os-tenant-name OS_TENANT_NAME]
+                    [--os-username OS_USERNAME] [--os-password OS_PASSWORD]
+                    [--no-ui-auth]
+                    zapp target
+  
+  This deploys a zapp onto Swift. The zapp can be one you have downloaded or
+  produced yourself :ref:`zpm-bundle`. You will need to know the Swift
+  authentication URL, username, password, and tenant name. These can be supplied
+  with command line flags (see below) or you can set the corresponding
+  environment variables. The environment variables are the same as the ones used
+  by the `Swift command line tool <http://docs.openstack.org/ user-
+  guide/content/swift_commands.html>`_, so if you're already using that to
+  upload files to Swift, you will be ready to go.
+  
+  positional arguments:
+    zapp                  A ZeroVM application
+    target                Deployment target (Swift container name)
+  
+  optional arguments:
+    -h, --help            show this help message and exit
+    --execute             Immediatedly execute the deployed Zapp (for testing)
+    --auth-version {1.0,2.0}, -V {1.0,2.0}
+                          Swift auth version (default: 1.0)
+    --auth AUTH, -A AUTH  (Auth v1.0) URL for obtaining an auth token (default:
+                          $ST_AUTH)
+    --user USER, -U USER  (Auth v1.0) User name for obtaining an auth token
+                          (default: $ST_USER)
+    --key KEY, -K KEY     (Auth v1.0) Key for obtaining an auth token (default:
+                          $ST_KEY)
+    --os-auth-url OS_AUTH_URL
+                          (Auth v2.0) OpenStack auth URL (default: $OS_AUTH_URL)
+    --os-tenant-name OS_TENANT_NAME
+                          (Auth v2.0) OpenStack tenant (default:
+                          $OS_TENANT_NAME)
+    --os-username OS_USERNAME
+                          (Auth v2.0) OpenStack username (default: $OS_USERNAME)
+    --os-password OS_PASSWORD
+                          (Auth v2.0) OpenStack password (default: $OS_PASSWORD)
+    --no-ui-auth          Do not generate any authentication code for the web UI
