@@ -71,7 +71,11 @@ def arg(*args, **kwargs):
     envvar = kwargs.get('envvar')
     if envvar:
         del kwargs['envvar']
-        kwargs['default'] = os.environ.get(envvar)
+        # The default value is shown in the generated documentation.
+        # We therefore only set it if we're not building the
+        # documentation with tox.
+        if '_TOX_SPHINX' not in os.environ:
+            kwargs['default'] = os.environ.get(envvar)
 
     def decorator(func):
         if not hasattr(func, '_args'):
