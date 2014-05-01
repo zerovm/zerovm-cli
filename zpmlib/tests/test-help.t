@@ -69,7 +69,7 @@ Test default value shown when flag takes default from environment:
                     [--os-tenant-name OS_TENANT_NAME]
                     [--os-username OS_USERNAME] [--os-password OS_PASSWORD]
                     [--no-ui-auth]
-                    zapp target
+                    target zapp
   
   This deploys a zapp onto Swift. The zapp can be one you have downloaded or
   produced yourself :ref:`zpm-bundle`. You will need to know the Swift
@@ -81,8 +81,8 @@ Test default value shown when flag takes default from environment:
   upload files to Swift, you will be ready to go.
   
   positional arguments:
-    zapp                  A ZeroVM application
     target                Deployment target (Swift container name)
+    zapp                  A ZeroVM application
   
   optional arguments:
     -h, --help            show this help message and exit
