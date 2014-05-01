@@ -19,11 +19,11 @@ ZeroVM Package Manager
 from setuptools import find_packages
 from setuptools import setup
 
-VERSION = '0.1'
+import zpmlib
 
 setup(
     name='zpm',
-    version=VERSION,
+    version=zpmlib.__version__,
     maintainer='Rackspace ZeroVM Team',
     maintainer_email='zerovm@rackspace.com',
     url='https://github.com/zerovm/zpm',
@@ -33,7 +33,7 @@ setup(
     packages=find_packages(exclude=['zpmlib.tests', 'zpmlib.tests.*']),
     package_data={'zpmlib': ['templates/*.html', 'templates/*.css',
                              'templates/*.js', 'templates/*.yaml']},
-    provides=['zpm (%s)' % VERSION],
+    provides=['zpm (%s)' % zpmlib.__version__],
     install_requires=['requests', 'jinja2<2.7', 'pyyaml'],
     license='Apache 2.0',
     keywords='zpm zerovm zvm',

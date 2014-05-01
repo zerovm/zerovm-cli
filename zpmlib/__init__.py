@@ -13,6 +13,9 @@
 #  limitations under the License.
 
 
+__version__ = '0.1'
+
+
 class ZPMException(Exception):
     """
     Basic exception to signal ZPM-specific errors. Useful for cases in which an

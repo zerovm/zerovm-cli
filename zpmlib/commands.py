@@ -16,6 +16,7 @@ import os
 import operator
 import argparse
 
+import zpmlib
 from zpmlib import zpm
 
 # List of function that will be the top-level zpm commands.
@@ -28,6 +29,10 @@ def set_up_arg_parser():
         epilog=("See 'zpm <command> --help' for more information on a specific"
                 " command."),
     )
+    parser.add_argument('--version', action='version',
+                        help='show the version number and exit',
+                        version='zpm version %s' % zpmlib.__version__)
+
     subparsers = parser.add_subparsers(description='available subcommands',
                                        metavar='COMMAND')
 
@@ -161,3 +166,10 @@ def help(args):
         parser.print_help()
     else:
         parser.parse_args([args.command, '-h'])
+
+
+@command
+def version(args):
+    """Show the version number"""
+    parser = set_up_arg_parser()
+    parser.parse_args(['--version'])
