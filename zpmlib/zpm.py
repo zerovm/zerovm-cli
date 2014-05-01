@@ -295,7 +295,7 @@ def _find_ui_uploads(zapp, tar):
     return matches
 
 
-def deploy_project(args):
+def _get_zerocloud_client(args):
     version = args.auth_version
     if version == '1.0':
         if any([arg is None for arg in (args.auth, args.user, args.key)]):
@@ -323,6 +323,12 @@ def deploy_project(args):
             auth_version=2,
         )
 
+    return client
+
+
+def deploy_project(args):
+    version = args.auth_version
+    client = _get_zerocloud_client(args)
     client.auth()
 
     # We can now reset the auth for the web UI, if needed
