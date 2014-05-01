@@ -135,8 +135,8 @@ def bundle(args):
 
 
 @command
-@arg('zapp', help='A ZeroVM application')
 @arg('target', help='Deployment target (Swift container name)')
+@arg('zapp', help='A ZeroVM application')
 @arg('--execute', action='store_true', help='Immediatedly '
      'execute the deployed Zapp (for testing)')
 @arg('--auth-version', '-V', default='1.0', choices=['1.0', '2.0'],
