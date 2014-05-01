@@ -27,7 +27,7 @@ Test bundling with auto-generated UI:
   adding /*/foo/zapp.yaml (glob)
   adding index.html
   adding style.css
-  adding zebra.js
+  adding zerocloud.js
   created foo.zapp
 
   $ tar -tf foo.zapp
@@ -36,15 +36,15 @@ Test bundling with auto-generated UI:
   zapp.yaml
   index.html
   style.css
-  zebra.js
+  zerocloud.js
 
 Test bundling with UI
 
-  $ touch foo.html myzebra.js
+  $ touch foo.html myzerocloud.js
   $ cat >> zapp.yaml <<EOF
   > ui:
   >   - foo.html
-  >   - myzebra.js
+  >   - myzerocloud.js
   > EOF
 
   $ zpm bundle
@@ -52,12 +52,12 @@ Test bundling with UI
   adding /*/foo/a.txt (glob)
   adding /*/foo/zapp.yaml (glob)
   adding /*/foo/foo.html (glob)
-  adding /*/foo/myzebra.js (glob)
+  adding /*/foo/myzerocloud.js (glob)
   created foo.zapp
   $ tar -tf foo.zapp
   foo.json
   a.txt
   zapp.yaml
   foo.html
-  myzebra.js
+  myzerocloud.js
 
