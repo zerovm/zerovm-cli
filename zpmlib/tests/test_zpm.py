@@ -20,14 +20,14 @@ import pytest
 import shutil
 import tarfile
 import tempfile
+import yaml
+import zpmlib
 try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
 
 from zpmlib import zpm
-
-import yaml
 
 
 class TestCreateProject:
@@ -269,3 +269,46 @@ def test__generate_job_desc():
 
     actual_job = zpm._generate_job_desc(zapp_yaml_contents)
     assert actual_job == expected_job
+
+
+class TestGetZeroCloudClient:
+    """
+    Tests for :func:`zpmlib.zpm._get_zerocloud_client`.
+    """
+
+    def setup_method(self, _method):
+        self.v1_args = mock.Mock()
+        self.v1_args.auth_version = '1.0'
+        self.v1_args.auth = 'http://example.com/auth/v1.0'
+        self.v1_args.user = 'tenant1:user1'
+        self.v1_args.key = 'secret'
+
+        self.v2_args = mock.Mock()
+        self.v2_args.auth_version = '2.0'
+        self.v2_args.os_auth_url = 'http://example.com/v2.0'
+        self.v2_args.os_username = 'user1'
+        self.v2_args.os_password = 'secret'
+        self.v2_args.os_tenant_name = 'tenant1'
+
+    def test_v1(self):
+        client = zpm._get_zerocloud_client(self.v1_args)
+        assert client._auth_url == self.v1_args.auth
+        assert client._username == self.v1_args.user
+        assert client._password == self.v1_args.key
+
+    def test_v1_fail(self):
+        self.v1_args.user = None
+        with pytest.raises(zpmlib.ZPMException):
+            zpm._get_zerocloud_client(self.v1_args)
+
+    def test_v2(self):
+        client = zpm._get_zerocloud_client(self.v2_args)
+        assert client._auth_url == self.v2_args.os_auth_url
+        assert client._username == self.v2_args.os_username
+        assert client._password == self.v2_args.os_password
+        assert client._tenant == self.v2_args.os_tenant_name
+
+    def test_v2_fail(self):
+        self.v2_args.os_tenant_name = None
+        with pytest.raises(zpmlib.ZPMException):
+            zpm._get_zerocloud_client(self.v2_args)
