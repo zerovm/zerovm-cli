@@ -144,6 +144,22 @@ class SwiftClient(object):
             raise RuntimeError('uploading %s failed with status %d'
                                % (path, r.status_code))
 
+    def download(self, container, filename):
+        """
+        Download ``filename`` from the given ``container``.
+
+        :param container:
+            Name of a Swift container.
+        :param filename:
+            Name of the file in the ``container`` to download.
+        :returns:
+            :class:`requests.models.Response` object.
+        """
+        headers = {'X-Auth-Token': self._token}
+        url = '/'.join([self._swift_service_url, container, filename])
+        resp = requests.get(url, headers=headers)
+        return resp
+
 
 class ZeroCloudClient(SwiftClient):
     """
