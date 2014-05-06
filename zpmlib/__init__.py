@@ -12,6 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import logging
 
 __version__ = '0.1'
 
@@ -22,3 +23,22 @@ class ZPMException(Exception):
     exception must be differentiated from the more general built-in exception
     types.
     """
+
+
+def _set_up_logger():
+    log = logging.getLogger(__name__)
+    _stream_handler = logging.StreamHandler()
+    _stream_handler.setFormatter(
+        logging.Formatter(fmt='%(levelname)s:%(message)s')
+    )
+    log.addHandler(_stream_handler)
+    return log
+
+LOG = _set_up_logger()
+LOG_LEVEL_MAP = dict(
+    debug=logging.DEBUG,
+    info=logging.INFO,
+    warning=logging.WARNING,
+    error=logging.ERROR,
+    critical=logging.CRITICAL,
+)
