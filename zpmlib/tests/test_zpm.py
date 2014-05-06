@@ -180,3 +180,92 @@ def test__prepare_job():
         assert exp_job_json == job
     finally:
         shutil.rmtree(tempdir)
+
+
+class TestFindProjectRoot:
+    """
+    Tests for :func:`zpmlib.zpm.find_project_root`.
+    """
+
+    def setup_method(self, _method):
+        self.tempdir = tempfile.mkdtemp()
+        self.subdir = os.path.join(self.tempdir, 'foo', 'bar')
+        os.makedirs(self.subdir)
+
+    def test_zapp_yaml_exists(self):
+        try:
+            zapp_path = os.path.join(self.tempdir, 'zapp.yaml')
+            # "touch" the file
+            open(zapp_path, 'w').close()
+
+            with mock.patch('os.getcwd') as cwd:
+                cwd.return_value = self.subdir
+
+                root = zpm.find_project_root()
+                assert root == self.tempdir
+        finally:
+            shutil.rmtree(self.tempdir)
+
+    def test_zapp_yaml_not_exists(self):
+        try:
+            with mock.patch('os.getcwd') as cwd:
+                cwd.return_value = self.subdir
+
+                with pytest.raises(RuntimeError):
+                    zpm.find_project_root()
+        finally:
+            shutil.rmtree(self.tempdir)
+
+
+def test__generate_job_desc():
+    # Test :func:`zpmlib.zpm._generate_job_desc`.
+    zapp_yaml_contents = {
+        'bundling': ['mapper.py', 'reducer.py'],
+        'execution': {
+            'groups': [
+                {'args': r'mapper.py "foo\\, \nbar"',
+                 'devices': [
+                     {'name': 'python2.7'},
+                     {'name': 'stdout'},
+                     {'name': 'input_swift_file',
+                      'path': 'swift://AUTH_abc123/foo/bar.txt'},
+                 ],
+                 'name': 'mapper',
+                 'connect': ['reducer'],
+                 'path': 'file://python2.7:python'},
+                {'args': 'reducer.py',
+                 'devices': [
+                     {'name': 'python2.7'},
+                     {'name': 'stdout'},
+                 ],
+                 'name': 'reducer',
+                 'path': 'file://python2.7:python'},
+            ]
+        },
+        'help': {'args': [['loglevel', 'Log Level']],
+                 'description': 'sample map/reduce app'},
+        'meta': {'Author-email': 'John Doe <jdoe@example.com',
+                 'Summary': 'Sample map/reduce app',
+                 'Version': '0.1',
+                 'name': 'mapreduce'}
+    }
+
+    expected_job = [
+        {'file_list': [
+            {'device': 'python2.7'},
+            {'device': 'stdout'},
+            {'device': 'input_swift_file',
+             'path': 'swift://AUTH_abc123/foo/bar.txt'}],
+         'connect': ['reducer'],
+         'name': 'mapper',
+         'exec': {'path': 'file://python2.7:python',
+                  'args': 'mapper.py foo\\x5c\\x2c\\x20\\x5cnbar'}},
+        {'file_list': [
+            {'device': 'python2.7'},
+            {'device': 'stdout'}],
+         'name': 'reducer',
+         'exec': {'path': 'file://python2.7:python', 'args': 'reducer.py'}},
+    ]
+
+    actual_job = zpm._generate_job_desc(zapp_yaml_contents)
+    assert actual_job == expected_job

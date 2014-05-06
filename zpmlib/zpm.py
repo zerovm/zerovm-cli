@@ -80,6 +80,11 @@ def _create_zapp_yaml(location):
 
 
 def find_project_root():
+    """
+    Starting from the `cwd`, search up the file system hierarchy until a
+    ``zapp.yaml`` file is found. Once the file is found, return the directory
+    containing it. If no file is found, raise a `RuntimeError`.
+    """
     root = os.getcwd()
     while not os.path.isfile(os.path.join(root, 'zapp.yaml')):
         oldroot, root = root, os.path.dirname(root)
@@ -89,6 +94,14 @@ def find_project_root():
 
 
 def _generate_job_desc(zapp):
+    """
+    Generate the <appname>.json file contents from the zapp config file.
+
+    :param zapp:
+        `dict` of the contents of a ``zapp.yaml`` file.
+    :returns:
+        `dict` of the job description
+    """
     job = []
 
     def make_file_list(zgroup):
