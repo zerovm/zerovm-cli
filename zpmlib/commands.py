@@ -12,6 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import functools
 import os
 import operator
 import argparse
@@ -62,6 +63,34 @@ def command(func):
     """
     _commands.append(func)
     return func
+
+
+def with_logging(func):
+    """
+    Decorator for adding the `--log-level` option to a ``zpm`` command.
+
+    Also takes cares of setting the log level appropriately per the command
+    line option when a command is executed.
+
+    This should be used as the innermost decorator on a command function.
+    """
+    log_level_deco = arg(
+        '--log-level', '-l', help="Defaults to 'warn'",
+        choices=['debug', 'info', 'warning', 'error', 'critical'],
+        default='warning'
+    )
+
+    @functools.wraps(func)
+    def inner(namespace, *args, **kwargs):
+        """
+        :param namespace:
+            :class:`argparse.Namespace` instance. This is the only
+            required/expected parameter for a command function.
+        """
+        LOG.setLevel(zpmlib.LOG_LEVEL_MAP.get(namespace.log_level))
+        return func(namespace, *args, **kwargs)
+
+    return log_level_deco(inner)
 
 
 def arg(*args, **kwargs):
