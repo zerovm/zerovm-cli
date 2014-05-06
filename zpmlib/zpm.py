@@ -12,13 +12,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import os
-import tarfile
+import fnmatch
 import glob
 import gzip
+import jinja2
 import json
+import os
 import shlex
-import fnmatch
+import tarfile
+import yaml
 import zpmlib
 try:
     import urlparse
@@ -31,8 +33,6 @@ except ImportError:
 
 from zpmlib import miniswift
 
-import jinja2
-import yaml
 
 _DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zerocloud.js']
 
