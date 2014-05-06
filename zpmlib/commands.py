@@ -18,6 +18,7 @@ import argparse
 
 import zpmlib
 from zpmlib import zpm
+from zpmlib import LOG
 
 # List of function that will be the top-level zpm commands.
 _commands = []
@@ -197,7 +198,7 @@ def deploy(args):
     user-guide/content/swift_commands.html>`_, so if you're already
     using that to upload files to Swift, you will be ready to go.
     """
-    print('deploying %s' % args.zapp)
+    LOG.info('deploying %s' % args.zapp)
     zpm.deploy_project(args)
 
 

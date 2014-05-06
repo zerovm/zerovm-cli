@@ -16,6 +16,8 @@ import json
 import requests
 import zpmlib
 
+from zpmlib import LOG
+
 """Small Swift client library."""
 
 
@@ -97,7 +99,7 @@ class SwiftClient(object):
             data = r.json()
 
             self._token = data['access']['token']['id']
-            print('found token: %s...' % self._token[:20])
+            LOG.info('found token: %s...' % self._token[:20])
 
             for service in data['access']['serviceCatalog']:
                 if service['name'] == 'swift':
@@ -110,7 +112,7 @@ class SwiftClient(object):
                     # parts = list(p)
                     # parts[1] = 'localhost:%d' % p.port
                     # self._swift_url = urlparse.urlunparse(parts)
-                    print('found Swift: %s' % self._swift_service_url)
+                    LOG.info('found Swift: %s' % self._swift_service_url)
                     break
             else:
                 # No swift found; we can't really do anything without this.
@@ -137,9 +139,9 @@ class SwiftClient(object):
         r = requests.put('%s/%s' % (self._swift_service_url, path),
                          data=data, headers=headers)
         if r.status_code == 200:
-            print('created %s succesfully' % path)
+            LOG.info('created %s succesfully' % path)
         elif r.status_code == 201:
-            print('updated %s succesfully' % path)
+            LOG.info('updated %s succesfully' % path)
         else:
             raise RuntimeError('uploading %s failed with status %d'
                                % (path, r.status_code))
@@ -182,5 +184,5 @@ class ZeroCloudClient(SwiftClient):
         json_data = json.dumps(job)
         r = requests.post(self._swift_service_url, data=json_data,
                           headers=headers)
-        print(r)
+        LOG.debug('response status: %s' % r.status_code)
         print(r.content)
