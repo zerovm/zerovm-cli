@@ -178,6 +178,7 @@ def all_commands():
 @arg('dir', help='Non-existent or empty directory',
      metavar='WORKING_DIR', nargs='?',
      default='.')
+@with_logging
 def new(args):
     """Create template ``zapp.yaml`` file
 
@@ -195,6 +196,7 @@ def new(args):
 
 
 @command
+@with_logging
 def bundle(args):
     """Bundle a ZeroVM application
 
@@ -213,6 +215,7 @@ def bundle(args):
 @login_args
 @arg('--no-ui-auth', action='store_true',
      help='Do not generate any authentication code for the web UI')
+@with_logging
 def deploy(args):
     """Deploy a ZeroVM application
 
