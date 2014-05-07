@@ -50,6 +50,21 @@ For help on configuring authentication, see
    :prog: zpm
    :path: bundle
 
+
+.. _zpm-execute:
+
+``zpm execute``
+---------------
+
+.. autocommand:: zpmlib.commands.execute
+
+.. argparse::
+   :module: zpmlib.commands
+   :func: set_up_arg_parser
+   :prog: zpm
+   :path: execute
+
+
 .. _zpm-help:
 
 ``zpm help``
