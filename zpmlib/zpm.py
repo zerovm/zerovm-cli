@@ -34,7 +34,7 @@ from zpmlib import miniswift
 import jinja2
 import yaml
 
-_DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zebra.js']
+_DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zerocloud.js']
 
 
 def create_project(location):
