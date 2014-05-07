@@ -99,6 +99,47 @@ def arg(*args, **kwargs):
     return decorator
 
 
+def group_args(accumulator):
+    """Decorator for grouping command line arguments
+
+    Use this as the first decorator on a function to turn that
+    function into a decorator that groups the following command line
+    arguments.
+    """
+    def decorator(func):
+        if not hasattr(func, '_args'):
+            func._args = []
+        func._args.extend(accumulator._args)
+        return func
+    return decorator
+
+
+@group_args
+@arg('--auth-version', '-V', default='1.0', choices=['1.0', '2.0'],
+     help='Swift auth version')
+@arg('--auth', '-A', envvar='ST_AUTH',
+     help='(Auth v1.0) URL for obtaining an auth token')
+@arg('--user', '-U', envvar='ST_USER',
+     help='(Auth v1.0) User name for obtaining an auth token')
+@arg('--key', '-K', envvar='ST_KEY',
+     help='(Auth v1.0) Key for obtaining an auth token')
+@arg('--os-auth-url', envvar='OS_AUTH_URL',
+     help='(Auth v2.0) OpenStack auth URL')
+@arg('--os-tenant-name', envvar='OS_TENANT_NAME',
+     help='(Auth v2.0) OpenStack tenant')
+@arg('--os-username', envvar='OS_USERNAME',
+     help='(Auth v2.0) OpenStack username')
+@arg('--os-password', envvar='OS_PASSWORD',
+     help='(Auth v2.0) OpenStack password')
+def login_args():
+    """Decorator for adding Swift login command line arguments
+
+    Use this where you need to add the standard set of command line
+    arguments for Swift login.
+    """
+    pass
+
+
 def all_commands():
     return sorted(_commands, key=operator.attrgetter('__name__'))
 
@@ -139,22 +180,7 @@ def bundle(args):
 @arg('target', help='Deployment target (Swift container name)')
 @arg('--execute', action='store_true', help='Immediatedly '
      'execute the deployed Zapp (for testing)')
-@arg('--auth-version', '-V', default='1.0', choices=['1.0', '2.0'],
-     help='Swift auth version')
-@arg('--auth', '-A', envvar='ST_AUTH',
-     help='(Auth v1.0) URL for obtaining an auth token')
-@arg('--user', '-U', envvar='ST_USER',
-     help='(Auth v1.0) User name for obtaining an auth token')
-@arg('--key', '-K', envvar='ST_KEY',
-     help='(Auth v1.0) Key for obtaining an auth token')
-@arg('--os-auth-url', envvar='OS_AUTH_URL',
-     help='(Auth v2.0) OpenStack auth URL')
-@arg('--os-tenant-name', envvar='OS_TENANT_NAME',
-     help='(Auth v2.0) OpenStack tenant')
-@arg('--os-username', envvar='OS_USERNAME',
-     help='(Auth v2.0) OpenStack username')
-@arg('--os-password', envvar='OS_PASSWORD',
-     help='(Auth v2.0) OpenStack password')
+@login_args
 @arg('--no-ui-auth', action='store_true',
      help='Do not generate any authentication code for the web UI')
 def deploy(args):
@@ -178,22 +204,7 @@ def deploy(args):
 @command
 @arg('container', help='Swift container name (containing the zapp)')
 @arg('zapp', help='Name of the zapp to execute')
-@arg('--auth-version', '-V', default='1.0', choices=['1.0', '2.0'],
-     help='Swift auth version')
-@arg('--auth', '-A', envvar='ST_AUTH',
-     help='(Auth v1.0) URL for obtaining an auth token')
-@arg('--user', '-U', envvar='ST_USER',
-     help='(Auth v1.0) User name for obtaining an auth token')
-@arg('--key', '-K', envvar='ST_KEY',
-     help='(Auth v1.0) Key for obtaining an auth token')
-@arg('--os-auth-url', envvar='OS_AUTH_URL',
-     help='(Auth v2.0) OpenStack auth URL')
-@arg('--os-tenant-name', envvar='OS_TENANT_NAME',
-     help='(Auth v2.0) OpenStack tenant')
-@arg('--os-username', envvar='OS_USERNAME',
-     help='(Auth v2.0) OpenStack username')
-@arg('--os-password', envvar='OS_PASSWORD',
-     help='(Auth v2.0) OpenStack password')
+@login_args
 def execute(args):
     """Remotely execute a ZeroVM application.
     """

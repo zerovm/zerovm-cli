@@ -4,6 +4,8 @@ ZPM Commands
 
 The ``zpm`` script has the following top-level commands:
 
+.. The commands are approximately listed in the order the user will
+   want to use them, not alphabetically.
 
 .. _zpm-new:
 
@@ -19,8 +21,21 @@ The ``zpm`` script has the following top-level commands:
    :path: new
 
 
-.. _zpm-deploy:
+.. _zpm-bundle:
 
+``zpm bundle``
+--------------
+
+.. autocommand:: zpmlib.commands.bundle
+
+.. argparse::
+   :module: zpmlib.commands
+   :func: set_up_arg_parser
+   :prog: zpm
+   :path: bundle
+
+
+.. _zpm-deploy:
 
 ``zpm deploy``
 --------------
@@ -37,18 +52,19 @@ For help on configuring authentication, see
    :path: deploy
 
 
-.. _zpm-bundle:
+.. _zpm-execute:
 
-``zpm bundle``
---------------
+``zpm execute``
+---------------
 
-.. autocommand:: zpmlib.commands.bundle
+.. autocommand:: zpmlib.commands.execute
 
 .. argparse::
    :module: zpmlib.commands
    :func: set_up_arg_parser
    :prog: zpm
-   :path: bundle
+   :path: execute
+
 
 .. _zpm-help:
 
