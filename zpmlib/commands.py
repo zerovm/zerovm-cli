@@ -99,6 +99,22 @@ def arg(*args, **kwargs):
     return decorator
 
 
+def group_args(accumulator):
+    """Decorator for grouping command line arguments
+
+    Use this as the first decorator on a function to turn that
+    function into a decorator that groups the following command line
+    arguments.
+    """
+    def decorator(func):
+        if not hasattr(func, '_args'):
+            func._args = []
+        func._args.extend(accumulator._args)
+        return func
+    return decorator
+
+
+@group_args
 @arg('--auth-version', '-V', default='1.0', choices=['1.0', '2.0'],
      help='Swift auth version')
 @arg('--auth', '-A', envvar='ST_AUTH',
@@ -115,16 +131,13 @@ def arg(*args, **kwargs):
      help='(Auth v2.0) OpenStack username')
 @arg('--os-password', envvar='OS_PASSWORD',
      help='(Auth v2.0) OpenStack password')
-def login_args(func):
+def login_args():
     """Decorator for adding Swift login command line arguments
 
     Use this where you need to add the standard set of command line
     arguments for Swift login.
     """
-    if not hasattr(func, '_args'):
-        func._args = []
-    func._args.extend(login_args._args)
-    return func
+    pass
 
 
 def all_commands():
