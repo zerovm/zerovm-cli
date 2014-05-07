@@ -295,7 +295,7 @@ def _find_ui_uploads(zapp, tar):
     return matches
 
 
-def deploy_project(args):
+def _get_zerocloud_client(args):
     version = args.auth_version
     if version == '1.0':
         if any([arg is None for arg in (args.auth, args.user, args.key)]):
@@ -323,6 +323,12 @@ def deploy_project(args):
             auth_version=2,
         )
 
+    return client
+
+
+def deploy_project(args):
+    version = args.auth_version
+    client = _get_zerocloud_client(args)
     client.auth()
 
     # We can now reset the auth for the web UI, if needed
@@ -372,3 +378,19 @@ def deploy_project(args):
 
     print('app deployed to\n  %s/%s/' % (client._swift_service_url,
                                          args.target))
+
+
+def execute(args):
+    client = _get_zerocloud_client(args)
+    client.auth()
+
+    job_filename = '%s.json' % os.path.splitext(args.zapp)[0]
+    resp = client.download(args.container, job_filename)
+    if not resp.status_code == 200:
+        raise zpmlib.ZPMException(
+            "No job description found for '%(zapp)s' in container '%(cont)s'."
+            "\n(Expected to find '%(job)s'.)"
+            % dict(zapp=args.zapp, cont=args.container, job=job_filename)
+        )
+    job = json.loads(resp.content)
+    client.post_job(job)

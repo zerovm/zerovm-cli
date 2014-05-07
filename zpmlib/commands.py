@@ -176,6 +176,31 @@ def deploy(args):
 
 
 @command
+@arg('container', help='Swift container name (containing the zapp)')
+@arg('zapp', help='Name of the zapp to execute')
+@arg('--auth-version', '-V', default='1.0', choices=['1.0', '2.0'],
+     help='Swift auth version')
+@arg('--auth', '-A', envvar='ST_AUTH',
+     help='(Auth v1.0) URL for obtaining an auth token')
+@arg('--user', '-U', envvar='ST_USER',
+     help='(Auth v1.0) User name for obtaining an auth token')
+@arg('--key', '-K', envvar='ST_KEY',
+     help='(Auth v1.0) Key for obtaining an auth token')
+@arg('--os-auth-url', envvar='OS_AUTH_URL',
+     help='(Auth v2.0) OpenStack auth URL')
+@arg('--os-tenant-name', envvar='OS_TENANT_NAME',
+     help='(Auth v2.0) OpenStack tenant')
+@arg('--os-username', envvar='OS_USERNAME',
+     help='(Auth v2.0) OpenStack username')
+@arg('--os-password', envvar='OS_PASSWORD',
+     help='(Auth v2.0) OpenStack password')
+def execute(args):
+    """Remotely execute a ZeroVM application.
+    """
+    zpm.execute(args)
+
+
+@command
 @arg('command', nargs='?', help='A zpm command')
 def help(args):
     """Show this help"""

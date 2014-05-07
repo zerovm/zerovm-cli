@@ -16,6 +16,7 @@ Main help text is shown when no command is given:
     COMMAND
       bundle    Bundle a ZeroVM application
       deploy    Deploy a ZeroVM application
+      execute   Remotely execute a ZeroVM application.
       help      Show this help
       new       Create template ``zapp.yaml`` file
       version   Show the version number
@@ -55,6 +56,7 @@ Test with non-existing command:
     COMMAND
       bundle    Bundle a ZeroVM application
       deploy    Deploy a ZeroVM application
+      execute   Remotely execute a ZeroVM application.
       help      Show this help
       new       Create template ``zapp.yaml`` file
       version   Show the version number
