@@ -87,7 +87,7 @@ a ZeroCloud cluster, see :doc:`zerocloud-auth-config`.
 We will deploy it to a ``test`` container under the folder
 ``hello``::
 
-   $ zpm deploy hello.zapp test/hello
+   $ zpm deploy test/hello hello.zapp
    deploying hello.zapp
    found token: MIIGjwYJKoZIhvcNAQcC...
    found Swift: http://localhost:8080/v1/account
@@ -96,7 +96,7 @@ We will deploy it to a ``test`` container under the folder
 
 For testing, you can execute the job after it has been deployed::
 
-   $ zpm deploy hello.zapp test/hello --execute
+   $ zpm deploy test/hello hello.zapp --execute
    deploying hello.zapp
    found token: MIIGjwYJKoZIhvcNAQcC...
    found Swift: http://localhost:8080/v1/account
