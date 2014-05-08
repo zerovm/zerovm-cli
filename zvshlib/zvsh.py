@@ -697,10 +697,10 @@ class ZvShell(object):
         self.config = config
         self.savedir = savedir
         if self.savedir:
+            # user specified a savedir
             self.tmpdir = self.savedir
-            if os.path.isdir(self.tmpdir):
-                shutil.rmtree(self.tmpdir)
-            os.makedirs(self.tmpdir)
+            if not os.path.exists(self.tmpdir):
+                os.makedirs(self.tmpdir)
         else:
             self.tmpdir = mkdtemp()
         self.node_id = self.config['manifest']['Node']
@@ -889,8 +889,10 @@ class ZvRunner:
         self.getrc = getrc
         self.report = ''
         self.rc = -255
-        os.mkfifo(self.stdout)
-        os.mkfifo(self.stderr)
+        # create std{out,err} unless they already exist:
+        for stdfile in (self.stdout, self.stderr):
+            if not os.path.exists(stdfile):
+                os.mkfifo(stdfile)
 
     def run(self):
         try:
