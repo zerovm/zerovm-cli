@@ -176,8 +176,8 @@ def bundle(args):
 
 
 @command
-@arg('zapp', help='A ZeroVM application')
 @arg('target', help='Deployment target (Swift container name)')
+@arg('zapp', help='A ZeroVM application')
 @arg('--execute', action='store_true', help='Immediatedly '
      'execute the deployed Zapp (for testing)')
 @login_args
