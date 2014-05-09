@@ -19,7 +19,7 @@ so::
     $ zpm deploy --auth http://example.com:5000/auth/v1.0 \
                  --user tenant1:user1 \
                  --key f0ec1500-de68-42bd-8350-f671b50a79bd \
-                 hello.zapp test_container
+                 test_container hello.zapp
 
 Note that with v1, the ``--user`` is a concatentation of the tenant name and
 the username, contrasted with v2 where they are specified separately. (See
@@ -34,7 +34,7 @@ the following environment variables::
 
 Which shortens the ``zpm`` command to this::
 
-    $ zpm deploy hello.zapp test_container
+    $ zpm deploy test_container hello.zapp
 
 For convenience, you can put the above ``export`` statements into a text file
 (called ``zerocloud_v1``, for example) and ``source`` it to automatically set
@@ -52,7 +52,7 @@ so::
                  --os-username user1 \
                  --os-tenant-name tenant1
                  --os-password secret \
-                 hello.zapp test_container
+                 test_container hello.zapp
 
 ``--os-auth-url`` should be the public endpoint defined for
 `Keystone <http://docs.openstack.org/developer/keystone/>`_.
@@ -67,7 +67,7 @@ the following environment variables::
 
 Which shortens the ``zpm`` command to this::
 
-    $ zpm deploy hello.zapp test_container
+    $ zpm deploy test_container hello.zapp
 
 For convenience, you can put the above ``export`` statements into a text file
 (called ``zerocloud_v2``, for example) and ``source`` it to automatically set
