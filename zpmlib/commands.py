@@ -12,12 +12,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import functools
 import os
 import operator
 import argparse
 
 import zpmlib
 from zpmlib import zpm
+from zpmlib import LOG
 
 # List of function that will be the top-level zpm commands.
 _commands = []
@@ -61,6 +63,34 @@ def command(func):
     """
     _commands.append(func)
     return func
+
+
+def with_logging(func):
+    """
+    Decorator for adding the `--log-level` option to a ``zpm`` command.
+
+    Also takes cares of setting the log level appropriately per the command
+    line option when a command is executed.
+
+    This should be used as the innermost decorator on a command function.
+    """
+    log_level_deco = arg(
+        '--log-level', '-l', help="Defaults to 'warn'",
+        choices=['debug', 'info', 'warning', 'error', 'critical'],
+        default='warning'
+    )
+
+    @functools.wraps(func)
+    def inner(namespace, *args, **kwargs):
+        """
+        :param namespace:
+            :class:`argparse.Namespace` instance. This is the only
+            required/expected parameter for a command function.
+        """
+        LOG.setLevel(zpmlib.LOG_LEVEL_MAP.get(namespace.log_level))
+        return func(namespace, *args, **kwargs)
+
+    return log_level_deco(inner)
 
 
 def arg(*args, **kwargs):
@@ -148,6 +178,7 @@ def all_commands():
 @arg('dir', help='Non-existent or empty directory',
      metavar='WORKING_DIR', nargs='?',
      default='.')
+@with_logging
 def new(args):
     """Create template ``zapp.yaml`` file
 
@@ -165,6 +196,7 @@ def new(args):
 
 
 @command
+@with_logging
 def bundle(args):
     """Bundle a ZeroVM application
 
@@ -183,6 +215,7 @@ def bundle(args):
 @login_args
 @arg('--no-ui-auth', action='store_true',
      help='Do not generate any authentication code for the web UI')
+@with_logging
 def deploy(args):
     """Deploy a ZeroVM application
 
@@ -197,7 +230,7 @@ def deploy(args):
     user-guide/content/swift_commands.html>`_, so if you're already
     using that to upload files to Swift, you will be ready to go.
     """
-    print('deploying %s' % args.zapp)
+    LOG.info('deploying %s' % args.zapp)
     zpm.deploy_project(args)
 
 

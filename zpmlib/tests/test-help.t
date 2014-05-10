@@ -26,17 +26,21 @@ Main help text is shown when no command is given:
 Test with existing command:
 
   $ zpm help new
-  usage: zpm new [-h] [WORKING_DIR]
+  usage: zpm new [-h] [--log-level {debug,info,warning,error,critical}]
+                 [WORKING_DIR]
   
   Create a default ZeroVM application ``zapp.yaml`` specification in the target
   directory. If no directory is specified, ``zapp.yaml`` will be created in the
   current directory.
   
   positional arguments:
-    WORKING_DIR  Non-existent or empty directory (default: .)
+    WORKING_DIR           Non-existent or empty directory (default: .)
   
   optional arguments:
-    -h, --help   show this help message and exit
+    -h, --help            show this help message and exit
+    --log-level {debug,info,warning,error,critical}, -l {debug,info,warning,error,critical}
+                          Defaults to 'warn' (default: warning)
+
 
 Test with non-existing command:
 
@@ -71,6 +75,7 @@ Test default value shown when flag takes default from environment:
                     [--os-tenant-name OS_TENANT_NAME]
                     [--os-username OS_USERNAME] [--os-password OS_PASSWORD]
                     [--no-ui-auth]
+                    [--log-level {debug,info,warning,error,critical}]
                     target zapp
   
   This deploys a zapp onto Swift. The zapp can be one you have downloaded or
@@ -107,3 +112,5 @@ Test default value shown when flag takes default from environment:
     --os-password OS_PASSWORD
                           (Auth v2.0) OpenStack password (default: $OS_PASSWORD)
     --no-ui-auth          Do not generate any authentication code for the web UI
+    --log-level {debug,info,warning,error,critical}, -l {debug,info,warning,error,critical}
+                          Defaults to 'warn' (default: warning)

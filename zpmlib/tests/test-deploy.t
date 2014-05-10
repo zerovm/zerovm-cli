@@ -7,6 +7,7 @@ Test bad --auth-version:
                     [--os-tenant-name OS_TENANT_NAME]
                     [--os-username OS_USERNAME] [--os-password OS_PASSWORD]
                     [--no-ui-auth]
+                    [--log-level {debug,info,warning,error,critical}]
                     target zapp
   zpm deploy: error: argument --auth-version/-V: invalid choice: '1.5' (choose from '1.0', '2.0')
   [2]

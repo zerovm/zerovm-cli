@@ -21,13 +21,13 @@ Test bundling with auto-generated UI:
   >   - a.txt
   > EOF
 
-  $ zpm bundle
-  adding foo.json
-  adding /*/foo/a.txt (glob)
-  adding /*/foo/zapp.yaml (glob)
-  adding index.html
-  adding style.css
-  adding zerocloud.js
+  $ zpm bundle --log-level info
+  INFO:adding foo.json
+  INFO:adding /*/foo/a.txt (glob)
+  INFO:adding /*/foo/zapp.yaml (glob)
+  INFO:adding index.html
+  INFO:adding style.css
+  INFO:adding zerocloud.js
   created foo.zapp
 
   $ tar -tf foo.zapp
@@ -47,12 +47,12 @@ Test bundling with UI
   >   - myzerocloud.js
   > EOF
 
-  $ zpm bundle
-  adding foo.json
-  adding /*/foo/a.txt (glob)
-  adding /*/foo/zapp.yaml (glob)
-  adding /*/foo/foo.html (glob)
-  adding /*/foo/myzerocloud.js (glob)
+  $ zpm bundle --log-level info
+  INFO:adding foo.json
+  INFO:adding /*/foo/a.txt (glob)
+  INFO:adding /*/foo/zapp.yaml (glob)
+  INFO:adding /*/foo/foo.html (glob)
+  INFO:adding /*/foo/myzerocloud.js (glob)
   created foo.zapp
   $ tar -tf foo.zapp
   foo.json

@@ -12,13 +12,16 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import os
-import tarfile
+import fnmatch
 import glob
 import gzip
+import jinja2
 import json
+import os
+import pprint
 import shlex
-import fnmatch
+import tarfile
+import yaml
 import zpmlib
 try:
     import urlparse
@@ -30,9 +33,8 @@ except ImportError:
     from io import BytesIO
 
 from zpmlib import miniswift
+from zpmlib import LOG
 
-import jinja2
-import yaml
 
 _DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zerocloud.js']
 
@@ -161,7 +163,7 @@ def _add_ui(tar, zapp):
         output = output.encode('utf-8')
         info = tarfile.TarInfo(name=path)
         info.size = len(output)
-        print('adding %s' % path)
+        LOG.info('adding %s' % path)
         tar.addfile(info, BytesIO(output))
 
 
@@ -260,7 +262,7 @@ def bundle_project(root):
     # correspondence between Unicode characters and bytes.
     info.size = len(job_json)
 
-    print('adding %s' % info.name)
+    LOG.info('adding %s' % info.name)
     # In Python 3, we cannot use a str or bytes object with addfile,
     # we need a BytesIO object. In Python 2, BytesIO is just StringIO.
     # Since json.dumps produces an ASCII-only Unicode string in Python
@@ -271,7 +273,7 @@ def bundle_project(root):
     ui = zapp.get('ui', [])
     for pattern in zapp['bundling'] + ui:
         for path in glob.glob(os.path.join(root, pattern)):
-            print('adding %s' % path)
+            LOG.info('adding %s' % path)
             relpath = os.path.relpath(path, root)
             info = tarfile.TarInfo(name=relpath)
             info.size = os.path.getsize(path)
@@ -370,14 +372,15 @@ def deploy_project(args):
         client.upload('%s/%s' % (args.target, path), output)
 
     if args.execute:
-        print('job template:')
-        from pprint import pprint
-        pprint(job)
-        print('executing')
+        job_details = BytesIO()
+        pprint.pprint(job, stream=job_details)
+        job_details.seek(0)
+        LOG.debug('job template:\n%s' % job_details.read())
+        LOG.info('executing')
         client.post_job(job)
 
-    print('app deployed to\n  %s/%s/' % (client._swift_service_url,
-                                         args.target))
+    LOG.info('app deployed to\n  %s/%s/' % (client._swift_service_url,
+                                            args.target))
 
 
 def execute(args):
