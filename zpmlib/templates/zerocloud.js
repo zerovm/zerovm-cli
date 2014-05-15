@@ -29,14 +29,14 @@ function ZeroCloudClient() {
  * allowed by the browser.
  */
 ZeroCloudClient.prototype.auth = function (opts, success) {
-    var defaults = {'version': 2, 'success': $.noop};
+    var defaults = {'version': '2.0', 'success': $.noop};
     var args = {'success': success};
     var merged = $.extend(defaults, opts, args);
     switch (merged.version) {
-    case 0:
+    case '0.0':
         this._auth0(merged);
         break;
-    case 1:
+    case '1.0':
         this._auth1(merged);
         break;
     default:
