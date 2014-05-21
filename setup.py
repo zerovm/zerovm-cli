@@ -16,8 +16,7 @@
 ZeroVM Package Manager
 """
 
-from setuptools import find_packages
-from setuptools import setup
+from distutils.core import setup
 
 import zpmlib
 
@@ -30,7 +29,7 @@ setup(
     description='ZeroVM Package Manager',
     long_description=open('README.rst').read(),
     platforms=['any'],
-    packages=find_packages(exclude=['zpmlib.tests', 'zpmlib.tests.*']),
+    packages=['zpmlib'],
     package_data={'zpmlib': ['templates/*.html', 'templates/*.css',
                              'templates/*.js', 'templates/*.yaml']},
     provides=['zpm (%s)' % zpmlib.__version__],
