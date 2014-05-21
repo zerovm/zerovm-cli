@@ -28,7 +28,7 @@ setup(
     maintainer_email='zerovm@rackspace.com',
     url='https://github.com/zerovm/zpm',
     description='ZeroVM Package Manager',
-    long_description=__doc__,
+    long_description=open('README.rst').read(),
     platforms=['any'],
     packages=find_packages(exclude=['zpmlib.tests', 'zpmlib.tests.*']),
     package_data={'zpmlib': ['templates/*.html', 'templates/*.css',
