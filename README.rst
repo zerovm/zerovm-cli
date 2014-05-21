@@ -48,3 +48,10 @@ This is not required for installing and using ``zpm``.
    or for a source package, ::
 
     $ debuild -S
+
+
+Changelog
+---------
+
+0.1 (2014-05-21):
+   First release.
