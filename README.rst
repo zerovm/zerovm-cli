@@ -13,17 +13,9 @@ Supported Python versions: 2.6, 2.7, 3.2, 3.3, and 3.4.
 Installation
 ------------
 
-There are currently two options for installing ``zpm``.
+You can install ``zpm`` using ``pip``::
 
-- Clone and install::
-
-    $ git clone https://github.com/zerovm/zpm.git
-    $ cd zpm
-    $ python setup.py install
-
-- Install directly from ``git`` using ``pip``::
-
-    $ pip install git+https://github.com/zerovm/zpm.git
+   $ pip install zpm
 
 
 Packaging
