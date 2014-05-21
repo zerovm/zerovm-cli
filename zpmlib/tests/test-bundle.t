@@ -23,6 +23,7 @@ Test bundling with auto-generated UI:
 
   $ zpm bundle --log-level info
   INFO:adding foo.json
+  WARNING:pattern '*.py' in section 'bundling' matched no files
   INFO:adding /*/foo/a.txt (glob)
   INFO:adding /*/foo/zapp.yaml (glob)
   INFO:adding index.html
@@ -49,6 +50,7 @@ Test bundling with UI
 
   $ zpm bundle --log-level info
   INFO:adding foo.json
+  WARNING:pattern '*.py' in section 'bundling' matched no files
   INFO:adding /*/foo/a.txt (glob)
   INFO:adding /*/foo/zapp.yaml (glob)
   INFO:adding /*/foo/foo.html (glob)

@@ -270,20 +270,40 @@ def bundle_project(root):
     tar.addfile(info, BytesIO(job_json.encode('ascii')))
 
     zapp['bundling'].append('zapp.yaml')
-    ui = zapp.get('ui', [])
-    for pattern in zapp['bundling'] + ui:
-        for path in glob.glob(os.path.join(root, pattern)):
-            LOG.info('adding %s' % path)
-            relpath = os.path.relpath(path, root)
-            info = tarfile.TarInfo(name=relpath)
-            info.size = os.path.getsize(path)
-            tar.addfile(info, open(path, 'rb'))
+    sections = ('bundling', 'ui')
+    for section in sections:
+        for pattern in zapp.get(section, []):
+            paths = glob.glob(os.path.join(root, pattern))
+            if len(paths) == 0:
+                LOG.warning(
+                    "pattern '%(pat)s' in section '%(sec)s' matched no files",
+                    dict(pat=pattern, sec=section)
+                )
+            else:
+                for path in paths:
+                    _add_file_to_tar(root, path, tar)
 
-    if not ui:
+    if not zapp.get('ui'):
         _add_ui(tar, zapp)
 
     tar.close()
     print('created %s' % zapp_name)
+
+
+def _add_file_to_tar(root, path, tar):
+    """
+    :param root:
+        Root working directory.
+    :param path:
+        File path.
+    :param tar:
+        Open :class:`tarfile.TarFile` object to add the ``files`` to.
+    """
+    LOG.info('adding %s' % path)
+    relpath = os.path.relpath(path, root)
+    info = tarfile.TarInfo(name=relpath)
+    info.size = os.path.getsize(path)
+    tar.addfile(info, open(path, 'rb'))
 
 
 def _find_ui_uploads(zapp, tar):
