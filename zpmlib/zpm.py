@@ -286,6 +286,14 @@ def bundle_project(root):
                     _add_file_to_tar(root, path, tar)
                 file_add_count += len(paths)
 
+    if file_add_count == 0:
+        # None of the files specified in the "bundling" or "ui" sections were
+        # found. Something is wrong.
+        raise zpmlib.ZPMException(
+            "None of the files specified in the 'bundling' or 'ui' sections of"
+            " the zapp.yaml matched anything."
+        )
+
     if not zapp.get('ui'):
         _add_ui(tar, zapp)
 
