@@ -268,9 +268,11 @@ def bundle_project(root):
     # Since json.dumps produces an ASCII-only Unicode string in Python
     # 3, it is safe to encode it to ASCII.
     tar.addfile(info, BytesIO(job_json.encode('ascii')))
+    _add_file_to_tar(root, 'zapp.yaml', tar)
 
-    zapp['bundling'].append('zapp.yaml')
     sections = ('bundling', 'ui')
+    # Keep track of the files we add, given the configuration in the zapp.yaml.
+    file_add_count = 0
     for section in sections:
         for pattern in zapp.get(section, []):
             paths = glob.glob(os.path.join(root, pattern))
@@ -282,6 +284,7 @@ def bundle_project(root):
             else:
                 for path in paths:
                     _add_file_to_tar(root, path, tar)
+                file_add_count += len(paths)
 
     if not zapp.get('ui'):
         _add_ui(tar, zapp)
