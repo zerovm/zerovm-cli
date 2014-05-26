@@ -797,6 +797,11 @@ class ZvShell(object):
                                           % (os.path.abspath('zvsh.log'),
                                              '/dev/debug'))
 
+    def add_self(self):
+        self.manifest_channels.append(self.channel_random_ro_template
+                                      % (os.path.abspath(self.program),
+                                         '/dev/self'))
+
     def create_nvram(self, verbosity):
         nvram = '[args]\n'
         nvram += 'args = %s\n' % ' '.join(
@@ -851,6 +856,7 @@ class ZvShell(object):
         self.add_debug(args.zvm_debug)
         self.add_untrusted_args(args.command, args.cmd_args)
         self.add_image_args(args.zvm_image)
+        self.add_self()
         self.create_nvram(args.zvm_verbosity)
         manifest_file = self.create_manifest()
         return manifest_file
