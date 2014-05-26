@@ -23,8 +23,9 @@ Test bundling with auto-generated UI:
 
   $ zpm bundle --log-level info
   INFO:adding foo.json
+  INFO:adding zapp.yaml
+  WARNING:pattern '*.py' in section 'bundling' matched no files
   INFO:adding /*/foo/a.txt (glob)
-  INFO:adding /*/foo/zapp.yaml (glob)
   INFO:adding index.html
   INFO:adding style.css
   INFO:adding zerocloud.js
@@ -32,8 +33,8 @@ Test bundling with auto-generated UI:
 
   $ tar -tf foo.zapp
   foo.json
-  a.txt
   zapp.yaml
+  a.txt
   index.html
   style.css
   zerocloud.js
@@ -49,15 +50,16 @@ Test bundling with UI
 
   $ zpm bundle --log-level info
   INFO:adding foo.json
+  INFO:adding zapp.yaml
+  WARNING:pattern '*.py' in section 'bundling' matched no files
   INFO:adding /*/foo/a.txt (glob)
-  INFO:adding /*/foo/zapp.yaml (glob)
   INFO:adding /*/foo/foo.html (glob)
   INFO:adding /*/foo/myzerocloud.js (glob)
   created foo.zapp
   $ tar -tf foo.zapp
   foo.json
-  a.txt
   zapp.yaml
+  a.txt
   foo.html
   myzerocloud.js
 

@@ -268,22 +268,53 @@ def bundle_project(root):
     # Since json.dumps produces an ASCII-only Unicode string in Python
     # 3, it is safe to encode it to ASCII.
     tar.addfile(info, BytesIO(job_json.encode('ascii')))
+    _add_file_to_tar(root, 'zapp.yaml', tar)
 
-    zapp['bundling'].append('zapp.yaml')
-    ui = zapp.get('ui', [])
-    for pattern in zapp['bundling'] + ui:
-        for path in glob.glob(os.path.join(root, pattern)):
-            LOG.info('adding %s' % path)
-            relpath = os.path.relpath(path, root)
-            info = tarfile.TarInfo(name=relpath)
-            info.size = os.path.getsize(path)
-            tar.addfile(info, open(path, 'rb'))
+    sections = ('bundling', 'ui')
+    # Keep track of the files we add, given the configuration in the zapp.yaml.
+    file_add_count = 0
+    for section in sections:
+        for pattern in zapp.get(section, []):
+            paths = glob.glob(os.path.join(root, pattern))
+            if len(paths) == 0:
+                LOG.warning(
+                    "pattern '%(pat)s' in section '%(sec)s' matched no files",
+                    dict(pat=pattern, sec=section)
+                )
+            else:
+                for path in paths:
+                    _add_file_to_tar(root, path, tar)
+                file_add_count += len(paths)
 
-    if not ui:
+    if file_add_count == 0:
+        # None of the files specified in the "bundling" or "ui" sections were
+        # found. Something is wrong.
+        raise zpmlib.ZPMException(
+            "None of the files specified in the 'bundling' or 'ui' sections of"
+            " the zapp.yaml matched anything."
+        )
+
+    if not zapp.get('ui'):
         _add_ui(tar, zapp)
 
     tar.close()
     print('created %s' % zapp_name)
+
+
+def _add_file_to_tar(root, path, tar):
+    """
+    :param root:
+        Root working directory.
+    :param path:
+        File path.
+    :param tar:
+        Open :class:`tarfile.TarFile` object to add the ``files`` to.
+    """
+    LOG.info('adding %s' % path)
+    relpath = os.path.relpath(path, root)
+    info = tarfile.TarInfo(name=relpath)
+    info.size = os.path.getsize(path)
+    tar.addfile(info, open(path, 'rb'))
 
 
 def _find_ui_uploads(zapp, tar):
