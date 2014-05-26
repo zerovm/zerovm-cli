@@ -4,45 +4,63 @@ import sys
 
 from zvshlib import zvsh
 
-zvsh_args = zvsh.ZvArgs()
-zvsh_args.parse(sys.argv[1:])
-zvsh_config = ['zvsh.cfg',
-               os.path.expanduser('~/.zvsh.cfg'),
-               '/etc/zvsh.cfg']
-config = zvsh.ZvConfig()
-config.read(zvsh_config)
-if 'gdb' == zvsh_args.args.command:
-    # user wants to debug the program
-    zvsh_args = zvsh.DebugArgs()
-    zvsh_args.parse(sys.argv[1:])
-    zvshell = zvsh.ZvShell(config, zvsh_args.args.zvm_save_dir)
-    # a month until debug session will time out
-    zvshell.config['manifest']['Timeout'] = 60 * 60 * 24 * 30
-    manifest_file = zvshell.add_arguments(zvsh_args.args)
-    zvm_run = [zvsh.DEBUG_EXECUTABLE, zvsh.DEBUG_OPTIONS, manifest_file]
-    command_line = [zvsh.GDB,
-                    '--command=%s' % zvshell.add_debug_script()]
-    command_line.extend(zvsh_args.args.gdb_args)
-    command_line.append('--args')
-    command_line.extend(zvm_run)
-    print ' '.join(command_line)
-    try:
-        zvsh.spawn(command_line)
-    except (KeyboardInterrupt, Exception):
-        pass
-    finally:
-        zvshell.cleanup()
-else:
-    zvshell = zvsh.ZvShell(config, zvsh_args.args.zvm_save_dir)
-    manifest_file = zvshell.add_arguments(zvsh_args.args)
-    zvm_run = [zvsh.ZEROVM_EXECUTABLE, zvsh.ZEROVM_OPTIONS]
-    if zvsh_args.args.zvm_trace:
-        trace_log = os.path.abspath('zvsh.trace.log')
-        zvm_run.extend(['-T', trace_log])
-    zvm_run.append(manifest_file)
-    runner = zvsh.ZvRunner(zvm_run, zvshell.stdout, zvshell.stderr,
-                           zvshell.tmpdir, getrc=zvsh_args.args.zvm_getrc)
-    try:
-        runner.run()
-    finally:
-        zvshell.cleanup()
+
+class Shell(object):
+    def __init__(self):
+        zvsh_args = zvsh.ZvArgs()
+        zvsh_args.parse(sys.argv[1:])
+        self.args = zvsh_args.args
+        zvsh_config = ['zvsh.cfg',
+                       os.path.expanduser('~/.zvsh.cfg'),
+                       '/etc/zvsh.cfg']
+        self.config = zvsh.ZvConfig()
+        self.config.read(zvsh_config)
+
+    def run(self):
+        if 'gdb' == self.args.command:
+            self._run_gdb()
+        else:
+            self._run_zvsh()
+
+    def _run_zvsh(self):
+        zvshell = zvsh.ZvShell(self.config, self.args.zvm_save_dir)
+        manifest_file = zvshell.add_arguments(self.args)
+        zvm_run = [zvsh.ZEROVM_EXECUTABLE, zvsh.ZEROVM_OPTIONS]
+        if self.args.zvm_trace:
+            trace_log = os.path.abspath('zvsh.trace.log')
+            zvm_run.extend(['-T', trace_log])
+        zvm_run.append(manifest_file)
+        runner = zvsh.ZvRunner(zvm_run, zvshell.stdout, zvshell.stderr,
+                               zvshell.tmpdir,
+                               getrc=self.args.zvm_getrc)
+        try:
+            runner.run()
+        finally:
+            zvshell.cleanup()
+
+    def _run_gdb(self):
+        # user wants to debug the program
+        zvsh_args = zvsh.DebugArgs()
+        zvsh_args.parse(sys.argv[1:])
+        zvshell = zvsh.ZvShell(self.config, zvsh_args.args.zvm_save_dir)
+        # a month until debug session will time out
+        zvshell.config['manifest']['Timeout'] = 60 * 60 * 24 * 30
+        manifest_file = zvshell.add_arguments(zvsh_args.args)
+        zvm_run = [zvsh.DEBUG_EXECUTABLE, zvsh.DEBUG_OPTIONS,
+                   manifest_file]
+        command_line = [zvsh.GDB,
+                        '--command=%s' % zvshell.add_debug_script()]
+        command_line.extend(zvsh_args.args.gdb_args)
+        command_line.append('--args')
+        command_line.extend(zvm_run)
+        print ' '.join(command_line)
+        try:
+            zvsh.spawn(command_line)
+        except (KeyboardInterrupt, Exception):
+            pass
+        finally:
+            zvshell.cleanup()
+
+if __name__ == '__main__':
+    shell = Shell()
+    shell.run()
