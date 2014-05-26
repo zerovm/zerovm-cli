@@ -108,6 +108,12 @@ RND_READ_RND_WRITE = 3
 _DEFAULT_MOUNT_DIR = '/'
 _DEFAULT_MOUNT_ACCESS = 'ro'
 
+ZEROVM_EXECUTABLE = 'zerovm'
+ZEROVM_OPTIONS = '-PQ'
+DEBUG_EXECUTABLE = 'zerovm-dbg'
+DEBUG_OPTIONS = '-sPQ'
+GDB = 'x86_64-nacl-gdb'
+
 
 class Channel(object):
     """
