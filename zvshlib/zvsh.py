@@ -917,6 +917,8 @@ class ZvRunner:
             rc = self.rc
             if self.getrc:
                 rc = self.process.returncode
+            else:
+                rc |= self.process.returncode << 4
             sys.exit(rc)
 
     def stdin_reader(self):
