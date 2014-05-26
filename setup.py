@@ -20,11 +20,13 @@ from distutils.core import setup
 
 import sys
 
+import zvshlib
+
 requires = []
 if sys.version_info < (2, 7):
     requires.append('ordereddict')
 
-VERSION = '0.9.4'
+VERSION = zvshlib.__version__
 
 setup(
     name='zvsh',
