@@ -19,8 +19,8 @@ if 'gdb' == zvsh_args.args.command:
     # a month until debug session will time out
     zvshell.config['manifest']['Timeout'] = 60 * 60 * 24 * 30
     manifest_file = zvshell.add_arguments(zvsh_args.args)
-    zvm_run = ['zerovm-dbg', '-sPQ', manifest_file]
-    command_line = ['x86_64-nacl-gdb',
+    zvm_run = [zvsh.DEBUG_EXECUTABLE, zvsh.DEBUG_OPTIONS, manifest_file]
+    command_line = [zvsh.GDB,
                     '--command=%s' % zvshell.add_debug_script()]
     command_line.extend(zvsh_args.args.gdb_args)
     command_line.append('--args')
@@ -35,7 +35,7 @@ if 'gdb' == zvsh_args.args.command:
 else:
     zvshell = zvsh.ZvShell(config, zvsh_args.args.zvm_save_dir)
     manifest_file = zvshell.add_arguments(zvsh_args.args)
-    zvm_run = ['zerovm', '-PQ']
+    zvm_run = [zvsh.ZEROVM_EXECUTABLE, zvsh.ZEROVM_OPTIONS]
     if zvsh_args.args.zvm_trace:
         trace_log = os.path.abspath('zvsh.trace.log')
         zvm_run.extend(['-T', trace_log])
