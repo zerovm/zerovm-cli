@@ -428,6 +428,8 @@ def deploy_project(args):
     # We can now reset the auth for the web UI, if needed
     if args.no_ui_auth:
         version = '0.0'
+    auth = _prepare_auth(version, args, conn)
+    auth_opts = jinja2.Markup(json.dumps(auth))
 
     tar = tarfile.open(args.zapp)
     zapp = yaml.safe_load(tar.extractfile('zapp.yaml'))
@@ -443,8 +445,6 @@ def deploy_project(args):
     container, obj = path.split('/', 1)
     conn.put_object(container, obj, json.dumps(job))
 
-    auth = _prepare_auth(version, args, conn)
-    auth_opts = jinja2.Markup(json.dumps(auth))
     for path in _find_ui_uploads(zapp, tar):
         # Upload UI files after expanding deployment parameters
         tmpl = jinja2.Template(tar.extractfile(path).read())
