@@ -470,6 +470,7 @@ def _deploy_zapp(conn, target, zapp, auth_opts):
 def deploy_project(args):
     version = args.auth_version
     conn = _get_zerocloud_conn(args)
+    conn.authenticate()
 
     # We can now reset the auth for the web UI, if needed
     if args.no_ui_auth:
