@@ -353,6 +353,13 @@ def _post_job(url, token, json_data, http_conn=None, response_dict=None):
 
 class ZeroCloudConnection(swiftclient.Connection):
 
+    def authenticate(self):
+        """
+        Authenticate with the provided credentials and cache the storage URL
+        and auth token as `self.url` and `self.token`, respectively.
+        """
+        self.url, self.token = self.get_auth()
+
     def post_job(self, job, response_dict=None):
         """Start a ZeroVM job, using a pre-uploaded zapp
 
