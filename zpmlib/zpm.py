@@ -415,22 +415,22 @@ def deploy_project(args):
     container, obj = path.split('/', 1)
     conn.put_object(container, obj, json.dumps(job))
 
-    deploy = {'version': version}
+    auth = {'version': version}
     if version == '0.0':
-        deploy['swiftUrl'] = conn.url
+        auth['swiftUrl'] = conn.url
     elif version == '1.0':
-        deploy['authUrl'] = args.auth
-        deploy['username'] = args.user
-        deploy['password'] = args.key
+        auth['authUrl'] = args.auth
+        auth['username'] = args.user
+        auth['password'] = args.key
     else:
         # TODO(mg): inserting the username and password in the
         # uploaded file makes testing easy, but should not be done in
         # production. See issue #44.
-        deploy['authUrl'] = args.os_auth_url
-        deploy['tenant'] = args.os_tenant_name
-        deploy['username'] = args.os_username
-        deploy['password'] = args.os_password
-    auth_opts = jinja2.Markup(json.dumps(deploy))
+        auth['authUrl'] = args.os_auth_url
+        auth['tenant'] = args.os_tenant_name
+        auth['username'] = args.os_username
+        auth['password'] = args.os_password
+    auth_opts = jinja2.Markup(json.dumps(auth))
     for path in _find_ui_uploads(zapp, tar):
         # Upload UI files after expanding deployment parameters
         tmpl = jinja2.Template(tar.extractfile(path).read())
