@@ -1027,3 +1027,63 @@ def spawn(argv, master_read=pty_read, stdin_read=pty_read):
             tty.tcsetattr(pty.STDIN_FILENO, tty.TCSAFLUSH, mode)
 
     os.close(master_fd)
+
+
+class Shell(object):
+    def __init__(self, cmd_line):
+        self.cmd_line = cmd_line
+        zvsh_args = ZvArgs()
+        zvsh_args.parse(cmd_line[1:])
+        self.args = zvsh_args.args
+        zvsh_config = ['zvsh.cfg',
+                       os.path.expanduser('~/.zvsh.cfg'),
+                       '/etc/zvsh.cfg']
+        self.config = ZvConfig()
+        self.config.read(zvsh_config)
+        self.zvsh = None
+
+    def run(self):
+        if 'gdb' == self.args.command:
+            self._run_gdb()
+        else:
+            self._run_zvsh()
+
+    def _run_zvsh(self):
+        self.zvsh = ZvShell(self.config, self.args.zvm_save_dir)
+        manifest_file = self.zvsh.add_arguments(self.args)
+        zvm_run = [ZEROVM_EXECUTABLE, ZEROVM_OPTIONS]
+        if self.args.zvm_trace:
+            trace_log = os.path.abspath('zvsh.trace.log')
+            zvm_run.extend(['-T', trace_log])
+        zvm_run.append(manifest_file)
+        runner = ZvRunner(zvm_run, self.zvsh.stdout, self.zvsh.stderr,
+                          self.zvsh.tmpdir,
+                          getrc=self.args.zvm_getrc)
+        try:
+            runner.run()
+        finally:
+            self.zvsh.cleanup()
+
+    def _run_gdb(self):
+        # user wants to debug the program
+        zvsh_args = DebugArgs()
+        zvsh_args.parse(self.cmd_line[1:])
+        self.args = zvsh_args.args
+        self.zvsh = ZvShell(self.config, self.args.zvm_save_dir)
+        # a month until debug session will time out
+        self.zvsh.config['manifest']['Timeout'] = 60 * 60 * 24 * 30
+        manifest_file = self.zvsh.add_arguments(self.args)
+        zvm_run = [DEBUG_EXECUTABLE, DEBUG_OPTIONS,
+                   manifest_file]
+        command_line = [GDB,
+                        '--command=%s' % self.zvsh.add_debug_script()]
+        command_line.extend(self.args.gdb_args)
+        command_line.append('--args')
+        command_line.extend(zvm_run)
+        print (' '.join(command_line))
+        try:
+            spawn(command_line)
+        except (KeyboardInterrupt, Exception):
+            pass
+        finally:
+            self.zvsh.cleanup()
