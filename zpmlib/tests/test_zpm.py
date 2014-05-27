@@ -312,3 +312,88 @@ class TestGetZeroCloudConn:
         self.v2_args.os_tenant_name = None
         with pytest.raises(zpmlib.ZPMException):
             zpm._get_zerocloud_conn(self.v2_args)
+
+
+class TestDeploy:
+    """
+    Tests for functions related to the `deploy` command.
+    """
+
+    def test__maybe_create_container_does_not_exist(self):
+        # Test for :func:`zpmlib.zpm._maybe_create_container`, for the case
+        # where the container does not yet exist.
+        conn = mock.Mock()
+        conn.get_container.side_effect = (
+            swiftclient.exceptions.ClientException(None)
+        )
+        conn.get_container.return_value = None
+        conn.put_container = mock.Mock()
+
+        zpm._maybe_create_container(conn, 'test_container')
+        assert conn.get_container.call_count == 1
+        assert conn.get_container.call_args == [('test_container', )]
+        assert conn.put_container.call_count == 1
+        assert conn.put_container.call_args == [('test_container', )]
+
+    def test__maybe_create_container_exists(self):
+        # Test for :func:`zpmlib.zpm._maybe_create_container`, for the case
+        # where the container already exists.
+        conn = mock.Mock()
+        # The return values of these two functions are ignored; all we care
+        # about is that no exception is raised when `get_container` is called.
+        conn.get_container = mock.Mock()
+        conn.put_container = mock.Mock()
+        zpm._maybe_create_container(conn, 'test_container')
+
+        assert conn.get_container.call_count == 1
+        assert conn.get_container.call_args == [('test_container', )]
+        assert conn.put_container.call_count == 0
+
+    def test__prepare_auth_v0(self):
+        # Test for :func:`zpmlib.zpm._prepare_auth`, with version 0.0
+        version = '0.0'
+        args = None
+        conn = mock.Mock()
+        conn.url = 'http://example.com'
+
+        expected = {
+            'version': '0.0',
+            'swiftUrl': 'http://example.com',
+        }
+        assert zpm._prepare_auth(version, args, conn) == expected
+
+    def test__prepare_auth_v1(self):
+        # Test for :func:`zpmlib.zpm._prepare_auth`, with version 1.0
+        version = '1.0'
+        args = mock.Mock()
+        args.auth = 'http://example.com/auth/v1.0'
+        args.user = 'user1'
+        args.key = 'secret'
+        conn = None
+
+        expected = {
+            'version': '1.0',
+            'authUrl': 'http://example.com/auth/v1.0',
+            'username': 'user1',
+            'password': 'secret',
+        }
+        assert zpm._prepare_auth(version, args, conn) == expected
+
+    def test__prepare_auth_v2(self):
+        # Test for :func:`zpmlib.zpm._prepare_auth`, with version 2.0
+        version = '2.0'
+        args = mock.Mock()
+        args.os_auth_url = 'http://example.com:5000/v2.0'
+        args.os_username = 'user1'
+        args.os_tenant_name = 'tenant1'
+        args.os_password = 'secret'
+        conn = None
+
+        expected = {
+            'version': '2.0',
+            'authUrl': 'http://example.com:5000/v2.0',
+            'tenant': 'tenant1',
+            'username': 'user1',
+            'password': 'secret',
+        }
+        assert zpm._prepare_auth(version, args, conn) == expected
