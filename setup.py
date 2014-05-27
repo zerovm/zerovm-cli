@@ -33,7 +33,8 @@ setup(
     package_data={'zpmlib': ['templates/*.html', 'templates/*.css',
                              'templates/*.js', 'templates/*.yaml']},
     provides=['zpm (%s)' % zpmlib.__version__],
-    install_requires=['requests', 'jinja2<2.7', 'pyyaml'],
+    install_requires=['requests', 'jinja2<2.7', 'pyyaml',
+                      'python-swiftclient>=2.1.0'],
     license='Apache 2.0',
     keywords='zpm zerovm zvm',
     classifiers=(

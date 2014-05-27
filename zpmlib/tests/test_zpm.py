@@ -271,9 +271,9 @@ def test__generate_job_desc():
     assert actual_job == expected_job
 
 
-class TestGetZeroCloudClient:
+class TestGetZeroCloudConn:
     """
-    Tests for :func:`zpmlib.zpm._get_zerocloud_client`.
+    Tests for :func:`zpmlib.zpm._get_zerocloud_conn`.
     """
 
     def setup_method(self, _method):
@@ -291,24 +291,24 @@ class TestGetZeroCloudClient:
         self.v2_args.os_tenant_name = 'tenant1'
 
     def test_v1(self):
-        client = zpm._get_zerocloud_client(self.v1_args)
-        assert client._auth_url == self.v1_args.auth
-        assert client._username == self.v1_args.user
-        assert client._password == self.v1_args.key
+        conn = zpm._get_zerocloud_conn(self.v1_args)
+        assert conn.authurl == self.v1_args.auth
+        assert conn.user == self.v1_args.user
+        assert conn.key == self.v1_args.key
 
     def test_v1_fail(self):
         self.v1_args.user = None
         with pytest.raises(zpmlib.ZPMException):
-            zpm._get_zerocloud_client(self.v1_args)
+            zpm._get_zerocloud_conn(self.v1_args)
 
     def test_v2(self):
-        client = zpm._get_zerocloud_client(self.v2_args)
-        assert client._auth_url == self.v2_args.os_auth_url
-        assert client._username == self.v2_args.os_username
-        assert client._password == self.v2_args.os_password
-        assert client._tenant == self.v2_args.os_tenant_name
+        conn = zpm._get_zerocloud_conn(self.v2_args)
+        assert conn.authurl == self.v2_args.os_auth_url
+        assert conn.user == self.v2_args.os_username
+        assert conn.key == self.v2_args.os_password
+        assert conn.os_options['tenant_name'] == self.v2_args.os_tenant_name
 
     def test_v2_fail(self):
         self.v2_args.os_tenant_name = None
         with pytest.raises(zpmlib.ZPMException):
-            zpm._get_zerocloud_client(self.v2_args)
+            zpm._get_zerocloud_conn(self.v2_args)

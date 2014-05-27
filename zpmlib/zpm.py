@@ -32,7 +32,8 @@ try:
 except ImportError:
     from io import BytesIO
 
-from zpmlib import miniswift
+import swiftclient
+
 from zpmlib import LOG
 
 
@@ -328,7 +329,43 @@ def _find_ui_uploads(zapp, tar):
     return matches
 
 
-def _get_zerocloud_client(args):
+def _post_job(url, token, json_data, http_conn=None, response_dict=None):
+    # Modelled after swiftclient.client.post_account.
+    headers = {'X-Auth-Token': token,
+               'Accept': 'application/json',
+               'X-Zerovm-Execute': '1.0',
+               'Content-Type': 'application/json'}
+
+    if http_conn:
+        parsed, conn = http_conn
+    else:
+        parsed, conn = swiftclient.http_connection(url)
+
+    conn.request('POST', parsed.path, json_data, headers)
+    resp = conn.getresponse()
+    body = resp.read()
+    swiftclient.http_log((url, 'POST'), {'headers': headers}, resp, body)
+    swiftclient.store_response(resp, response_dict)
+
+    LOG.debug('response status: %s' % resp.status)
+    print(body)
+
+
+class ZeroCloudConnection(swiftclient.Connection):
+
+    def post_job(self, job, response_dict=None):
+        """Start a ZeroVM job, using a pre-uploaded zapp
+
+        :param object job:
+            Job description. This will be encoded as JSON and sent to
+            ZeroCloud.
+        """
+        json_data = json.dumps(job)
+        return self._retry(None, _post_job, json_data,
+                           response_dict=response_dict)
+
+
+def _get_zerocloud_conn(args):
     version = args.auth_version
     if version == '1.0':
         if any([arg is None for arg in (args.auth, args.user, args.key)]):
@@ -337,7 +374,7 @@ def _get_zerocloud_client(args):
                 "\nSee `zpm deploy --help` for more information."
             )
 
-        client = miniswift.ZeroCloudClient(args.auth, args.user, args.key)
+        conn = ZeroCloudConnection(args.auth, args.user, args.key)
     else:
         if any([arg is None for arg in
                 (args.os_auth_url, args.os_username, args.os_tenant_name,
@@ -348,21 +385,17 @@ def _get_zerocloud_client(args):
                 "\nSee `zpm deploy --help` for more information."
             )
 
-        client = miniswift.ZeroCloudClient(
-            args.os_auth_url,
-            args.os_username,
-            args.os_password,
-            tenant=args.os_tenant_name,
-            auth_version=2,
-        )
+        conn = ZeroCloudConnection(args.os_auth_url, args.os_username,
+                                   args.os_password,
+                                   tenant_name=args.os_tenant_name,
+                                   auth_version='2.0')
 
-    return client
+    return conn
 
 
 def deploy_project(args):
     version = args.auth_version
-    client = _get_zerocloud_client(args)
-    client.auth()
+    conn = _get_zerocloud_conn(args)
 
     # We can now reset the auth for the web UI, if needed
     if args.no_ui_auth:
@@ -372,17 +405,19 @@ def deploy_project(args):
     zapp = yaml.safe_load(tar.extractfile('zapp.yaml'))
 
     path = '%s/%s' % (args.target, os.path.basename(args.zapp))
-    client.upload(path, gzip.open(args.zapp).read())
+    container, obj = path.split('/', 1)
+    conn.put_object(container, obj, gzip.open(args.zapp).read())
 
-    swift_url = _get_swift_zapp_url(client._swift_service_url, path)
+    swift_url = _get_swift_zapp_url(conn.url, path)
 
     job = _prepare_job(tar, zapp, swift_url)
-    client.upload('%s/%s.json' % (args.target, zapp['meta']['name']),
-                  json.dumps(job))
+    path = '%s/%s.json' % (args.target, zapp['meta']['name'])
+    container, obj = path.split('/', 1)
+    conn.put_object(container, obj, json.dumps(job))
 
     deploy = {'version': version}
     if version == '0.0':
-        deploy['swiftUrl'] = client._swift_service_url
+        deploy['swiftUrl'] = conn.url
     elif version == '1.0':
         deploy['authUrl'] = args.auth
         deploy['username'] = args.user
@@ -400,7 +435,8 @@ def deploy_project(args):
         # Upload UI files after expanding deployment parameters
         tmpl = jinja2.Template(tar.extractfile(path).read())
         output = tmpl.render(auth_opts=auth_opts)
-        client.upload('%s/%s' % (args.target, path), output)
+        container, obj = ('%s/%s' % (args.target, path)).split('/', 1)
+        conn.put_object(container, obj, output)
 
     if args.execute:
         job_details = BytesIO()
@@ -408,23 +444,21 @@ def deploy_project(args):
         job_details.seek(0)
         LOG.debug('job template:\n%s' % job_details.read())
         LOG.info('executing')
-        client.post_job(job)
+        conn.post_job(job)
 
-    LOG.info('app deployed to\n  %s/%s/' % (client._swift_service_url,
-                                            args.target))
+    LOG.info('app deployed to\n  %s/%s/' % (conn.url, args.target))
 
 
 def execute(args):
-    client = _get_zerocloud_client(args)
-    client.auth()
+    conn = _get_zerocloud_conn(args)
 
     job_filename = '%s.json' % os.path.splitext(args.zapp)[0]
-    resp = client.download(args.container, job_filename)
-    if not resp.status_code == 200:
-        raise zpmlib.ZPMException(
-            "No job description found for '%(zapp)s' in container '%(cont)s'."
-            "\n(Expected to find '%(job)s'.)"
-            % dict(zapp=args.zapp, cont=args.container, job=job_filename)
-        )
-    job = json.loads(resp.content)
-    client.post_job(job)
+    try:
+        headers, content = conn.get_object(args.container, job_filename)
+    except swiftclient.ClientException as exc:
+        if exc.http_status == 404:
+            raise zpmlib.ZPMException("Could not find %s" % exc.http_path)
+        else:
+            raise zpmlib.ZPMException(str(exc))
+    job = json.loads(content)
+    conn.post_job(job)
