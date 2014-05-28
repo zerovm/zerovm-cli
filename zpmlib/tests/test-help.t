@@ -18,7 +18,7 @@ Main help text is shown when no command is given:
       deploy    Deploy a ZeroVM application
       execute   Remotely execute a ZeroVM application.
       help      Show this help
-      new       Create template ``zapp.yaml`` file
+      new       Create template zapp.yaml file
       version   Show the version number
   
   See 'zpm <command> --help' for more information on a specific command.
@@ -29,8 +29,8 @@ Test with existing command:
   usage: zpm new [-h] [--log-level {debug,info,warning,error,critical}]
                  [WORKING_DIR]
   
-  Create a default ZeroVM application ``zapp.yaml`` specification in the target
-  directory. If no directory is specified, ``zapp.yaml`` will be created in the
+  Create a default ZeroVM application zapp.yaml specification in the target
+  directory. If no directory is specified, zapp.yaml will be created in the
   current directory.
   
   positional arguments:
@@ -62,7 +62,7 @@ Test with non-existing command:
       deploy    Deploy a ZeroVM application
       execute   Remotely execute a ZeroVM application.
       help      Show this help
-      new       Create template ``zapp.yaml`` file
+      new       Create template zapp.yaml file
       version   Show the version number
   
   See 'zpm <command> --help' for more information on a specific command.
@@ -79,13 +79,12 @@ Test default value shown when flag takes default from environment:
                     target zapp
   
   This deploys a zapp onto Swift. The zapp can be one you have downloaded or
-  produced yourself :ref:`zpm-bundle`. You will need to know the Swift
+  produced yourself with "zpm bundle". You will need to know the Swift
   authentication URL, username, password, and tenant name. These can be supplied
   with command line flags (see below) or you can set the corresponding
   environment variables. The environment variables are the same as the ones used
-  by the `Swift command line tool <http://docs.openstack.org/ user-
-  guide/content/swift_commands.html>`_, so if you're already using that to
-  upload files to Swift, you will be ready to go.
+  by the Swift command line tool, so if you're already using that to upload
+  files to Swift, you will be ready to go.
   
   positional arguments:
     target                Deployment target (Swift container name)

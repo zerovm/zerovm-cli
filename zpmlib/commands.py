@@ -180,10 +180,10 @@ def all_commands():
      default='.')
 @with_logging
 def new(args):
-    """Create template ``zapp.yaml`` file
+    """Create template zapp.yaml file
 
-    Create a default ZeroVM application ``zapp.yaml`` specification in the
-    target directory. If no directory is specified, ``zapp.yaml`` will be
+    Create a default ZeroVM application zapp.yaml specification in the
+    target directory. If no directory is specified, zapp.yaml will be
     created in the current directory.
     """
 
@@ -200,7 +200,7 @@ def new(args):
 def bundle(args):
     """Bundle a ZeroVM application
 
-    This command creates a Zapp using the instructions in ``zapp.yaml``.
+    This command creates a Zapp using the instructions in zapp.yaml.
     The file is read from the project root.
     """
     root = zpm.find_project_root()
@@ -220,15 +220,14 @@ def deploy(args):
     """Deploy a ZeroVM application
 
     This deploys a zapp onto Swift. The zapp can be one you have
-    downloaded or produced yourself :ref:`zpm-bundle`.
+    downloaded or produced yourself with "zpm bundle".
 
     You will need to know the Swift authentication URL, username,
     password, and tenant name. These can be supplied with command line
     flags (see below) or you can set the corresponding environment
     variables. The environment variables are the same as the ones used
-    by the `Swift command line tool <http://docs.openstack.org/
-    user-guide/content/swift_commands.html>`_, so if you're already
-    using that to upload files to Swift, you will be ready to go.
+    by the Swift command line tool, so if you're already using that to
+    upload files to Swift, you will be ready to go.
     """
     LOG.info('deploying %s' % args.zapp)
     zpm.deploy_project(args)
