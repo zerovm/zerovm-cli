@@ -27,20 +27,6 @@ sys.path.insert(0, os.path.abspath('..'))
 needs_sphinx = '1.1'
 
 
-class CommandDocumenter(autodoc.FunctionDocumenter):
-    objtype = 'command'
-    content_indent = ''
-
-    def add_directive_header(self, sig):
-        pass
-
-    @classmethod
-    def can_document_member(cls, member, membername, isattr, parent):
-        return False
-
-def setup(app):
-    app.add_autodocumenter(CommandDocumenter)
-
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
