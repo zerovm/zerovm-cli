@@ -12,8 +12,6 @@ The ``zpm`` script has the following top-level commands:
 ``zpm new``
 -----------
 
-.. autocommand:: zpmlib.commands.new
-
 .. argparse::
    :module: zpmlib.commands
    :func: set_up_arg_parser
@@ -25,8 +23,6 @@ The ``zpm`` script has the following top-level commands:
 
 ``zpm bundle``
 --------------
-
-.. autocommand:: zpmlib.commands.bundle
 
 .. argparse::
    :module: zpmlib.commands
@@ -40,10 +36,6 @@ The ``zpm`` script has the following top-level commands:
 ``zpm deploy``
 --------------
 
-.. autocommand:: zpmlib.commands.deploy
-
-For help on configuring authentication, see
-:doc:`zerocloud-auth-config`.
 
 .. argparse::
    :module: zpmlib.commands
@@ -57,8 +49,6 @@ For help on configuring authentication, see
 ``zpm execute``
 ---------------
 
-.. autocommand:: zpmlib.commands.execute
-
 .. argparse::
    :module: zpmlib.commands
    :func: set_up_arg_parser
@@ -71,8 +61,6 @@ For help on configuring authentication, see
 ``zpm help``
 ------------
 
-.. autocommand:: zpmlib.commands.help
-
 .. argparse::
    :module: zpmlib.commands
    :func: set_up_arg_parser
@@ -81,8 +69,6 @@ For help on configuring authentication, see
 
 ``zpm version``
 ---------------
-
-.. autocommand:: zpmlib.commands.version
 
 .. argparse::
    :module: zpmlib.commands
