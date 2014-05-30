@@ -23,7 +23,7 @@ import zpmlib
 setup(
     name='zpm',
     version=zpmlib.__version__,
-    maintainer='Rackspace ZeroVM Team',
+    maintainer='ZeroVM Team',
     maintainer_email='zerovm@rackspace.com',
     url='https://github.com/zerovm/zpm',
     description='ZeroVM Package Manager',
