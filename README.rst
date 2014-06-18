@@ -10,6 +10,14 @@ Supported Python versions: 2.6, 2.7, 3.2, 3.3, and 3.4.
    :target: http://ci.oslab.cc/job/zpm/
 
 
+Documentation
+-------------
+
+The documentation is hosted at `docs.zerovm.org`__.
+
+.. __: http://docs.zerovm.org/projects/zerovm-zpm/en/latest/
+
+
 Installation
 ------------
 
