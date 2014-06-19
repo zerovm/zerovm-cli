@@ -486,7 +486,7 @@ def deploy_project(args):
         args.container = args.target
         execute(args)
 
-    LOG.info('app deployed to\n  %s/%s' % (conn.url, deploy_index))
+    print('app deployed to\n  %s/%s' % (conn.url, deploy_index))
 
 
 def execute(args):
