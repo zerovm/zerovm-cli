@@ -18,7 +18,6 @@ import gzip
 import jinja2
 import json
 import os
-import pprint
 import shlex
 import tarfile
 import yaml
@@ -353,6 +352,13 @@ def _post_job(url, token, json_data, http_conn=None, response_dict=None):
 
 class ZeroCloudConnection(swiftclient.Connection):
 
+    def authenticate(self):
+        """
+        Authenticate with the provided credentials and cache the storage URL
+        and auth token as `self.url` and `self.token`, respectively.
+        """
+        self.url, self.token = self.get_auth()
+
     def post_job(self, job, response_dict=None):
         """Start a ZeroVM job, using a pre-uploaded zapp
 
@@ -393,58 +399,139 @@ def _get_zerocloud_conn(args):
     return conn
 
 
-def deploy_project(args):
-    version = args.auth_version
-    conn = _get_zerocloud_conn(args)
+class Deployer(object):
+    """
+    Prepare, upload, and execute (optional) a zapp.
 
-    # We can now reset the auth for the web UI, if needed
-    if args.no_ui_auth:
-        version = '0.0'
+    :param conn:
+        :class:`ZeroCloudConnection` instance.
+    :param target:
+        Target container name, including optional pseudo-directory path.
+    :param zapp:
+        Path to the zapp file.
+    :param auth_opts:
+        Sanitized/prepared authentication options (such as what is produced by
+        :class:`jinja.Markup`) to be rendered in UI.
 
-    tar = tarfile.open(args.zapp)
-    zapp = yaml.safe_load(tar.extractfile('zapp.yaml'))
+        A :class:`jinja.Markup` is expected here, but it could also just be a
+        str/unicode.
+    :param bool execute:
+        Optional. If `True`, execute the zapp immediately after upload.
 
-    path = '%s/%s' % (args.target, os.path.basename(args.zapp))
-    container, obj = path.split('/', 1)
-    conn.put_object(container, obj, gzip.open(args.zapp).read())
+        Defaults to `False`.
+    """
 
-    swift_url = _get_swift_zapp_url(conn.url, path)
+    def __init__(self, conn, target, zapp_path, auth_opts, execute=False):
+        self.conn = conn
+        self.target = target
+        self.zapp_path = zapp_path
+        self.auth_opts = auth_opts
+        # job description; populated when `_prepare_uploads` is called
+        self.job = None
+        self.execute = execute
 
-    job = _prepare_job(tar, zapp, swift_url)
-    path = '%s/%s.json' % (args.target, zapp['meta']['name'])
-    container, obj = path.split('/', 1)
-    conn.put_object(container, obj, json.dumps(job))
+    def deploy(self):
+        self._deploy_zapp()
+        if self.execute:
+            LOG.debug('job template:\n%s' % json.dumps(self.job, indent=2))
+            LOG.info('executing')
+            self.conn.post_job(self.job)
 
-    deploy = {'version': version}
+    def _upload(self, path, data):
+        """
+        Upload a file.
+
+        :param path:
+            Target file name in a container. Can include pseudo-directories.
+        :param data:
+            File contents to upload.
+        """
+        container, obj = path.split('/', 1)
+        self.conn.put_object(container, obj, data)
+
+    def _deploy_zapp(self):
+        """
+        Upload all of the necessary files for a zapp.
+        """
+        uploads = self._prepare_uploads()
+        for path, data in uploads:
+            self._upload(path, data)
+
+    def _prepare_uploads(self):
+        """
+        Prepare a `list` of uploads. Each upload is a 2-tuple of
+        (container-and-file-path, data). Each one is meant to be consumed by
+        :meth:`_upload`.
+        """
+        uploads = []
+        # returns a list of pairs: (container-and-file-path, data)
+        tar = tarfile.open(self.zapp_path, 'r:gz')
+        zapp_config = yaml.safe_load(tar.extractfile('zapp.yaml'))
+
+        remote_zapp_path = '%s/%s' % (
+            self.target, os.path.basename(self.zapp_path)
+        )
+        swift_url = _get_swift_zapp_url(self.conn.url, remote_zapp_path)
+        self.job = _prepare_job(tar, zapp_config, swift_url)
+        job_json_path = '%s/%s.json' % (self.target,
+                                        zapp_config['meta']['name'])
+
+        uploads.append((remote_zapp_path, gzip.open(self.zapp_path).read()))
+        uploads.append((job_json_path, json.dumps(self.job)))
+
+        for path in _find_ui_uploads(zapp_config, tar):
+            tmpl = jinja2.Template(
+                tar.extractfile(path).read().decode('utf-8')
+            )
+            output = tmpl.render(auth_opts=self.auth_opts)
+            ui_path = '%s/%s' % (self.target, path)
+            uploads.append((ui_path, output))
+
+        return uploads
+
+
+def _prepare_auth(version, args, conn):
+    """
+    :param str version:
+        Auth version: "0.0", "1.0", or "2.0". "0.0" indicates "no auth".
+    :param args:
+        :class:`argparse.Namespace` instance, with attributes representing the
+        various authentication parameters
+    :param conn:
+        :class:`ZeroCloudConnection` instance.
+    """
+    auth = {'version': version}
     if version == '0.0':
-        deploy['swiftUrl'] = conn.url
+        auth['swiftUrl'] = conn.url
     elif version == '1.0':
-        deploy['authUrl'] = args.auth
-        deploy['username'] = args.user
-        deploy['password'] = args.key
+        auth['authUrl'] = args.auth
+        auth['username'] = args.user
+        auth['password'] = args.key
     else:
         # TODO(mg): inserting the username and password in the
         # uploaded file makes testing easy, but should not be done in
         # production. See issue #44.
-        deploy['authUrl'] = args.os_auth_url
-        deploy['tenant'] = args.os_tenant_name
-        deploy['username'] = args.os_username
-        deploy['password'] = args.os_password
-    auth_opts = jinja2.Markup(json.dumps(deploy))
-    for path in _find_ui_uploads(zapp, tar):
-        # Upload UI files after expanding deployment parameters
-        tmpl = jinja2.Template(tar.extractfile(path).read())
-        output = tmpl.render(auth_opts=auth_opts)
-        container, obj = ('%s/%s' % (args.target, path)).split('/', 1)
-        conn.put_object(container, obj, output)
+        auth['authUrl'] = args.os_auth_url
+        auth['tenant'] = args.os_tenant_name
+        auth['username'] = args.os_username
+        auth['password'] = args.os_password
+    return auth
 
-    if args.execute:
-        job_details = BytesIO()
-        pprint.pprint(job, stream=job_details)
-        job_details.seek(0)
-        LOG.debug('job template:\n%s' % job_details.read())
-        LOG.info('executing')
-        conn.post_job(job)
+
+def deploy_project(args):
+    version = args.auth_version
+    conn = _get_zerocloud_conn(args)
+    conn.authenticate()
+
+    # We can now reset the auth for the web UI, if needed
+    if args.no_ui_auth:
+        version = '0.0'
+    auth = _prepare_auth(version, args, conn)
+    auth_opts = jinja2.Markup(json.dumps(auth))
+
+    deployer = Deployer(conn, args.target, args.zapp, auth_opts,
+                        execute=args.execute)
+    deployer.deploy()
 
     LOG.info('app deployed to\n  %s/%s/' % (conn.url, args.target))
 

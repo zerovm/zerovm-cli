@@ -13,6 +13,8 @@
 #  limitations under the License.
 
 import copy
+import gzip
+import jinja2
 import json
 import mock
 import os
@@ -26,6 +28,10 @@ try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
+try:
+    from cStringIO import StringIO as BytesIO
+except ImportError:
+    from io import BytesIO
 
 from zpmlib import zpm
 
@@ -312,3 +318,198 @@ class TestGetZeroCloudConn:
         self.v2_args.os_tenant_name = None
         with pytest.raises(zpmlib.ZPMException):
             zpm._get_zerocloud_conn(self.v2_args)
+
+
+class TestDeployer:
+    """
+    Tests :class:`zpmlib.zpm.Deployer`.
+    """
+
+    @classmethod
+    def setup_class(cls):
+        cls.zapp_yaml_contents = """\
+execution:
+  groups:
+    - name: "hello"
+      path: file://python2.7:python
+      args: "hello.py"
+      devices:
+      - name: python
+      - name: stdout
+meta:
+  Version: ""
+  name: "hello"
+  Author-email: ""
+  Summary: ""
+help:
+  description: ""
+  args:
+  - ["", ""]
+bundling:
+  - "hello.py"
+ui:
+  - "index.html"
+""".encode('utf-8')
+
+        cls.job_json_contents = json.dumps([
+            {'exec': {'args': 'hello.py', 'path': 'file://python2.7:python'},
+             'file_list': [{'device': 'python'}, {'device': 'stdout'}],
+             'name': 'hello'}
+        ]).encode('utf-8')
+        cls.job_json_prepped = json.dumps([
+            {"exec": {"path": "file://python2.7:python", "args": "hello.py"},
+             "file_list": [{"device": "python"}, {"device": "stdout"},
+                           {"device": "image",
+                            "path": "swift:///container1/foo/bar/zapp.yaml"}],
+             "name": "hello"}
+        ]).encode('utf-8')
+
+        cls.hellopy_contents = b"""\
+print("Hello from ZeroVM!")
+"""
+
+        cls.indexhtml_contents = bytearray("""\
+<html>
+<head><title>Hello!</title></head>
+<body>Hello from ZeroVM!</body>
+</html>""", 'utf-8')
+
+        cls.temp_dir = tempfile.mkdtemp()
+        cls.temp_zapp_file = '%s/zapp.yaml' % cls.temp_dir
+        tar = tarfile.open(cls.temp_zapp_file, 'w:gz')
+
+        info = tarfile.TarInfo(name='hello.json')
+        info.size = len(cls.job_json_contents)
+        tar.addfile(info, BytesIO(cls.job_json_contents))
+
+        info = tarfile.TarInfo(name='zapp.yaml')
+        info.size = len(cls.zapp_yaml_contents)
+        tar.addfile(info, BytesIO(cls.zapp_yaml_contents))
+
+        info = tarfile.TarInfo(name='hello.py')
+        info.size = len(cls.hellopy_contents)
+        tar.addfile(info, BytesIO(cls.hellopy_contents))
+
+        info = tarfile.TarInfo(name='index.html')
+        info.size = len(cls.indexhtml_contents)
+        tar.addfile(info, BytesIO(cls.indexhtml_contents))
+        tar.close()
+
+    @classmethod
+    def teardown_class(cls):
+        shutil.rmtree(cls.temp_dir)
+
+    def setup_method(self, _method):
+        self.conn = mock.Mock()
+        self.target = 'container1/foo/bar'
+        self.zapp_path = self.temp_zapp_file
+
+        self.conn.url = 'http://example.com'
+        args = mock.Mock()
+        args.auth = 'http://example.com/auth/v1.0'
+        args.user = 'user1'
+        args.key = 'secret'
+        self.auth_opts = jinja2.Markup(
+            json.dumps(zpm._prepare_auth('1.0', args, self.conn))
+        )
+        self.deployer = zpm.Deployer(self.conn, self.target, self.zapp_path,
+                                     self.auth_opts)
+
+    def test__prepare_uploads(self):
+        uploads = self.deployer._prepare_uploads()
+
+        expected_uploads = [
+            ('%s/zapp.yaml' % self.target, gzip.open(self.zapp_path).read()),
+            ('%s/hello.json' % self.target,
+             self.job_json_prepped.decode('utf-8')),
+            ('%s/index.html' % self.target,
+             self.indexhtml_contents.decode('utf-8')),
+        ]
+        assert uploads[0] == expected_uploads[0]
+        assert uploads[1][0] == expected_uploads[1][0]
+        assert json.loads(uploads[1][1]) == json.loads(expected_uploads[1][1])
+        assert uploads[2] == expected_uploads[2]
+
+    def test__upload(self):
+        self.deployer._upload('container1/foo/bar/hello.zapp', 'data')
+        assert self.conn.put_object.call_args == [
+            ('container1', 'foo/bar/hello.zapp', 'data')
+        ]
+
+    def test_call(self):
+        with mock.patch('zpmlib.zpm.Deployer._prepare_uploads') as pu:
+            with mock.patch('zpmlib.zpm.Deployer._upload') as upload:
+                pu.return_value = [('a', 'b'), ('c', 'd')]
+                self.deployer.deploy()
+
+                assert upload.call_count == 2
+                assert upload.call_args_list == [mock.call('a', 'b'),
+                                                 mock.call('c', 'd')]
+
+    def test_call_with_execute(self):
+        self.deployer.execute = True
+        with mock.patch('zpmlib.zpm.Deployer._prepare_uploads') as pu:
+            with mock.patch('zpmlib.zpm.Deployer._upload') as upload:
+                pu.return_value = [('a', 'b'), ('c', 'd')]
+                self.deployer.job = {'fake': 'job'}
+                self.deployer.deploy()
+
+                assert upload.call_count == 2
+                assert upload.call_args_list == [mock.call('a', 'b'),
+                                                 mock.call('c', 'd')]
+                assert self.conn.post_job.call_count == 1
+                assert self.conn.post_job.call_args == mock.call(
+                    {'fake': 'job'}
+                )
+
+
+def test__prepare_auth_v0():
+    # Test for :func:`zpmlib.zpm._prepare_auth`, with version 0.0
+    version = '0.0'
+    args = None
+    conn = mock.Mock()
+    conn.url = 'http://example.com'
+
+    expected = {
+        'version': '0.0',
+        'swiftUrl': 'http://example.com',
+    }
+    assert zpm._prepare_auth(version, args, conn) == expected
+
+
+def test__prepare_auth_v1():
+    # Test for :func:`zpmlib.zpm._prepare_auth`, with version 1.0
+    version = '1.0'
+    args = mock.Mock()
+    args.auth = 'http://example.com/auth/v1.0'
+    args.user = 'user1'
+    args.key = 'secret'
+    conn = None
+
+    expected = {
+        'version': '1.0',
+        'authUrl': 'http://example.com/auth/v1.0',
+        'username': 'user1',
+        'password': 'secret',
+    }
+    assert zpm._prepare_auth(version, args, conn) == expected
+
+
+def test__prepare_auth_v2():
+    # Test for :func:`zpmlib.zpm._prepare_auth`, with version 2.0
+    version = '2.0'
+    args = mock.Mock()
+    args.os_auth_url = 'http://example.com:5000/v2.0'
+    args.os_username = 'user1'
+    args.os_tenant_name = 'tenant1'
+    args.os_password = 'secret'
+    conn = None
+
+    expected = {
+        'version': '2.0',
+        'authUrl': 'http://example.com:5000/v2.0',
+        'tenant': 'tenant1',
+        'username': 'user1',
+        'password': 'secret',
+    }
+    assert zpm._prepare_auth(version, args, conn) == expected
