@@ -33,7 +33,7 @@ try:
 except ImportError:
     from io import BytesIO
 
-from zpmlib import zpm
+from zpmlib import zpm, commands
 
 
 class TestCreateProject:
@@ -320,9 +320,9 @@ class TestGetZeroCloudConn:
             zpm._get_zerocloud_conn(self.v2_args)
 
 
-class TestDeployer:
+class TestDeploy:
     """
-    Tests :class:`zpmlib.zpm.Deployer`.
+    Tests :function:`zpmlib.zpm.deploy` and its helper functions.
     """
 
     @classmethod
@@ -412,11 +412,11 @@ print("Hello from ZeroVM!")
         self.auth_opts = jinja2.Markup(
             json.dumps(zpm._prepare_auth('1.0', args, self.conn))
         )
-        self.deployer = zpm.Deployer(self.conn, self.target, self.zapp_path,
-                                     self.auth_opts)
 
-    def test__prepare_uploads(self):
-        uploads = self.deployer._prepare_uploads()
+    def test__generate_uploads(self):
+        uploads = zpm._generate_uploads(self.conn, self.target,
+                                        self.zapp_path, self.auth_opts)
+        uploads = list(uploads)
 
         expected_uploads = [
             ('%s/zapp.yaml' % self.target, gzip.open(self.zapp_path).read()),
@@ -430,37 +430,33 @@ print("Hello from ZeroVM!")
         assert json.loads(uploads[1][1]) == json.loads(expected_uploads[1][1])
         assert uploads[2] == expected_uploads[2]
 
-    def test__upload(self):
-        self.deployer._upload('container1/foo/bar/hello.zapp', 'data')
-        assert self.conn.put_object.call_args == [
-            ('container1', 'foo/bar/hello.zapp', 'data')
-        ]
+    def test__deploy_zapp(self):
+        with mock.patch('zpmlib.zpm._generate_uploads') as pu:
+            pu.return_value = iter([('x/a', 'b'), ('x/c', 'd')])
+            zpm._deploy_zapp(self.conn, self.target, self.zapp_path,
+                             self.auth_opts)
 
-    def test_call(self):
-        with mock.patch('zpmlib.zpm.Deployer._prepare_uploads') as pu:
-            with mock.patch('zpmlib.zpm.Deployer._upload') as upload:
-                pu.return_value = [('a', 'b'), ('c', 'd')]
-                self.deployer.deploy()
+            put_object = self.conn.put_object
+            assert put_object.call_count == 2
+            assert put_object.call_args_list == [mock.call('x', 'a', 'b'),
+                                                 mock.call('x', 'c', 'd')]
 
-                assert upload.call_count == 2
-                assert upload.call_args_list == [mock.call('a', 'b'),
-                                                 mock.call('c', 'd')]
+    def test_deploy_project_execute(self):
+        parser = commands.set_up_arg_parser()
+        args = parser.parse_args(['deploy', 'foo', self.zapp_path, '--exec'])
 
-    def test_call_with_execute(self):
-        self.deployer.execute = True
-        with mock.patch('zpmlib.zpm.Deployer._prepare_uploads') as pu:
-            with mock.patch('zpmlib.zpm.Deployer._upload') as upload:
-                pu.return_value = [('a', 'b'), ('c', 'd')]
-                self.deployer.job = {'fake': 'job'}
-                self.deployer.deploy()
+        job_path = '%s.json' % os.path.splitext(self.zapp_path)[0]
+        job_json = self.job_json_contents.decode('utf-8')
+        job = json.loads(job_json)
 
-                assert upload.call_count == 2
-                assert upload.call_args_list == [mock.call('a', 'b'),
-                                                 mock.call('c', 'd')]
-                assert self.conn.post_job.call_count == 1
-                assert self.conn.post_job.call_args == mock.call(
-                    {'fake': 'job'}
-                )
+        with mock.patch('zpmlib.zpm._get_zerocloud_conn') as gzc:
+            gzc.return_value = self.conn
+            get_object = self.conn.get_object
+            get_object.return_value = ([], job_json)
+            post_job = self.conn.post_job
+            zpm.deploy_project(args)
+            assert get_object.call_args_list == [mock.call('foo', job_path)]
+            assert post_job.call_args_list == [mock.call(job)]
 
 
 def test__prepare_auth_v0():
