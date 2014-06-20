@@ -399,33 +399,20 @@ def _get_zerocloud_conn(args):
     return conn
 
 
-def _upload(conn, path, data):
-    """
-    Upload a file.
-
-    :param path:
-        Target file name in a container. Can include pseudo-directories.
-    :param data:
-        File contents to upload.
-    """
-    container, obj = path.split('/', 1)
-    conn.put_object(container, obj, data)
-
-
 def _deploy_zapp(conn, target, zapp_path, auth_opts):
     """
     Upload all of the necessary files for a zapp.
     """
     uploads = _prepare_uploads(conn, target, zapp_path, auth_opts)
     for path, data in uploads:
-        _upload(conn, path, data)
+        container, obj = path.split('/', 1)
+        conn.put_object(container, obj, data)
 
 
 def _prepare_uploads(conn, target, zapp_path, auth_opts):
     """
     Prepare a `list` of uploads. Each upload is a 2-tuple of
-    (container-and-file-path, data). Each one is meant to be consumed by
-    :meth:`_upload`.
+    (container-and-file-path, data).
     """
     uploads = []
     # returns a list of pairs: (container-and-file-path, data)

@@ -429,23 +429,16 @@ print("Hello from ZeroVM!")
         assert json.loads(uploads[1][1]) == json.loads(expected_uploads[1][1])
         assert uploads[2] == expected_uploads[2]
 
-    def test__upload(self):
-        zpm._upload(self.conn, 'container1/foo/bar/hello.zapp', 'data')
-        assert self.conn.put_object.call_args == [
-            ('container1', 'foo/bar/hello.zapp', 'data')
-        ]
-
     def test__deploy_zapp(self):
         with mock.patch('zpmlib.zpm._prepare_uploads') as pu:
-            with mock.patch('zpmlib.zpm._upload') as upload:
-                pu.return_value = [('a', 'b'), ('c', 'd')]
-                zpm._deploy_zapp(self.conn, self.target, self.zapp_path,
-                                 self.auth_opts)
+            pu.return_value = [('x/a', 'b'), ('x/c', 'd')]
+            zpm._deploy_zapp(self.conn, self.target, self.zapp_path,
+                             self.auth_opts)
 
-                conn = self.conn
-                assert upload.call_count == 2
-                assert upload.call_args_list == [mock.call(conn, 'a', 'b'),
-                                                 mock.call(conn, 'c', 'd')]
+            put_object = self.conn.put_object
+            assert put_object.call_count == 2
+            assert put_object.call_args_list == [mock.call('x', 'a', 'b'),
+                                                 mock.call('x', 'c', 'd')]
 
     def test_deploy_project_execute(self):
         parser = commands.set_up_arg_parser()
