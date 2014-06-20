@@ -399,95 +399,56 @@ def _get_zerocloud_conn(args):
     return conn
 
 
-class Deployer(object):
+def _upload(conn, path, data):
     """
-    Prepare, upload, and execute (optional) a zapp.
+    Upload a file.
 
-    :param conn:
-        :class:`ZeroCloudConnection` instance.
-    :param target:
-        Target container name, including optional pseudo-directory path.
-    :param zapp:
-        Path to the zapp file.
-    :param auth_opts:
-        Sanitized/prepared authentication options (such as what is produced by
-        :class:`jinja.Markup`) to be rendered in UI.
-
-        A :class:`jinja.Markup` is expected here, but it could also just be a
-        str/unicode.
-    :param bool execute:
-        Optional. If `True`, execute the zapp immediately after upload.
-
-        Defaults to `False`.
+    :param path:
+        Target file name in a container. Can include pseudo-directories.
+    :param data:
+        File contents to upload.
     """
+    container, obj = path.split('/', 1)
+    conn.put_object(container, obj, data)
 
-    def __init__(self, conn, target, zapp_path, auth_opts, execute=False):
-        self.conn = conn
-        self.target = target
-        self.zapp_path = zapp_path
-        self.auth_opts = auth_opts
-        # job description; populated when `_prepare_uploads` is called
-        self.job = None
-        self.execute = execute
 
-    def deploy(self):
-        self._deploy_zapp()
-        if self.execute:
-            LOG.debug('job template:\n%s' % json.dumps(self.job, indent=2))
-            LOG.info('executing')
-            self.conn.post_job(self.job)
+def _deploy_zapp(conn, target, zapp_path, auth_opts):
+    """
+    Upload all of the necessary files for a zapp.
+    """
+    uploads = _prepare_uploads(conn, target, zapp_path, auth_opts)
+    for path, data in uploads:
+        _upload(conn, path, data)
 
-    def _upload(self, path, data):
-        """
-        Upload a file.
 
-        :param path:
-            Target file name in a container. Can include pseudo-directories.
-        :param data:
-            File contents to upload.
-        """
-        container, obj = path.split('/', 1)
-        self.conn.put_object(container, obj, data)
+def _prepare_uploads(conn, target, zapp_path, auth_opts):
+    """
+    Prepare a `list` of uploads. Each upload is a 2-tuple of
+    (container-and-file-path, data). Each one is meant to be consumed by
+    :meth:`_upload`.
+    """
+    uploads = []
+    # returns a list of pairs: (container-and-file-path, data)
+    tar = tarfile.open(zapp_path, 'r:gz')
+    zapp_config = yaml.safe_load(tar.extractfile('zapp.yaml'))
 
-    def _deploy_zapp(self):
-        """
-        Upload all of the necessary files for a zapp.
-        """
-        uploads = self._prepare_uploads()
-        for path, data in uploads:
-            self._upload(path, data)
+    remote_zapp_path = '%s/%s' % (target, os.path.basename(zapp_path))
+    swift_url = _get_swift_zapp_url(conn.url, remote_zapp_path)
+    job = _prepare_job(tar, zapp_config, swift_url)
+    job_json_path = '%s/%s.json' % (target, zapp_config['meta']['name'])
 
-    def _prepare_uploads(self):
-        """
-        Prepare a `list` of uploads. Each upload is a 2-tuple of
-        (container-and-file-path, data). Each one is meant to be consumed by
-        :meth:`_upload`.
-        """
-        uploads = []
-        # returns a list of pairs: (container-and-file-path, data)
-        tar = tarfile.open(self.zapp_path, 'r:gz')
-        zapp_config = yaml.safe_load(tar.extractfile('zapp.yaml'))
+    uploads.append((remote_zapp_path, gzip.open(zapp_path).read()))
+    uploads.append((job_json_path, json.dumps(job)))
 
-        remote_zapp_path = '%s/%s' % (
-            self.target, os.path.basename(self.zapp_path)
+    for path in _find_ui_uploads(zapp_config, tar):
+        tmpl = jinja2.Template(
+            tar.extractfile(path).read().decode('utf-8')
         )
-        swift_url = _get_swift_zapp_url(self.conn.url, remote_zapp_path)
-        self.job = _prepare_job(tar, zapp_config, swift_url)
-        job_json_path = '%s/%s.json' % (self.target,
-                                        zapp_config['meta']['name'])
+        output = tmpl.render(auth_opts=auth_opts)
+        ui_path = '%s/%s' % (target, path)
+        uploads.append((ui_path, output))
 
-        uploads.append((remote_zapp_path, gzip.open(self.zapp_path).read()))
-        uploads.append((job_json_path, json.dumps(self.job)))
-
-        for path in _find_ui_uploads(zapp_config, tar):
-            tmpl = jinja2.Template(
-                tar.extractfile(path).read().decode('utf-8')
-            )
-            output = tmpl.render(auth_opts=self.auth_opts)
-            ui_path = '%s/%s' % (self.target, path)
-            uploads.append((ui_path, output))
-
-        return uploads
+    return uploads
 
 
 def _prepare_auth(version, args, conn):
@@ -529,9 +490,11 @@ def deploy_project(args):
     auth = _prepare_auth(version, args, conn)
     auth_opts = jinja2.Markup(json.dumps(auth))
 
-    deployer = Deployer(conn, args.target, args.zapp, auth_opts,
-                        execute=args.execute)
-    deployer.deploy()
+    _deploy_zapp(conn, args.target, args.zapp, auth_opts)
+    if args.execute:
+        # for compatibility with the option name in 'zpm execute'
+        args.container = args.target
+        execute(args)
 
     LOG.info('app deployed to\n  %s/%s/' % (conn.url, args.target))
 
