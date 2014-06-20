@@ -349,6 +349,7 @@ bundling:
   - "hello.py"
 ui:
   - "index.html"
+  - "foo.js.tmpl"
 """.encode('utf-8')
 
         cls.job_json_contents = json.dumps([
@@ -374,9 +375,15 @@ print("Hello from ZeroVM!")
 <body>Hello from ZeroVM!</body>
 </html>""", 'utf-8')
 
+        cls.foojstmpl_contents = b"var opts = {{ auth_opts }};"
+
         cls.temp_dir = tempfile.mkdtemp()
         cls.temp_zapp_file = '%s/zapp.yaml' % cls.temp_dir
         tar = tarfile.open(cls.temp_zapp_file, 'w:gz')
+
+        info = tarfile.TarInfo(name='foo.js.tmpl')
+        info.size = len(cls.foojstmpl_contents)
+        tar.addfile(info, BytesIO(cls.foojstmpl_contents))
 
         info = tarfile.TarInfo(name='hello.json')
         info.size = len(cls.job_json_contents)
@@ -418,17 +425,21 @@ print("Hello from ZeroVM!")
                                         self.zapp_path, self.auth_opts)
         uploads = list(uploads)
 
+        foojs_tmpl = jinja2.Template(self.foojstmpl_contents.decode())
+        foojs = foojs_tmpl.render(auth_opts=self.auth_opts)
+
         expected_uploads = [
             ('%s/zapp.yaml' % self.target, gzip.open(self.zapp_path).read()),
             ('%s/hello.json' % self.target,
              self.job_json_prepped.decode('utf-8')),
-            ('%s/index.html' % self.target,
-             self.indexhtml_contents.decode('utf-8')),
+            ('%s/foo.js' % self.target, foojs),
+            ('%s/index.html' % self.target, self.indexhtml_contents),
         ]
         assert uploads[0] == expected_uploads[0]
         assert uploads[1][0] == expected_uploads[1][0]
         assert json.loads(uploads[1][1]) == json.loads(expected_uploads[1][1])
         assert uploads[2] == expected_uploads[2]
+        assert uploads[3] == expected_uploads[3]
 
     def test__deploy_zapp(self):
         with mock.patch('zpmlib.zpm._generate_uploads') as pu:

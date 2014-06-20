@@ -325,7 +325,7 @@ def _find_ui_uploads(zapp, tar):
     names = tar.getnames()
     for pattern in zapp['ui']:
         matches.update(fnmatch.filter(names, pattern))
-    return matches
+    return sorted(matches)
 
 
 def _post_job(url, token, json_data, http_conn=None, response_dict=None):
@@ -424,10 +424,12 @@ def _generate_uploads(conn, target, zapp_path, auth_opts):
     yield (job_json_path, json.dumps(job))
 
     for path in _find_ui_uploads(zapp_config, tar):
-        tmpl = jinja2.Template(
-            tar.extractfile(path).read().decode('utf-8')
-        )
-        output = tmpl.render(auth_opts=auth_opts)
+        output = tar.extractfile(path).read()
+        if path.endswith('.tmpl'):
+            tmpl = jinja2.Template(output.decode('utf-8'))
+            output = tmpl.render(auth_opts=auth_opts)
+            path = path[:-5]
+
         ui_path = '%s/%s' % (target, path)
         yield (ui_path, output)
 
