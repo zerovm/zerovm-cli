@@ -413,9 +413,10 @@ print("Hello from ZeroVM!")
             json.dumps(zpm._prepare_auth('1.0', args, self.conn))
         )
 
-    def test__prepare_uploads(self):
-        uploads = zpm._prepare_uploads(self.conn, self.target,
-                                       self.zapp_path, self.auth_opts)
+    def test__generate_uploads(self):
+        uploads = zpm._generate_uploads(self.conn, self.target,
+                                        self.zapp_path, self.auth_opts)
+        uploads = list(uploads)
 
         expected_uploads = [
             ('%s/zapp.yaml' % self.target, gzip.open(self.zapp_path).read()),
@@ -430,8 +431,8 @@ print("Hello from ZeroVM!")
         assert uploads[2] == expected_uploads[2]
 
     def test__deploy_zapp(self):
-        with mock.patch('zpmlib.zpm._prepare_uploads') as pu:
-            pu.return_value = [('x/a', 'b'), ('x/c', 'd')]
+        with mock.patch('zpmlib.zpm._generate_uploads') as pu:
+            pu.return_value = iter([('x/a', 'b'), ('x/c', 'd')])
             zpm._deploy_zapp(self.conn, self.target, self.zapp_path,
                              self.auth_opts)
 

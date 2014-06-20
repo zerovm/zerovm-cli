@@ -403,18 +403,14 @@ def _deploy_zapp(conn, target, zapp_path, auth_opts):
     """
     Upload all of the necessary files for a zapp.
     """
-    uploads = _prepare_uploads(conn, target, zapp_path, auth_opts)
+    uploads = _generate_uploads(conn, target, zapp_path, auth_opts)
     for path, data in uploads:
         container, obj = path.split('/', 1)
         conn.put_object(container, obj, data)
 
 
-def _prepare_uploads(conn, target, zapp_path, auth_opts):
-    """
-    Prepare a `list` of uploads. Each upload is a 2-tuple of
-    (container-and-file-path, data).
-    """
-    uploads = []
+def _generate_uploads(conn, target, zapp_path, auth_opts):
+    """Generate sequence of (container-and-file-path, data) tuples."""
     # returns a list of pairs: (container-and-file-path, data)
     tar = tarfile.open(zapp_path, 'r:gz')
     zapp_config = yaml.safe_load(tar.extractfile('zapp.yaml'))
@@ -424,8 +420,8 @@ def _prepare_uploads(conn, target, zapp_path, auth_opts):
     job = _prepare_job(tar, zapp_config, swift_url)
     job_json_path = '%s/%s.json' % (target, zapp_config['meta']['name'])
 
-    uploads.append((remote_zapp_path, gzip.open(zapp_path).read()))
-    uploads.append((job_json_path, json.dumps(job)))
+    yield (remote_zapp_path, gzip.open(zapp_path).read())
+    yield (job_json_path, json.dumps(job))
 
     for path in _find_ui_uploads(zapp_config, tar):
         tmpl = jinja2.Template(
@@ -433,9 +429,7 @@ def _prepare_uploads(conn, target, zapp_path, auth_opts):
         )
         output = tmpl.render(auth_opts=auth_opts)
         ui_path = '%s/%s' % (target, path)
-        uploads.append((ui_path, output))
-
-    return uploads
+        yield (ui_path, output)
 
 
 def _prepare_auth(version, args, conn):
