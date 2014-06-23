@@ -1,8 +1,6 @@
 zpm
 ===
 
-ZeroVM Package Manager
-
 Supported Python versions: 2.6, 2.7, 3.3, and 3.4.
 
 .. image:: http://ci.oslab.cc/job/zpm/badge/icon
