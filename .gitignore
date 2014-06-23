@@ -8,6 +8,7 @@ dist
 build
 sdist
 zpm.egg-info
+MANIFEST
 
 # Unit test / coverage reports
 .coverage
