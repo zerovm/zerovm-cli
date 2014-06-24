@@ -166,7 +166,7 @@ class TestZvsh(unittest.TestCase):
 
     def test_existing_file(self):
         fd, name = mkstemp(dir=self.testdir)
-        os.write(fd, 'test')
+        os.write(fd, 'test'.encode('utf-8'))
         os.close(fd)
         opts = '-f @%s' % name
         dev_name = '/dev/1.%s' % os.path.basename(name)
@@ -244,7 +244,7 @@ class TestZvsh(unittest.TestCase):
 
     def test_input_output_file(self):
         in_fd, in_name = mkstemp(dir=self.testdir)
-        os.write(in_fd, 'test')
+        os.write(in_fd, 'test'.encode('utf-8'))
         os.close(in_fd)
         out_fd, out_name = mkstemp(dir=self.testdir)
         os.close(out_fd)
