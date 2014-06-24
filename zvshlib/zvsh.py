@@ -993,9 +993,9 @@ class ZvRunner:
 
 def is_binary_string(byte_string):
     textchars = ''.join(
-        map(chr, [7, 8, 9, 10, 12, 13, 27] + range(0x20, 0x100))
+        map(chr, [7, 8, 9, 10, 12, 13, 27] + list(range(0x20, 0x100)))
     )
-    return bool(byte_string.translate(None, textchars))
+    return bool(set(byte_string) - set(textchars))
 
 
 def spawn(argv, master_read=pty_read, stdin_read=pty_read):
