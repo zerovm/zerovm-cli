@@ -6,7 +6,6 @@ from shutil import rmtree
 import sys
 import pytest
 import zvshlib
-import json
 from zvshlib.zvsh import Shell, DEFAULT_LIMITS
 from os.path import join as join_path
 
