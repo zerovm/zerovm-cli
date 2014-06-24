@@ -735,7 +735,7 @@ class ZvShell(object):
             self.channel_seq_write_template % (os.path.abspath(self.stderr),
                                                '/dev/stderr')
         ]
-        for k, v in self.config['fstab'].iteritems():
+        for k, v in self.config['fstab'].items():
             self.nvram_fstab[self.create_manifest_channel(k)] = v
 
     def create_manifest_channel(self, file_name):
@@ -840,12 +840,12 @@ class ZvShell(object):
         self.nvram_filename = os.path.join(self.tmpdir,
                                            'nvram.%d' % self.node_id)
         nvram_fd = open(self.nvram_filename, 'wb')
-        nvram_fd.write(nvram)
+        nvram_fd.write(nvram.encode('utf-8'))
         nvram_fd.close()
 
     def create_manifest(self):
         manifest = ''
-        for k, v in self.config['manifest'].iteritems():
+        for k, v in self.config['manifest'].items():
             manifest += '%s = %s\n' % (k, v)
         manifest += 'Program = %s\n' % os.path.abspath(self.program)
         self.manifest_channels.append(self.channel_random_rw_template
@@ -854,7 +854,7 @@ class ZvShell(object):
         manifest += '\n'.join(self.manifest_channels)
         manifest_fn = os.path.join(self.tmpdir, 'manifest.%d' % self.node_id)
         manifest_fd = open(manifest_fn, 'wb')
-        manifest_fd.write(manifest)
+        manifest_fd.write(manifest.encode('utf-8'))
         manifest_fd.close()
         return manifest_fn
 
@@ -993,9 +993,9 @@ class ZvRunner:
 
 def is_binary_string(byte_string):
     textchars = ''.join(
-        map(chr, [7, 8, 9, 10, 12, 13, 27] + range(0x20, 0x100))
+        map(chr, [7, 8, 9, 10, 12, 13, 27] + list(range(0x20, 0x100)))
     )
-    return bool(byte_string.translate(None, textchars))
+    return bool(set(byte_string) - set(textchars))
 
 
 def spawn(argv, master_read=pty_read, stdin_read=pty_read):
