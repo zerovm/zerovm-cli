@@ -25,8 +25,8 @@ class ZPMException(Exception):
     """
 
 
-def _set_up_logger():
-    log = logging.getLogger(__name__)
+def get_logger(name):
+    log = logging.getLogger(name)
     _stream_handler = logging.StreamHandler()
     _stream_handler.setFormatter(
         logging.Formatter(fmt='%(levelname)s:%(message)s')
@@ -34,7 +34,6 @@ def _set_up_logger():
     log.addHandler(_stream_handler)
     return log
 
-LOG = _set_up_logger()
 LOG_LEVEL_MAP = dict(
     debug=logging.DEBUG,
     info=logging.INFO,

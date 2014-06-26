@@ -33,10 +33,10 @@ except ImportError:
 
 import swiftclient
 
-from zpmlib import LOG
-
 
 _DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zerocloud.js']
+
+LOG = zpmlib.get_logger(__name__)
 
 
 def create_project(location):
