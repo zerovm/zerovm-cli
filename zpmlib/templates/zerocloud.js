@@ -43,7 +43,7 @@ ZeroCloudClient.prototype.auth = function (opts, success) {
         this._auth2(merged);
         break;
     }
-}
+};
 
 /*
  * No authentication. This is used when no authentication is
@@ -56,7 +56,7 @@ ZeroCloudClient.prototype.auth = function (opts, success) {
 ZeroCloudClient.prototype._auth0 = function (opts) {
     this._swiftUrl = opts.swiftUrl;
     opts.success();
-}
+};
 
 /*
  * Swift v1 authentication.
@@ -83,7 +83,7 @@ ZeroCloudClient.prototype._auth1 = function (opts) {
             opts.success();
         }
     });
-}
+};
 
 /*
  * Swift v2 authentication. This will login to Keystone and obtain an
@@ -154,7 +154,7 @@ ZeroCloudClient.prototype.execute = function (job, success) {
 ZeroCloudClient.prototype.swiftPath = function (relativePath) {
     var user = this._swiftUrl.slice(this._swiftUrl.lastIndexOf('/') + 1);
     return 'swift://' + user + '/' + relativePath;
-}
+};
 
 /*
  * Escape command line argument. Command line arguments in a job
