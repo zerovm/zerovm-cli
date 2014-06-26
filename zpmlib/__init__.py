@@ -29,7 +29,7 @@ def get_logger(name):
     log = logging.getLogger(name)
     _stream_handler = logging.StreamHandler()
     _stream_handler.setFormatter(
-        logging.Formatter(fmt='%(levelname)s:%(message)s')
+        logging.Formatter(fmt='%(levelname)s:%(name)s: %(message)s')
     )
     log.addHandler(_stream_handler)
     return log
