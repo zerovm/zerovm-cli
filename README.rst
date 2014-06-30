@@ -56,6 +56,17 @@ This is not required for installing and using ``zpm``.
       $ debuild -S
 
 
+Contact
+-------
+
+Please use the `zerovm mailing list`__ on Google Groups for anything
+related to zpm. You are also welcome to come by `#zerovm on
+irc.freenode.net`__ where the developers can be found.
+
+.. __: https://groups.google.com/forum/#!forum/zerovm
+.. __: http://webchat.freenode.net/?channels=zerovm
+
+
 Changelog
 ---------
 
