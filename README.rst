@@ -59,7 +59,7 @@ This is not required for installing and using ``zpm``.
 Changelog
 ---------
 
-0.2 (not yet released):
+0.2 (2014-06-30):
    This release drops support for Python 3.2 due to the lack of
    ``u"..."`` literals in that version. Other issues fixed:
 
