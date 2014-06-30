@@ -13,16 +13,18 @@
 #  limitations under the License.
 
 import functools
+import logging
 import os
 import operator
 import argparse
 
 import zpmlib
 from zpmlib import zpm
-from zpmlib import LOG
 
 # List of function that will be the top-level zpm commands.
 _commands = []
+
+LOG = zpmlib.get_logger(__name__)
 
 
 def set_up_arg_parser():
@@ -87,7 +89,8 @@ def with_logging(func):
             :class:`argparse.Namespace` instance. This is the only
             required/expected parameter for a command function.
         """
-        LOG.setLevel(zpmlib.LOG_LEVEL_MAP.get(namespace.log_level))
+        root_logger = logging.getLogger(None)
+        root_logger.setLevel(zpmlib.LOG_LEVEL_MAP.get(namespace.log_level))
         return func(namespace, *args, **kwargs)
 
     return log_level_deco(inner)

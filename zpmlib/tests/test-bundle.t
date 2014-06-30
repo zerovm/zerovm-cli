@@ -22,13 +22,13 @@ Test bundling with auto-generated UI:
   > EOF
 
   $ zpm bundle --log-level info
-  INFO:adding foo.json
-  INFO:adding zapp.yaml
-  WARNING:pattern '*.py' in section 'bundling' matched no files
-  INFO:adding /*/foo/a.txt (glob)
-  INFO:adding index.html
-  INFO:adding style.css
-  INFO:adding zerocloud.js
+  INFO:zpmlib.zpm: adding foo.json
+  INFO:zpmlib.zpm: adding zapp.yaml
+  WARNING:zpmlib.zpm: pattern '*.py' in section 'bundling' matched no files
+  INFO:zpmlib.zpm: adding /*/foo/a.txt (glob)
+  INFO:zpmlib.zpm: adding index.html
+  INFO:zpmlib.zpm: adding style.css
+  INFO:zpmlib.zpm: adding zerocloud.js
   created foo.zapp
 
   $ tar -tf foo.zapp
@@ -49,12 +49,12 @@ Test bundling with UI
   > EOF
 
   $ zpm bundle --log-level info
-  INFO:adding foo.json
-  INFO:adding zapp.yaml
-  WARNING:pattern '*.py' in section 'bundling' matched no files
-  INFO:adding /*/foo/a.txt (glob)
-  INFO:adding /*/foo/foo.html (glob)
-  INFO:adding /*/foo/myzerocloud.js (glob)
+  INFO:zpmlib.zpm: adding foo.json
+  INFO:zpmlib.zpm: adding zapp.yaml
+  WARNING:zpmlib.zpm: pattern '*.py' in section 'bundling' matched no files
+  INFO:zpmlib.zpm: adding /*/foo/a.txt (glob)
+  INFO:zpmlib.zpm: adding /*/foo/foo.html (glob)
+  INFO:zpmlib.zpm: adding /*/foo/myzerocloud.js (glob)
   created foo.zapp
   $ tar -tf foo.zapp
   foo.json
