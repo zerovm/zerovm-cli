@@ -15,6 +15,7 @@ Contents:
    zerocloud-auth-config
    commands
    zapp-yaml
+   packaging
    glossary
 
 
