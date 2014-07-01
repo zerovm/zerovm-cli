@@ -10,7 +10,7 @@ This is not required for installing and using ``zpm``.
 
 2. Clone source from Git. Example::
 
-      $ git clone https://github.com/zerovm/zpm.git $HOME/zpm
+      $ git clone https://github.com/zerovm/zpm.git
 
 3. Amend the ``debian/changelog`` manually or using ``dch`` (preferred)
 
