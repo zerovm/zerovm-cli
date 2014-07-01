@@ -8,6 +8,13 @@ Supported Python versions: 2.6, 2.7, 3.3, and 3.4.
    :target: http://ci.oslab.cc/job/zpm/
 
 
+ZPM is a package manger for ZeroVM_. You use it to create and deploy
+ZeroVM applications onto ZeroCloud_.
+
+.. _ZeroVM: http://zerovm.org/
+.. _ZeroCloud: https://github.com/zerovm/zerocloud/
+
+
 Documentation
 -------------
 
