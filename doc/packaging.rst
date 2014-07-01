@@ -12,7 +12,7 @@ This is not required for installing and using ``zpm``.
 
       $ git clone https://github.com/zerovm/zpm.git
 
-3. Amend the ``debian/changelog`` manually or using ``dch`` (preferred)
+3. Amend the ``debian/changelog`` using ``dch``.
 
 4. Create a gzipped tarball of the zpm source (minus the ``debian/``
    dir)::
