@@ -8,6 +8,13 @@ Supported Python versions: 2.6, 2.7, 3.3, and 3.4.
    :target: http://ci.oslab.cc/job/zpm/
 
 
+ZPM is a package manger for ZeroVM_. You use it to create and deploy
+ZeroVM applications onto ZeroCloud_.
+
+.. _ZeroVM: http://zerovm.org/
+.. _ZeroCloud: https://github.com/zerovm/zerocloud/
+
+
 Documentation
 -------------
 
@@ -24,36 +31,15 @@ You can install ``zpm`` using ``pip``::
    $ pip install zpm
 
 
-Packaging
----------
+Contact
+-------
 
-Note: This section is interesting only for project maintainers and packagers.
-This is not required for installing and using ``zpm``.
+Please use the `zerovm mailing list`__ on Google Groups for anything
+related to zpm. You are also welcome to come by `#zerovm on
+irc.freenode.net`__ where the developers can be found.
 
-1. Install debian packaging dependencies::
-
-      $ sudo apt-get install devscripts debhelper
-
-2. Clone source from Git. Example::
-
-      $ git clone https://github.com/zerovm/zpm.git $HOME/zpm
-
-3. Amend the ``debian/changelog`` manually or using ``dch`` (preferred)
-
-4. Create a gzipped tarball of the zpm source (minus the debian/ dir)::
-
-      $ tar czf ../zpm_0.1.orig.tar.gz * --exclude=debian
-
-   Note that the .tar.gz file name will vary depending on the latest entry
-   in the changelog.
-
-5. Build a binary package::
-
-      $ debuild
-
-   or for a source package, ::
-
-      $ debuild -S
+.. __: https://groups.google.com/forum/#!forum/zerovm
+.. __: http://webchat.freenode.net/?channels=zerovm
 
 
 Changelog
