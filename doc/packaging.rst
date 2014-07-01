@@ -4,7 +4,7 @@ Packaging
 This page is only interesting for project maintainers and packagers.
 This is not required for installing and using ``zpm``.
 
-1. Install debian packaging dependencies::
+1. Install Debian packaging dependencies::
 
       $ sudo apt-get install devscripts debhelper
 
