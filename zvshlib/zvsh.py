@@ -782,9 +782,9 @@ class ZvShell(object):
             dev_name = self.create_manifest_channel(imgpath)
             self.nvram_fstab[dev_name] = '%s %s' % (imgmp or '/',
                                                     imgacc or 'ro')
-            tar = tarfile.open(name=imgpath)
             nexe = None
             try:
+                tar = tarfile.open(name=imgpath)
                 nexe = tar.extractfile(self.program)
                 tmpnexe_fn = os.path.join(self.tmpdir,
                                           'boot.%d' % self.node_id)
@@ -794,7 +794,7 @@ class ZvShell(object):
                     tmpnexe_fd.write(chunk)
                 tmpnexe_fd.close()
                 self.program = tmpnexe_fn
-            except KeyError:
+            except (KeyError, tarfile.ReadError):
                 pass
 
     def add_debug(self, zvm_debug):
