@@ -777,9 +777,13 @@ class ZvShell(object):
     def add_image_args(self, zvm_image):
         if not zvm_image:
             return
+        img_cache = {}
         for img in zvm_image:
             (imgpath, imgmp, imgacc) = (img.split(',') + [None] * 3)[:3]
-            dev_name = self.create_manifest_channel(imgpath)
+            dev_name = img_cache.get(imgpath)
+            if not dev_name:
+                dev_name = self.create_manifest_channel(imgpath)
+                img_cache[imgpath] = dev_name
             self.nvram_fstab[dev_name] = '%s %s' % (imgmp or '/',
                                                     imgacc or 'ro')
             nexe = None
