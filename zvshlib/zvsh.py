@@ -693,7 +693,7 @@ class ZvShell(object):
 
     def __init__(self, config, savedir=None):
         self.temp_files = []
-        self.nvram_fstab = {}
+        self.nvram_fstab = []
         self.nvram_args = None
         self.nvram_filename = None
         self.nvram_reg_files = []
@@ -784,8 +784,7 @@ class ZvShell(object):
             if not dev_name:
                 dev_name = self.create_manifest_channel(imgpath)
                 img_cache[imgpath] = dev_name
-            self.nvram_fstab[dev_name] = '%s %s' % (imgmp or '/',
-                                                    imgacc or 'ro')
+            self.nvram_fstab.append((dev_name, imgmp or '/',  imgacc or 'ro'))
             nexe = None
             try:
                 tar = tarfile.open(name=imgpath)
@@ -823,8 +822,7 @@ class ZvShell(object):
                 nvram += 'name=%s,value=%s\n' % (k, v.replace(',', '\\x2c'))
         if len(self.nvram_fstab) > 0:
             nvram += '[fstab]\n'
-            for channel, mount in self.nvram_fstab.iteritems():
-                (mp, access) = mount.split()
+            for channel, mp, access in self.nvram_fstab:
                 nvram += ('channel=%s,mountpoint=%s,access=%s,removable=no\n'
                           % (channel, mp, access))
         mapping = ''
