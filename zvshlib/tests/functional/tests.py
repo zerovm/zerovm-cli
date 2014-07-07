@@ -5,11 +5,18 @@ import unittest
 import errno
 from shutil import rmtree
 import sys
-from StringIO import StringIO
 import pytest
 import zvshlib
 from zvshlib.zvsh import Shell, DEFAULT_LIMITS
 from os.path import join as join_path
+
+try:
+    # Python 2
+    from cStringIO import BytesIO as BytesIO
+except ImportError:
+    # Python 3
+    from io import BytesIO
+
 
 MULTIVAL = ['channel']
 ZVSH = 'zvsh'
@@ -128,7 +135,7 @@ class TestZvsh(unittest.TestCase):
         tarfd, tarname = mkstemp(dir=self.testdir)
         os.close(tarfd)
         tar = tarfile.open(name=tarname, mode='w')
-        for name, f in name_and_file.iteritems():
+        for name, f in name_and_file.items():
             info = tarfile.TarInfo(name)
             f.seek(0, 2)
             size = f.tell()
@@ -315,11 +322,11 @@ class TestZvsh(unittest.TestCase):
             shell.zvsh.orig_cleanup()
 
     def test_image(self):
-        img1 = self._create_tar({'file1': StringIO('a'),
-                                 'file2': StringIO('b')})
+        img1 = self._create_tar({'file1': BytesIO(b'a'),
+                                 'file2': BytesIO(b'b')})
         img1_dev = '/dev/1.%s' % os.path.basename(img1)
-        img2 = self._create_tar({'file1': StringIO('a'),
-                                 'file2': StringIO('b')})
+        img2 = self._create_tar({'file1': BytesIO(b'a'),
+                                 'file2': BytesIO(b'b')})
         img2_dev = '/dev/2.%s' % os.path.basename(img2)
         opts = '--zvm-image=%s --zvm-image=%s,/lib' % (img1, img2)
         self.argv = [ZVSH]
@@ -368,11 +375,11 @@ class TestZvsh(unittest.TestCase):
             shell.zvsh.orig_cleanup()
 
     def test_image_extract(self):
-        img1 = self._create_tar({'file1': StringIO('a'),
-                                 'file2': StringIO('b')})
+        img1 = self._create_tar({'file1': BytesIO(b'a'),
+                                 'file2': BytesIO(b'b')})
         img1_dev = '/dev/1.%s' % os.path.basename(img1)
-        img2 = self._create_tar({'file3': StringIO('a'),
-                                 'file4': StringIO('b')})
+        img2 = self._create_tar({'file3': BytesIO(b'a'),
+                                 'file4': BytesIO(b'b')})
         img2_dev = '/dev/2.%s' % os.path.basename(img2)
         opts = '--zvm-image=%s --zvm-image=%s,/lib' % (img1, img2)
         self.program = 'file2'
@@ -424,8 +431,8 @@ class TestZvsh(unittest.TestCase):
             shell.zvsh.orig_cleanup()
 
     def test_wo_image(self):
-        img1 = self._create_tar({'file1': StringIO('a'),
-                                 'file2': StringIO('b')})
+        img1 = self._create_tar({'file1': BytesIO(b'a'),
+                                 'file2': BytesIO(b'b')})
         img1_dev = '/dev/1.%s' % os.path.basename(img1)
         opts = '--zvm-image=%s,/,wo' % img1
         self.argv = [ZVSH]
@@ -463,8 +470,8 @@ class TestZvsh(unittest.TestCase):
             shell.zvsh.orig_cleanup()
 
     def test_ro_wo_image(self):
-        img1 = self._create_tar({'file1': StringIO('a'),
-                                 'file2': StringIO('b')})
+        img1 = self._create_tar({'file1': BytesIO(b'a'),
+                                 'file2': BytesIO(b'b')})
         img1_dev = '/dev/1.%s' % os.path.basename(img1)
         opts = '--zvm-image=%s,/,ro --zvm-image=%s,/,wo' % (img1, img1)
         self.argv = [ZVSH]
