@@ -792,7 +792,7 @@ class ZvShell(object):
                 tmpnexe_fn = os.path.join(self.tmpdir,
                                           'boot.%d' % self.node_id)
                 tmpnexe_fd = open(tmpnexe_fn, 'wb')
-                read_iter = iter(lambda: nexe.read(65535), '')
+                read_iter = iter(lambda: nexe.read(65535), b'')
                 for chunk in read_iter:
                     tmpnexe_fd.write(chunk)
                 tmpnexe_fd.close()
@@ -818,7 +818,7 @@ class ZvShell(object):
              for a in self.nvram_args['args']])
         if len(self.config['env']) > 0:
             nvram += '[env]\n'
-            for k, v in self.config['env'].iteritems():
+            for k, v in self.config['env'].items():
                 nvram += 'name=%s,value=%s\n' % (k, v.replace(',', '\\x2c'))
         if len(self.nvram_fstab) > 0:
             nvram += '[fstab]\n'
@@ -944,7 +944,7 @@ class ZvRunner:
                 pass
         else:
             try:
-                for l in iter(lambda: sys.stdin.read(65535), ''):
+                for l in iter(lambda: sys.stdin.read(65535), b''):
                     self.process.stdin.write(l)
             except IOError:
                 pass
@@ -953,7 +953,7 @@ class ZvRunner:
     def stderr_reader(self):
         err = open(self.stderr)
         try:
-            for l in iter(lambda: err.read(65535), ''):
+            for l in iter(lambda: err.read(65535), b''):
                 sys.stderr.write(l)
         except IOError:
             pass
@@ -965,12 +965,12 @@ class ZvRunner:
             for line in pipe:
                 sys.stdout.write(line)
         else:
-            for line in iter(lambda: pipe.read(65535), ''):
+            for line in iter(lambda: pipe.read(65535), b''):
                 sys.stdout.write(line)
         pipe.close()
 
     def report_reader(self):
-        for line in iter(lambda: self.process.stdout.read(65535), ''):
+        for line in iter(lambda: self.process.stdout.read(65535), b''):
             self.report += line
 
     def spawn(self, daemon, func, **kwargs):
