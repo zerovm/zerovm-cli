@@ -400,13 +400,19 @@ def _get_zerocloud_conn(args):
 
 
 def _deploy_zapp(conn, target, zapp_path, auth_opts):
+    """Upload all of the necessary files for a zapp.
+
+    Returns the name an uploaded index file, or the target if no
+    index.html file was uploaded.
     """
-    Upload all of the necessary files for a zapp.
-    """
+    index = target + '/'
     uploads = _generate_uploads(conn, target, zapp_path, auth_opts)
     for path, data in uploads:
+        if path.endswith('/index.html'):
+            index = path
         container, obj = path.split('/', 1)
         conn.put_object(container, obj, data)
+    return index
 
 
 def _generate_uploads(conn, target, zapp_path, auth_opts):
@@ -473,13 +479,14 @@ def deploy_project(args):
     auth = _prepare_auth(version, args, conn)
     auth_opts = jinja2.Markup(json.dumps(auth))
 
-    _deploy_zapp(conn, args.target, args.zapp, auth_opts)
+    deploy_index = _deploy_zapp(conn, args.target, args.zapp, auth_opts)
+
     if args.execute:
         # for compatibility with the option name in 'zpm execute'
         args.container = args.target
         execute(args)
 
-    LOG.info('app deployed to\n  %s/%s/' % (conn.url, args.target))
+    print('app deployed to\n  %s/%s' % (conn.url, deploy_index))
 
 
 def execute(args):

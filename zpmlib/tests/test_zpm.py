@@ -520,3 +520,17 @@ def test__prepare_auth_v2():
         'password': 'secret',
     }
     assert zpm._prepare_auth(version, args, conn) == expected
+
+
+def test_deploy_with_index_html():
+    with mock.patch('zpmlib.zpm._generate_uploads') as gu:
+        gu.return_value = iter([('cont/dir/index.html', 'data')])
+        index = zpm._deploy_zapp(mock.Mock(), 'cont', None, None)
+        assert index == 'cont/dir/index.html'
+
+
+def test_deploy_without_index_html():
+    with mock.patch('zpmlib.zpm._generate_uploads') as gu:
+        gu.return_value = iter([('cont/foo.html', 'data')])
+        index = zpm._deploy_zapp(mock.Mock(), 'cont', None, None)
+        assert index == 'cont/'
