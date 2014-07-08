@@ -33,7 +33,11 @@ needs_sphinx = '1.1'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinxarg.ext',
+    'sphinx.ext.intersphinx',
 ]
+
+# Allow us to hyperlink to the library:
+intersphinx_mapping = {'python': ('http://docs.python.org/3', None)}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
