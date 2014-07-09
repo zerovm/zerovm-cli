@@ -351,6 +351,10 @@ def _post_job(url, token, json_data, http_conn=None, response_dict=None):
 
 
 class ZeroCloudConnection(swiftclient.Connection):
+    """
+    An extension of the `swiftclient.Connection` which has the capability of
+    posting ZeroVM jobs to an instance of ZeroCloud (running on Swift).
+    """
 
     def authenticate(self):
         """
