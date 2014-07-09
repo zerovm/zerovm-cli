@@ -16,15 +16,23 @@
 ZeroVM Shell
 """
 
-from distutils.core import setup
-
 import sys
-
-import zvshlib
 
 requires = []
 if sys.version_info < (2, 7):
     requires.append('ordereddict')
+
+kwargs = {}
+try:
+    from setuptools import setup
+    kwargs['install_requires'] = requires
+except ImportError:
+    sys.stderr.write('warning: setuptools not found, you must '
+                     'manually install dependencies!\n')
+    from distutils.core import setup
+
+import zvshlib
+
 
 VERSION = zvshlib.__version__
 
@@ -39,7 +47,6 @@ setup(
     platforms=['any'],
     packages=['zvshlib'],
     provides=['zvsh (%s)' % VERSION],
-    install_requires=requires,
     license='Apache 2.0',
     keywords='zvsh zerovm zvm',
     classifiers=(
@@ -53,4 +60,5 @@ setup(
         'Topic :: Software Development :: Build Tools',
     ),
     scripts=['zvsh'],
+    **kwargs
 )
