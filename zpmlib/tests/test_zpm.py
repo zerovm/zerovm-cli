@@ -435,11 +435,13 @@ print("Hello from ZeroVM!")
         foojs = foojs_tmpl.render(auth_opts=self.auth_opts)
 
         expected_uploads = [
-            ('%s/zapp.yaml' % self.target, gzip.open(self.zapp_path).read()),
+            ('%s/zapp.yaml' % self.target, gzip.open(self.zapp_path).read(),
+             'application/x-tar'),
             ('%s/hello.json' % self.target,
-             self.job_json_prepped.decode('utf-8')),
-            ('%s/foo.js' % self.target, foojs),
-            ('%s/index.html' % self.target, self.indexhtml_contents),
+             self.job_json_prepped.decode('utf-8'),
+             'application/json'),
+            ('%s/foo.js' % self.target, foojs, None),
+            ('%s/index.html' % self.target, self.indexhtml_contents, None),
         ]
         assert uploads[0] == expected_uploads[0]
         assert uploads[1][0] == expected_uploads[1][0]
@@ -449,37 +451,41 @@ print("Hello from ZeroVM!")
 
     def test__deploy_zapp(self):
         with mock.patch('zpmlib.zpm._generate_uploads') as pu:
-            pu.return_value = iter([('x/a', 'b'), ('x/c', 'd')])
+            pu.return_value = iter([('x/a', 'b', None), ('x/c', 'd', None)])
             zpm._deploy_zapp(self.conn, self.target, self.zapp_path,
                              self.auth_opts)
 
             put_object = self.conn.put_object
             assert put_object.call_count == 2
-            assert put_object.call_args_list == [mock.call('x', 'a', 'b'),
-                                                 mock.call('x', 'c', 'd')]
+            assert put_object.call_args_list == [
+                mock.call('x', 'a', 'b', content_type=None),
+                mock.call('x', 'c', 'd', content_type=None)]
 
     def test__deploy_zapp_with_index_html(self):
         with mock.patch('zpmlib.zpm._generate_uploads') as gu:
-            gu.return_value = iter([('cont/dir/index.html', 'data')])
+            gu.return_value = iter([('cont/dir/index.html', 'data',
+                                     'text/html')])
             index = zpm._deploy_zapp(self.conn, 'cont', None, None)
             assert index == 'cont/dir/index.html'
 
             put_object = self.conn.put_object
             assert put_object.call_count == 1
             assert put_object.call_args_list == [
-                mock.call('cont', 'dir/index.html', 'data')
+                mock.call('cont', 'dir/index.html', 'data',
+                          content_type='text/html')
             ]
 
     def test__deploy_zapp_without_index_html(self):
         with mock.patch('zpmlib.zpm._generate_uploads') as gu:
-            gu.return_value = iter([('cont/foo.html', 'data')])
+            gu.return_value = iter([('cont/foo.html', 'data', 'text/html')])
             index = zpm._deploy_zapp(self.conn, 'cont', None, None)
             assert index == 'cont/'
 
             put_object = self.conn.put_object
             assert put_object.call_count == 1
             assert put_object.call_args_list == [
-                mock.call('cont', 'foo.html', 'data')
+                mock.call('cont', 'foo.html', 'data',
+                          content_type='text/html')
             ]
 
     def test__deploy_zapp_container_not_empty(self):
@@ -505,7 +511,7 @@ print("Hello from ZeroVM!")
         )
 
         with mock.patch('zpmlib.zpm._generate_uploads') as gu:
-            gu.return_value = iter([('target/dir/foo.py', 'data')])
+            gu.return_value = iter([('target/dir/foo.py', 'data', None)])
             zpm._deploy_zapp(self.conn, 'target/dir', None, None)
 
             # check that the container is created
@@ -516,7 +522,7 @@ print("Hello from ZeroVM!")
             # check that files are uploaded correctly
             assert self.conn.put_object.call_count == 1
             assert self.conn.put_object.call_args_list == [
-                mock.call('target', 'dir/foo.py', 'data')
+                mock.call('target', 'dir/foo.py', 'data', content_type=None)
             ]
 
     def test_deploy_project_execute(self):

@@ -436,17 +436,18 @@ def _deploy_zapp(conn, target, zapp_path, auth_opts):
     # If we get here, everything with the container is fine.
     index = target + '/'
     uploads = _generate_uploads(conn, target, zapp_path, auth_opts)
-    for path, data in uploads:
+    for path, data, content_type in uploads:
         if path.endswith('/index.html'):
             index = path
         container, obj = path.split('/', 1)
-        conn.put_object(container, obj, data)
+        conn.put_object(container, obj, data, content_type=content_type)
     return index
 
 
 def _generate_uploads(conn, target, zapp_path, auth_opts):
-    """Generate sequence of (container-and-file-path, data) tuples."""
-    # returns a list of pairs: (container-and-file-path, data)
+    """Generate sequence of (container-and-file-path, data, content-type)
+    tuples."""
+    # returns a list of triples: (container-and-file-path, data, content-type)
     tar = tarfile.open(zapp_path, 'r:gz')
     zapp_config = yaml.safe_load(tar.extractfile('zapp.yaml'))
 
@@ -455,8 +456,8 @@ def _generate_uploads(conn, target, zapp_path, auth_opts):
     job = _prepare_job(tar, zapp_config, swift_url)
     job_json_path = '%s/%s.json' % (target, zapp_config['meta']['name'])
 
-    yield (remote_zapp_path, gzip.open(zapp_path).read())
-    yield (job_json_path, json.dumps(job))
+    yield (remote_zapp_path, gzip.open(zapp_path).read(), 'application/x-tar')
+    yield (job_json_path, json.dumps(job), 'application/json')
 
     for path in _find_ui_uploads(zapp_config, tar):
         output = tar.extractfile(path).read()
@@ -466,7 +467,7 @@ def _generate_uploads(conn, target, zapp_path, auth_opts):
             path = path[:-5]
 
         ui_path = '%s/%s' % (target, path)
-        yield (ui_path, output)
+        yield (ui_path, output, None)
 
 
 def _prepare_auth(version, args, conn):
