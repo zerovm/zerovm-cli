@@ -408,6 +408,11 @@ print("Hello from ZeroVM!")
 
     def setup_method(self, _method):
         self.conn = mock.Mock()
+        self.conn.get_container.return_value = (
+            {},  # response headers
+            [],  # object list
+        )
+
         self.target = 'container1/foo/bar'
         self.zapp_path = self.temp_zapp_file
 
