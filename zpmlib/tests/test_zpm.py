@@ -455,14 +455,26 @@ print("Hello from ZeroVM!")
     def test__deploy_zapp_with_index_html(self):
         with mock.patch('zpmlib.zpm._generate_uploads') as gu:
             gu.return_value = iter([('cont/dir/index.html', 'data')])
-            index = zpm._deploy_zapp(mock.Mock(), 'cont', None, None)
+            index = zpm._deploy_zapp(self.conn, 'cont', None, None)
             assert index == 'cont/dir/index.html'
+
+            put_object = self.conn.put_object
+            assert put_object.call_count == 1
+            assert put_object.call_args_list == [
+                mock.call('cont', 'dir/index.html', 'data')
+            ]
 
     def test__deploy_zapp_without_index_html(self):
         with mock.patch('zpmlib.zpm._generate_uploads') as gu:
             gu.return_value = iter([('cont/foo.html', 'data')])
-            index = zpm._deploy_zapp(mock.Mock(), 'cont', None, None)
+            index = zpm._deploy_zapp(self.conn, 'cont', None, None)
             assert index == 'cont/'
+
+            put_object = self.conn.put_object
+            assert put_object.call_count == 1
+            assert put_object.call_args_list == [
+                mock.call('cont', 'foo.html', 'data')
+            ]
 
     def test_deploy_project_execute(self):
         parser = commands.set_up_arg_parser()
