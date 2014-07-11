@@ -20,6 +20,7 @@ import mock
 import os
 import pytest
 import shutil
+import swiftclient.exceptions
 import tarfile
 import tempfile
 import yaml
@@ -481,7 +482,45 @@ print("Hello from ZeroVM!")
                 mock.call('cont', 'foo.html', 'data')
             ]
 
+    def test__deploy_zapp_container_not_empty(self):
+        self.conn.get_container.return_value = (
+            {},  # response headers
+            # The actual files list response from Swift is a list of
+            # dictionaries. For these tests, we don't actually check the
+            # content; just length of the file list.
+            ['file1'],
+        )
+
+        with pytest.raises(zpmlib.ZPMException) as exc:
+            zpm._deploy_zapp(self.conn, 'target/dir1/dir2', None, None)
+
+        assert str(exc.value) == (
+            "Target container ('target') must be empty to deploy this zapp"
+        )
+        assert self.conn.get_container.call_args_list == [mock.call('target')]
+
+    def test__deploy_zapp_container_doesnt_exist(self):
+        self.conn.get_container.side_effect = (
+            swiftclient.exceptions.ClientException(None)
+        )
+
+        with mock.patch('zpmlib.zpm._generate_uploads') as gu:
+            gu.return_value = iter([('target/dir/foo.py', 'data')])
+            zpm._deploy_zapp(self.conn, 'target/dir', None, None)
+
+            # check that the container is created
+            assert self.conn.put_container.call_count == 1
+            assert self.conn.put_container.call_args_list == [
+                mock.call('target')
+            ]
+            # check that files are uploaded correctly
+            assert self.conn.put_object.call_count == 1
+            assert self.conn.put_object.call_args_list == [
+                mock.call('target', 'dir/foo.py', 'data')
+            ]
+
     def test_deploy_project_execute(self):
+
         parser = commands.set_up_arg_parser()
         args = parser.parse_args(['deploy', 'foo', self.zapp_path, '--exec'])
 
