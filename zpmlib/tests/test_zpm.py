@@ -20,6 +20,7 @@ import mock
 import os
 import pytest
 import shutil
+import swiftclient.exceptions
 import tarfile
 import tempfile
 import yaml
@@ -408,6 +409,11 @@ print("Hello from ZeroVM!")
 
     def setup_method(self, _method):
         self.conn = mock.Mock()
+        self.conn.get_container.return_value = (
+            {},  # response headers
+            [],  # object list
+        )
+
         self.target = 'container1/foo/bar'
         self.zapp_path = self.temp_zapp_file
 
@@ -452,7 +458,69 @@ print("Hello from ZeroVM!")
             assert put_object.call_args_list == [mock.call('x', 'a', 'b'),
                                                  mock.call('x', 'c', 'd')]
 
+    def test__deploy_zapp_with_index_html(self):
+        with mock.patch('zpmlib.zpm._generate_uploads') as gu:
+            gu.return_value = iter([('cont/dir/index.html', 'data')])
+            index = zpm._deploy_zapp(self.conn, 'cont', None, None)
+            assert index == 'cont/dir/index.html'
+
+            put_object = self.conn.put_object
+            assert put_object.call_count == 1
+            assert put_object.call_args_list == [
+                mock.call('cont', 'dir/index.html', 'data')
+            ]
+
+    def test__deploy_zapp_without_index_html(self):
+        with mock.patch('zpmlib.zpm._generate_uploads') as gu:
+            gu.return_value = iter([('cont/foo.html', 'data')])
+            index = zpm._deploy_zapp(self.conn, 'cont', None, None)
+            assert index == 'cont/'
+
+            put_object = self.conn.put_object
+            assert put_object.call_count == 1
+            assert put_object.call_args_list == [
+                mock.call('cont', 'foo.html', 'data')
+            ]
+
+    def test__deploy_zapp_container_not_empty(self):
+        self.conn.get_container.return_value = (
+            {},  # response headers
+            # The actual files list response from Swift is a list of
+            # dictionaries. For these tests, we don't actually check the
+            # content; just length of the file list.
+            ['file1'],
+        )
+
+        with pytest.raises(zpmlib.ZPMException) as exc:
+            zpm._deploy_zapp(self.conn, 'target/dir1/dir2', None, None)
+
+        assert str(exc.value) == (
+            "Target container ('target') must be empty to deploy this zapp"
+        )
+        assert self.conn.get_container.call_args_list == [mock.call('target')]
+
+    def test__deploy_zapp_container_doesnt_exist(self):
+        self.conn.get_container.side_effect = (
+            swiftclient.exceptions.ClientException(None)
+        )
+
+        with mock.patch('zpmlib.zpm._generate_uploads') as gu:
+            gu.return_value = iter([('target/dir/foo.py', 'data')])
+            zpm._deploy_zapp(self.conn, 'target/dir', None, None)
+
+            # check that the container is created
+            assert self.conn.put_container.call_count == 1
+            assert self.conn.put_container.call_args_list == [
+                mock.call('target')
+            ]
+            # check that files are uploaded correctly
+            assert self.conn.put_object.call_count == 1
+            assert self.conn.put_object.call_args_list == [
+                mock.call('target', 'dir/foo.py', 'data')
+            ]
+
     def test_deploy_project_execute(self):
+
         parser = commands.set_up_arg_parser()
         args = parser.parse_args(['deploy', 'foo', self.zapp_path, '--exec'])
 
@@ -520,17 +588,3 @@ def test__prepare_auth_v2():
         'password': 'secret',
     }
     assert zpm._prepare_auth(version, args, conn) == expected
-
-
-def test_deploy_with_index_html():
-    with mock.patch('zpmlib.zpm._generate_uploads') as gu:
-        gu.return_value = iter([('cont/dir/index.html', 'data')])
-        index = zpm._deploy_zapp(mock.Mock(), 'cont', None, None)
-        assert index == 'cont/dir/index.html'
-
-
-def test_deploy_without_index_html():
-    with mock.patch('zpmlib.zpm._generate_uploads') as gu:
-        gu.return_value = iter([('cont/foo.html', 'data')])
-        index = zpm._deploy_zapp(mock.Mock(), 'cont', None, None)
-        assert index == 'cont/'

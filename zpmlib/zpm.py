@@ -409,6 +409,31 @@ def _deploy_zapp(conn, target, zapp_path, auth_opts):
     Returns the name an uploaded index file, or the target if no
     index.html file was uploaded.
     """
+    # NOTE(larsbutler): Due to eventual consistency in Swift, there are some
+    # rules about deploying zapps.
+    #
+    # if container exists:
+    #   if container is empty:
+    #     deploy
+    #   else:
+    #     error: container must be empty
+    # else:
+    #   container does't exist; create it
+    base_container = target.split('/')[0]
+    try:
+        _, objects = conn.get_container(base_container)
+        if not len(objects) == 0:
+            # container must be empty to deploy
+            raise zpmlib.ZPMException(
+                "Target container ('%s') must be empty to deploy this zapp"
+                % base_container
+            )
+    except swiftclient.exceptions.ClientException:
+        # container doesn't exist; create it
+        LOG.info("Container '%s' not found. Creating it...", base_container)
+        conn.put_container(base_container)
+
+    # If we get here, everything with the container is fine.
     index = target + '/'
     uploads = _generate_uploads(conn, target, zapp_path, auth_opts)
     for path, data in uploads:
