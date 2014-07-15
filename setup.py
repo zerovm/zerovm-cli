@@ -58,6 +58,6 @@ setup(
         'Programming Language :: Python :: 3.3',
         'Topic :: Software Development :: Build Tools',
     ),
-    scripts=['zvsh'],
+    scripts=['zvsh', 'zvm'],
     **kwargs
 )
