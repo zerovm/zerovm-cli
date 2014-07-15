@@ -45,7 +45,6 @@ setup(
     long_description=__doc__,
     platforms=['any'],
     packages=['zvshlib', 'zvmlib'],
-    provides=['zvsh (%s)' % VERSION],
     license='Apache 2.0',
     keywords='zvsh zerovm zvm',
     classifiers=(
