@@ -36,7 +36,7 @@ import zvshlib
 VERSION = zvshlib.__version__
 
 setup(
-    name='zvsh',
+    name='zerovm-cli',
     version=VERSION,
     maintainer='Rackspace ZeroVM Team',
     maintainer_email='zerovm@rackspace.com',
