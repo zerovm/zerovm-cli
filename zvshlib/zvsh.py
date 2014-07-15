@@ -1032,11 +1032,23 @@ def spawn(argv, master_read=pty_read, stdin_read=pty_read):
 
 
 class Shell(object):
-    def __init__(self, cmd_line):
+    def __init__(self, cmd_line, args=None):
+        """
+        :param str cmd_line:
+            The full shell command; executable and args. (Like `zvsh
+            --zvm-image python.tar python --version`, etc.)
+        :param args:
+            :class:`argparse.Namespace` instance. Optional. If not specified,
+            arguments will be parsed from ``cmd_line``.
+        """
         self.cmd_line = cmd_line
-        zvsh_args = ZvArgs()
-        zvsh_args.parse(cmd_line[1:])
-        self.args = zvsh_args.args
+
+        if args is not None:
+            self.args = args
+        else:
+            zvsh_args = ZvArgs()
+            zvsh_args.parse(cmd_line[1:])
+            self.args = zvsh_args.args
         zvsh_config = ['zvsh.cfg',
                        os.path.expanduser('~/.zvsh.cfg'),
                        '/etc/zvsh.cfg']
