@@ -18,6 +18,8 @@ ZeroVM Shell
 
 import sys
 
+import zvmlib
+
 requires = []
 if sys.version_info < (2, 7):
     requires.append('ordereddict')
@@ -31,13 +33,12 @@ except ImportError:
                      'manually install dependencies!\n')
     from distutils.core import setup
 
-import zvshlib
 
-VERSION = zvshlib.__version__
+ZVM_VERSION = zvmlib.__version__
 
 setup(
     name='zerovm-cli',
-    version=VERSION,
+    version=ZVM_VERSION,
     maintainer='Rackspace ZeroVM Team',
     maintainer_email='zerovm@rackspace.com',
     url='https://github.com/zerovm/zerovm-cli',
