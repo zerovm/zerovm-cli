@@ -33,7 +33,6 @@ except ImportError:
 
 import zvshlib
 
-
 VERSION = zvshlib.__version__
 
 setup(
@@ -45,7 +44,7 @@ setup(
     description='ZeroVM Shell',
     long_description=__doc__,
     platforms=['any'],
-    packages=['zvshlib'],
+    packages=['zvshlib', 'zvmlib'],
     provides=['zvsh (%s)' % VERSION],
     license='Apache 2.0',
     keywords='zvsh zerovm zvm',
