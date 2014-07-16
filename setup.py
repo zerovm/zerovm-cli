@@ -21,7 +21,7 @@ kwargs = {}
 try:
     from setuptools import setup
     kwargs['install_requires'] = ['requests', 'jinja2<2.7', 'pyyaml',
-                                  'python-swiftclient>=2.1.0']
+                                  'python-swiftclient']
 except ImportError:
     import sys
     sys.stderr.write('warning: setuptools not found, you must '
