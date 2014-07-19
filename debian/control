@@ -7,7 +7,7 @@ Standards-Version: 3.9.1
 
 Package: zpm
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}
+Depends: ${misc:Depends}, ${python:Depends}, python-swiftclient
 Description: ZeroVM Package Manager
  Installs command line tools for creating and bundling ZeroVM applications
 
