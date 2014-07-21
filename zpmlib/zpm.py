@@ -328,19 +328,19 @@ def _find_ui_uploads(zapp, tar):
     return sorted(matches)
 
 
-def _post_job(url, token, json_data, http_conn=None, response_dict=None):
+def _post_job(url, token, data, http_conn=None, response_dict=None,
+              content_type='application/json'):
     # Modelled after swiftclient.client.post_account.
     headers = {'X-Auth-Token': token,
-               'Accept': 'application/json',
                'X-Zerovm-Execute': '1.0',
-               'Content-Type': 'application/json'}
+               'Content-Type': content_type}
 
     if http_conn:
         parsed, conn = http_conn
     else:
         parsed, conn = swiftclient.http_connection(url)
 
-    conn.request('POST', parsed.path, json_data, headers)
+    conn.request('POST', parsed.path, data, headers)
     resp = conn.getresponse()
     body = resp.read()
     swiftclient.http_log((url, 'POST'), {'headers': headers}, resp, body)
