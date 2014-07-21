@@ -1,3 +1,21 @@
+zpm (0.2.1-1) precise; urgency=low
+
+  * Add python-swiftclient to package install dependencies
+  * Deploy: show full URL to the deployed index.html
+  * Deploy: set correct content type for zapp files
+  * Deploy: better management of containers (automatically create containers
+    if not existing, don't allow deployment to a non-empty container)
+  * setup.py: use setuptools over distutils
+  * setup.py: remove version from swiftclient dep
+
+ -- Lars Butler (larsbutler) <lars.butler@gmail.com>  Sat, 19 Jul 2014 21:38:31 +0000
+
+zpm (0.2-1) precise; urgency=low
+
+  * Version 0.2 release
+
+ -- Lars Butler (larsbutler) <lars.butler@gmail.com>  Sat, 19 Jul 2014 21:22:40 +0000
+
 zpm (0.1-1) precise; urgency=low
 
   * Initial release
