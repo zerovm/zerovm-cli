@@ -37,6 +37,7 @@ import swiftclient
 _DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zerocloud.js']
 
 LOG = zpmlib.get_logger(__name__)
+BUFFER_SIZE = 65536
 
 
 def create_project(location):
@@ -329,11 +330,13 @@ def _find_ui_uploads(zapp, tar):
 
 
 def _post_job(url, token, data, http_conn=None, response_dict=None,
-              content_type='application/json'):
+              content_type='application/json', content_length=None):
     # Modelled after swiftclient.client.post_account.
     headers = {'X-Auth-Token': token,
                'X-Zerovm-Execute': '1.0',
                'Content-Type': content_type}
+    if content_length:
+        headers['Content-Length'] = str(content_length)
 
     if http_conn:
         parsed, conn = http_conn
@@ -373,6 +376,12 @@ class ZeroCloudConnection(swiftclient.Connection):
         json_data = json.dumps(job)
         return self._retry(None, _post_job, json_data,
                            response_dict=response_dict)
+
+    def post_zapp(self, data, response_dict=None, content_length=None):
+        return self._retry(None, _post_job, data,
+                           response_dict=response_dict,
+                           content_type='application/x-gzip',
+                           content_length=content_length)
 
 
 def _get_zerocloud_conn(args):
@@ -522,13 +531,20 @@ def deploy_project(args):
 def execute(args):
     conn = _get_zerocloud_conn(args)
 
-    job_filename = '%s.json' % os.path.splitext(args.zapp)[0]
-    try:
-        headers, content = conn.get_object(args.container, job_filename)
-    except swiftclient.ClientException as exc:
-        if exc.http_status == 404:
-            raise zpmlib.ZPMException("Could not find %s" % exc.http_path)
-        else:
-            raise zpmlib.ZPMException(str(exc))
-    job = json.loads(content)
-    conn.post_job(job)
+    if args.container:
+        job_filename = '%s.json' % os.path.splitext(args.zapp)[0]
+        try:
+            headers, content = conn.get_object(args.container, job_filename)
+        except swiftclient.ClientException as exc:
+            if exc.http_status == 404:
+                raise zpmlib.ZPMException("Could not find %s" % exc.http_path)
+            else:
+                raise zpmlib.ZPMException(str(exc))
+        job = json.loads(content)
+        conn.post_job(job)
+    else:
+        size = os.path.getsize(args.zapp)
+        zapp_file = open(args.zapp, 'rb')
+        data_reader = iter(lambda: zapp_file.read(BUFFER_SIZE), b'')
+        conn.post_zapp(data_reader, content_length=size)
+        zapp_file.close()
