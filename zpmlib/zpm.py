@@ -256,7 +256,7 @@ def bundle_project(root):
 
     job = _generate_job_desc(zapp)
     job_json = json.dumps(job)
-    info = tarfile.TarInfo(name='%s.json' % zapp['meta']['name'])
+    info = tarfile.TarInfo(name='boot/system.map')
     # This size is only correct because json.dumps uses
     # ensure_ascii=True by default and we thus have a 1-1
     # correspondence between Unicode characters and bytes.
