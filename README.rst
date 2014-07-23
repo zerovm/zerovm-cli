@@ -45,6 +45,18 @@ irc.freenode.net`__ where the developers can be found.
 Changelog
 ---------
 
+0.2.1 (2014-07-20):
+   This release fixes some minor packaging and distribution issues, as well
+   as some of the behavior of the `deploy` command:
+
+   * `python-swiftclient` is now an explicit dependency
+   * `setup.py` uses `setuptools` instead of `distutils`
+   * `deploy`: show full URL to the deployed index.html
+   * `deploy`: set correct content type for zapp files
+   * `deploy`: better management of containers (automatically create containers
+     if not existing, don't allow deployment to a non-empty container)
+
+
 0.2 (2014-06-30):
    This release drops support for Python 3.2 due to the lack of
    ``u"..."`` literals in that version. Other issues fixed:
