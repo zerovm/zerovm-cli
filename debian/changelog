@@ -1,3 +1,11 @@
+zpm (0.2.1-2) precise; urgency=low
+
+  * Fix version number in `zpmlib` package (it was 0.2, now 0.2.1). This is the
+    number reported when running `$ zpm --version`.
+  * Update the changelog in the README to include update summary for 0.2.1.
+
+ -- Lars Butler (larsbutler) <lars.butler@gmail.com>  Wed, 23 Jul 2014 13:38:46 +0000
+
 zpm (0.2.1-1) precise; urgency=low
 
   * Add python-swiftclient to package install dependencies
