@@ -22,7 +22,7 @@ Test bundling with auto-generated UI:
   > EOF
 
   $ zpm bundle --log-level info
-  INFO:zpmlib.zpm: adding foo.json
+  INFO:zpmlib.zpm: adding boot/system.map
   INFO:zpmlib.zpm: adding zapp.yaml
   WARNING:zpmlib.zpm: pattern '*.py' in section 'bundling' matched no files
   INFO:zpmlib.zpm: adding /*/foo/a.txt (glob)
@@ -32,7 +32,7 @@ Test bundling with auto-generated UI:
   created foo.zapp
 
   $ tar -tf foo.zapp
-  foo.json
+  boot/system.map
   zapp.yaml
   a.txt
   index.html
@@ -49,7 +49,7 @@ Test bundling with UI
   > EOF
 
   $ zpm bundle --log-level info
-  INFO:zpmlib.zpm: adding foo.json
+  INFO:zpmlib.zpm: adding boot/system.map
   INFO:zpmlib.zpm: adding zapp.yaml
   WARNING:zpmlib.zpm: pattern '*.py' in section 'bundling' matched no files
   INFO:zpmlib.zpm: adding /*/foo/a.txt (glob)
@@ -57,7 +57,7 @@ Test bundling with UI
   INFO:zpmlib.zpm: adding /*/foo/myzerocloud.js (glob)
   created foo.zapp
   $ tar -tf foo.zapp
-  foo.json
+  boot/system.map
   zapp.yaml
   a.txt
   foo.html

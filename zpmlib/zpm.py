@@ -37,6 +37,7 @@ import swiftclient
 _DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zerocloud.js']
 
 LOG = zpmlib.get_logger(__name__)
+BUFFER_SIZE = 65536
 
 
 def create_project(location):
@@ -256,7 +257,7 @@ def bundle_project(root):
 
     job = _generate_job_desc(zapp)
     job_json = json.dumps(job)
-    info = tarfile.TarInfo(name='%s.json' % zapp['meta']['name'])
+    info = tarfile.TarInfo(name='boot/system.map')
     # This size is only correct because json.dumps uses
     # ensure_ascii=True by default and we thus have a 1-1
     # correspondence between Unicode characters and bytes.
@@ -328,19 +329,21 @@ def _find_ui_uploads(zapp, tar):
     return sorted(matches)
 
 
-def _post_job(url, token, json_data, http_conn=None, response_dict=None):
+def _post_job(url, token, data, http_conn=None, response_dict=None,
+              content_type='application/json', content_length=None):
     # Modelled after swiftclient.client.post_account.
     headers = {'X-Auth-Token': token,
-               'Accept': 'application/json',
                'X-Zerovm-Execute': '1.0',
-               'Content-Type': 'application/json'}
+               'Content-Type': content_type}
+    if content_length:
+        headers['Content-Length'] = str(content_length)
 
     if http_conn:
         parsed, conn = http_conn
     else:
         parsed, conn = swiftclient.http_connection(url)
 
-    conn.request('POST', parsed.path, json_data, headers)
+    conn.request('POST', parsed.path, data, headers)
     resp = conn.getresponse()
     body = resp.read()
     swiftclient.http_log((url, 'POST'), {'headers': headers}, resp, body)
@@ -373,6 +376,12 @@ class ZeroCloudConnection(swiftclient.Connection):
         json_data = json.dumps(job)
         return self._retry(None, _post_job, json_data,
                            response_dict=response_dict)
+
+    def post_zapp(self, data, response_dict=None, content_length=None):
+        return self._retry(None, _post_job, data,
+                           response_dict=response_dict,
+                           content_type='application/x-gzip',
+                           content_length=content_length)
 
 
 def _get_zerocloud_conn(args):
@@ -522,13 +531,20 @@ def deploy_project(args):
 def execute(args):
     conn = _get_zerocloud_conn(args)
 
-    job_filename = '%s.json' % os.path.splitext(args.zapp)[0]
-    try:
-        headers, content = conn.get_object(args.container, job_filename)
-    except swiftclient.ClientException as exc:
-        if exc.http_status == 404:
-            raise zpmlib.ZPMException("Could not find %s" % exc.http_path)
-        else:
-            raise zpmlib.ZPMException(str(exc))
-    job = json.loads(content)
-    conn.post_job(job)
+    if args.container:
+        job_filename = '%s.json' % os.path.splitext(args.zapp)[0]
+        try:
+            headers, content = conn.get_object(args.container, job_filename)
+        except swiftclient.ClientException as exc:
+            if exc.http_status == 404:
+                raise zpmlib.ZPMException("Could not find %s" % exc.http_path)
+            else:
+                raise zpmlib.ZPMException(str(exc))
+        job = json.loads(content)
+        conn.post_job(job)
+    else:
+        size = os.path.getsize(args.zapp)
+        zapp_file = open(args.zapp, 'rb')
+        data_reader = iter(lambda: zapp_file.read(BUFFER_SIZE), b'')
+        conn.post_zapp(data_reader, content_length=size)
+        zapp_file.close()
