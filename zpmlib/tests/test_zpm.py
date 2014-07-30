@@ -175,10 +175,13 @@ def test__prepare_job():
     try:
         tempzapp = os.path.join(tempdir, 'myapp.zapp')
         tf = tarfile.open(tempzapp, 'w:gz')
-        temp_myapp_json = os.path.join(tempdir, 'myapp.json')
-        with open(temp_myapp_json, 'w') as fp:
+
+        # prepare a sample job description
+        system_map = os.path.join(tempdir, 'system.map')
+        with open(system_map, 'w') as fp:
             json.dump(myapp_json, fp)
-        tf.add(temp_myapp_json, arcname='myapp.json')
+
+        tf.add(system_map, arcname='boot/system.map')
         tf.close()
 
         tf = tarfile.open(tempzapp, 'r:gz')
@@ -386,7 +389,7 @@ print("Hello from ZeroVM!")
         info.size = len(cls.foojstmpl_contents)
         tar.addfile(info, BytesIO(cls.foojstmpl_contents))
 
-        info = tarfile.TarInfo(name='hello.json')
+        info = tarfile.TarInfo(name='boot/system.map')
         info.size = len(cls.job_json_contents)
         tar.addfile(info, BytesIO(cls.job_json_contents))
 
@@ -437,7 +440,7 @@ print("Hello from ZeroVM!")
         expected_uploads = [
             ('%s/zapp.yaml' % self.target, gzip.open(self.zapp_path).read(),
              'application/x-tar'),
-            ('%s/hello.json' % self.target,
+            ('%s/boot/system.map' % self.target,
              self.job_json_prepped.decode('utf-8'),
              'application/json'),
             ('%s/foo.js' % self.target, foojs, None),
@@ -530,7 +533,7 @@ print("Hello from ZeroVM!")
         parser = commands.set_up_arg_parser()
         args = parser.parse_args(['deploy', 'foo', self.zapp_path, '--exec'])
 
-        job_path = '%s.json' % os.path.splitext(self.zapp_path)[0]
+        job_path = 'boot/system.map'
         job_json = self.job_json_contents.decode('utf-8')
         job = json.loads(job_json)
 
