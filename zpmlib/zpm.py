@@ -501,7 +501,7 @@ def _prepare_auth(version, args, conn):
     else:
         # TODO(mg): inserting the username and password in the
         # uploaded file makes testing easy, but should not be done in
-        # production. See issue #44.
+        # production. See issue #46.
         auth['authUrl'] = args.os_auth_url
         auth['tenant'] = args.os_tenant_name
         auth['username'] = args.os_username
