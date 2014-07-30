@@ -26,7 +26,7 @@ Test bundling with auto-generated UI:
   INFO:zpmlib.zpm: adding zapp.yaml
   WARNING:zpmlib.zpm: pattern '*.py' in section 'bundling' matched no files
   INFO:zpmlib.zpm: adding /*/foo/a.txt (glob)
-  INFO:zpmlib.zpm: adding index.html
+  INFO:zpmlib.zpm: adding index.html.tmpl
   INFO:zpmlib.zpm: adding style.css
   INFO:zpmlib.zpm: adding zerocloud.js
   created foo.zapp
@@ -35,7 +35,7 @@ Test bundling with auto-generated UI:
   boot/system.map
   zapp.yaml
   a.txt
-  index.html
+  index.html.tmpl
   style.css
   zerocloud.js
 

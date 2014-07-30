@@ -34,7 +34,7 @@ except ImportError:
 import swiftclient
 
 
-_DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zerocloud.js']
+_DEFAULT_UI_TEMPLATES = ['index.html.tmpl', 'style.css', 'zerocloud.js']
 
 LOG = zpmlib.get_logger(__name__)
 BUFFER_SIZE = 65536
