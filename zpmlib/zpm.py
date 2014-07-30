@@ -38,6 +38,8 @@ _DEFAULT_UI_TEMPLATES = ['index.html', 'style.css', 'zerocloud.js']
 
 LOG = zpmlib.get_logger(__name__)
 BUFFER_SIZE = 65536
+#: path/filename of the system.map (job description) in every zapp
+SYSTEM_MAP_ZAPP_PATH = 'boot/system.map'
 
 
 def create_project(location):
@@ -233,7 +235,7 @@ def _prepare_job(tar, zapp, zapp_swift_url):
 
 
     """
-    fp = tar.extractfile('%s.json' % zapp['meta']['name'])
+    fp = tar.extractfile(SYSTEM_MAP_ZAPP_PATH)
     # NOTE(larsbutler): the `decode` is needed for python3
     # compatibility
     job = json.loads(fp.read().decode('utf-8'))
@@ -463,10 +465,10 @@ def _generate_uploads(conn, target, zapp_path, auth_opts):
     remote_zapp_path = '%s/%s' % (target, os.path.basename(zapp_path))
     swift_url = _get_swift_zapp_url(conn.url, remote_zapp_path)
     job = _prepare_job(tar, zapp_config, swift_url)
-    job_json_path = '%s/%s.json' % (target, zapp_config['meta']['name'])
 
     yield (remote_zapp_path, gzip.open(zapp_path).read(), 'application/x-tar')
-    yield (job_json_path, json.dumps(job), 'application/json')
+    yield ('%s/%s' % (target, SYSTEM_MAP_ZAPP_PATH), json.dumps(job),
+           'application/json')
 
     for path in _find_ui_uploads(zapp_config, tar):
         output = tar.extractfile(path).read()
@@ -532,7 +534,7 @@ def execute(args):
     conn = _get_zerocloud_conn(args)
 
     if args.container:
-        job_filename = '%s.json' % os.path.splitext(args.zapp)[0]
+        job_filename = SYSTEM_MAP_ZAPP_PATH
         try:
             headers, content = conn.get_object(args.container, job_filename)
         except swiftclient.ClientException as exc:
