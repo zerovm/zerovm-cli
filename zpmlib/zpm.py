@@ -100,7 +100,7 @@ def find_project_root():
 
 def _generate_job_desc(zapp):
     """
-    Generate the <appname>.json file contents from the zapp config file.
+    Generate the boot/system.map file contents from the zapp config file.
 
     :param zapp:
         `dict` of the contents of a ``zapp.yaml`` file.
@@ -213,7 +213,7 @@ def _prepare_job(tar, zapp, zapp_swift_url):
         See :func:`_get_swift_zapp_url`.
 
     :returns:
-        Extracted contents of the app json (example: hello.json) with the swift
+        Extracted contents of the boot/system.map with the swift
         path to the .zapp added to the `file_list` for each `group`.
 
         So if the job looks like this::
