@@ -18,7 +18,7 @@
 
           $('#run').click(function () {
               client.auth(opts, function () {
-                  $.getJSON('{{ zapp.meta.name }}.json', function (job) {
+                  $.getJSON('boot/system.map', function (job) {
                       var clone = JSON.parse(JSON.stringify(job));  // clone job
                       var args = [];
                       {% for arg, label in zapp.help.args %}

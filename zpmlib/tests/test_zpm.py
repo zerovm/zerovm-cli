@@ -154,8 +154,8 @@ class TestFindUIUploads:
 def test__prepare_job():
     # Test for `zpmlib.zpm._prepare_job`.
 
-    # Contents of `myapp.json`, which is expected to be in the `myapp.zapp`
-    # archive.
+    # Contents of `boot/system.map`, which is expected to be in the
+    # `myapp.zapp` archive.
     myapp_json = [
         {'exec': {'args': 'myapp.py', 'path': 'file://python2.7:python'},
          'file_list': [{'device': 'python2.7'}, {'device': 'stdout'}],
