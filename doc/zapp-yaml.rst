@@ -159,6 +159,27 @@ keys:
   What is written on channel in `/dev/out` appears on the
   corresponding channel in `/dev/in`.
 
+``count``
+
+  Defaults to 1. This can be used to specify the number of nodes in a
+  group that would otherwise just have a single node, i.e., because
+  the node writes to a single output object. The count is ignored if a
+  device path contains a wildcard.
+
+``replicate``
+
+  Defaults to 1 which means no replication, other supported values are
+  2 and 3. This will make ZeroCloud run multiple copies of the nodes
+  in the group.
+
+``attach``
+
+  Override the strategy used by ZeroCloud to place nodes in the Swift
+  cluster. By default, ZeroCloud will start jobs on the node holding
+  the input and output objects. When ``attach`` specifies a device
+  that has a ``swift://`` path, ZeroCloud will run the job with on the
+  node holding this object.
+
 
 The ``help`` Section
 --------------------

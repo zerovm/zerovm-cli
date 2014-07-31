@@ -146,8 +146,9 @@ def _generate_job_desc(zapp):
 
         jgroup['devices'] = make_devices(zgroup)
 
-        if 'connect' in zgroup:
-            jgroup['connect'] = zgroup['connect']
+        for key in ['connect', 'count', 'replicate', 'attach']:
+            if key in zgroup:
+                jgroup[key] = zgroup[key]
 
         job.append(jgroup)
     return job
