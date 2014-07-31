@@ -28,7 +28,7 @@
                       clone[0].exec.args += ' ' + args.join(' ');
 
                       $.each(clone, function (i, group) {
-                          $.each(group.file_list, function (i, file) {
+                          $.each(group.devices, function (i, file) {
                               var input = null;
                               if (file.device == 'input') {
                                   input = $('#input-' + group.name);

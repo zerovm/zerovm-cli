@@ -158,7 +158,7 @@ def test__prepare_job():
     # `myapp.zapp` archive.
     myapp_json = [
         {'exec': {'args': 'myapp.py', 'path': 'file://python2.7:python'},
-         'file_list': [{'device': 'python2.7'}, {'device': 'stdout'}],
+         'devices': [{'device': 'python2.7'}, {'device': 'stdout'}],
          'name': 'myapp'}
     ]
     zapp = {'meta': {'name': 'myapp'}}
@@ -167,7 +167,7 @@ def test__prepare_job():
 
     # Expected result
     exp_job_json = copy.deepcopy(myapp_json)
-    exp_job_json[0]['file_list'].append(
+    exp_job_json[0]['devices'].append(
         {'device': 'image', 'path': zapp_swift_url}
     )
 
@@ -261,7 +261,7 @@ def test__generate_job_desc():
     }
 
     expected_job = [
-        {'file_list': [
+        {'devices': [
             {'device': 'python2.7'},
             {'device': 'stdout'},
             {'device': 'input_swift_file',
@@ -270,7 +270,7 @@ def test__generate_job_desc():
          'name': 'mapper',
          'exec': {'path': 'file://python2.7:python',
                   'args': 'mapper.py foo\\x5c\\x2c\\x20\\x5cnbar'}},
-        {'file_list': [
+        {'devices': [
             {'device': 'python2.7'},
             {'device': 'stdout'}],
          'name': 'reducer',
@@ -358,14 +358,14 @@ ui:
 
         cls.job_json_contents = json.dumps([
             {'exec': {'args': 'hello.py', 'path': 'file://python2.7:python'},
-             'file_list': [{'device': 'python'}, {'device': 'stdout'}],
+             'devices': [{'device': 'python'}, {'device': 'stdout'}],
              'name': 'hello'}
         ]).encode('utf-8')
         cls.job_json_prepped = json.dumps([
             {"exec": {"path": "file://python2.7:python", "args": "hello.py"},
-             "file_list": [{"device": "python"}, {"device": "stdout"},
-                           {"device": "image",
-                            "path": "swift:///container1/foo/bar/zapp.yaml"}],
+             "devices": [{"device": "python"}, {"device": "stdout"},
+                         {"device": "image",
+                          "path": "swift:///container1/foo/bar/zapp.yaml"}],
              "name": "hello"}
         ]).encode('utf-8')
 

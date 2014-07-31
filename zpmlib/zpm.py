@@ -109,14 +109,14 @@ def _generate_job_desc(zapp):
     """
     job = []
 
-    def make_file_list(zgroup):
-        file_list = []
+    def make_devices(zgroup):
+        devices = []
         for device in zgroup['devices']:
             dev = {'device': device['name']}
             if 'path' in device:
                 dev['path'] = device['path']
-            file_list.append(dev)
-        return file_list
+            devices.append(dev)
+        return devices
 
     # TODO(mg): we should eventually reuse zvsh._nvram_escape
     def escape(value):
@@ -144,7 +144,7 @@ def _generate_job_desc(zapp):
             'args': translate_args(zgroup['args']),
         }
 
-        jgroup['file_list'] = make_file_list(zgroup)
+        jgroup['devices'] = make_devices(zgroup)
 
         if 'connect' in zgroup:
             jgroup['connect'] = zgroup['connect']
@@ -214,18 +214,18 @@ def _prepare_job(tar, zapp, zapp_swift_url):
 
     :returns:
         Extracted contents of the boot/system.map with the swift
-        path to the .zapp added to the `file_list` for each `group`.
+        path to the .zapp added to the `devices` for each `group`.
 
         So if the job looks like this::
 
             [{'exec': {'args': 'hello.py', 'path': 'file://python2.7:python'},
-              'file_list': [{'device': 'python2.7'}, {'device': 'stdout'}],
+              'devices': [{'device': 'python2.7'}, {'device': 'stdout'}],
               'name': 'hello'}]
 
         the output will look like something like this::
 
             [{'exec': {u'args': 'hello.py', 'path': 'file://python2.7:python'},
-              'file_list': [
+              'devices': [
                 {'device': 'python2.7'},
                 {'device': 'stdout'},
                 {'device': 'image',
@@ -241,7 +241,7 @@ def _prepare_job(tar, zapp, zapp_swift_url):
     job = json.loads(fp.read().decode('utf-8'))
     device = {'device': 'image', 'path': zapp_swift_url}
     for group in job:
-        group['file_list'].append(device)
+        group['devices'].append(device)
 
     return job
 
