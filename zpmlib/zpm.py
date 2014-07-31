@@ -129,18 +129,13 @@ def _generate_job_desc(zapp):
         return ' '.join(escape(arg) for arg in args)
 
     for zgroup in zapp['execution']['groups']:
-        jgroup = {'name': zgroup['name']}
+        # Copy everything, but handle 'path' and 'args' specially:
+        jgroup = dict(zgroup)
         jgroup['exec'] = {
             'path': zgroup['path'],
             'args': translate_args(zgroup['args']),
         }
-
-        jgroup['devices'] = zgroup['devices']
-
-        for key in ['connect', 'count', 'replicate', 'attach']:
-            if key in zgroup:
-                jgroup[key] = zgroup[key]
-
+        del jgroup['path'], jgroup['args']
         job.append(jgroup)
     return job
 
