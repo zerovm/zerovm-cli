@@ -27,6 +27,20 @@ _commands = []
 LOG = zpmlib.get_logger(__name__)
 
 
+class SwiftLogFilter(logging.Filter):
+
+    def filter(self, record):
+        # We want to filter out 404 errors when fetching containers.
+        # In cases where this happens, we already deal with the exception,
+        # so there's no need to constantly show spurious ERROR level messages
+        # to the user.
+        if (record.levelname == 'ERROR'
+                and record.msg.msg == 'Container GET failed'
+                and record.msg.http_status == 404):
+            return False
+        return True
+
+
 def set_up_arg_parser():
     parser = argparse.ArgumentParser(
         description='ZeroVM Package Manager',
@@ -89,8 +103,13 @@ def with_logging(func):
             :class:`argparse.Namespace` instance. This is the only
             required/expected parameter for a command function.
         """
-        root_logger = logging.getLogger(None)
-        root_logger.setLevel(zpmlib.LOG_LEVEL_MAP.get(namespace.log_level))
+        log_level = zpmlib.LOG_LEVEL_MAP.get(namespace.log_level)
+        logging.getLogger('zpmlib').setLevel(log_level)
+        # This allows us to see `swiftclient` log messages, specifically HTTP
+        # REQ/RESP
+        swift_log = zpmlib.get_logger('swiftclient')
+        swift_log.setLevel(log_level)
+        swift_log.addFilter(SwiftLogFilter())
         return func(namespace, *args, **kwargs)
 
     return log_level_deco(inner)

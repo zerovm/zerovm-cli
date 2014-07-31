@@ -12,9 +12,27 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import mock
+
 from zpmlib import commands
+from swiftclient.exceptions import ClientException
 
 
 def test_all_commands_sorted():
     cmd_names = [cmd.__name__ for cmd in commands.all_commands()]
     assert cmd_names == sorted(cmd_names)
+
+
+def test_swift_log_filter():
+    log_filter = commands.SwiftLogFilter()
+
+    record = mock.Mock()
+    record.levelname = 'INFO'
+
+    filtered_record = mock.Mock()
+    filtered_record.levelname = 'ERROR'
+    filtered_record.msg = ClientException('Container GET failed',
+                                          http_status=404)
+
+    assert log_filter.filter(record) is True
+    assert log_filter.filter(filtered_record) is False
