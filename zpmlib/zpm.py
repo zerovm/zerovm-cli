@@ -109,15 +109,6 @@ def _generate_job_desc(zapp):
     """
     job = []
 
-    def make_devices(zgroup):
-        devices = []
-        for device in zgroup['devices']:
-            dev = {'name': device['name']}
-            if 'path' in device:
-                dev['path'] = device['path']
-            devices.append(dev)
-        return devices
-
     # TODO(mg): we should eventually reuse zvsh._nvram_escape
     def escape(value):
         for c in '\\", \n':
@@ -144,7 +135,7 @@ def _generate_job_desc(zapp):
             'args': translate_args(zgroup['args']),
         }
 
-        jgroup['devices'] = make_devices(zgroup)
+        jgroup['devices'] = zgroup['devices']
 
         for key in ['connect', 'count', 'replicate', 'attach']:
             if key in zgroup:
