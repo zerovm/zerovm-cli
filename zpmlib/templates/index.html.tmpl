@@ -28,15 +28,15 @@
                       clone[0].exec.args += ' ' + args.join(' ');
 
                       $.each(clone, function (i, group) {
-                          $.each(group.devices, function (i, file) {
+                          $.each(group.devices, function (i, device) {
                               var input = null;
-                              if (file.device == 'input') {
+                              if (device.name == 'input') {
                                   input = $('#input-' + group.name);
-                              } else if (file.device == 'output') {
+                              } else if (device.name == 'output') {
                                   input = $('#output-' + group.name);
                               }
                               if (input) {
-                                  file.path = client.swiftPath(input.val());
+                                  device.path = client.swiftPath(input.val());
                               }
                           });
                       });

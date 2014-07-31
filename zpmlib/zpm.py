@@ -112,7 +112,7 @@ def _generate_job_desc(zapp):
     def make_devices(zgroup):
         devices = []
         for device in zgroup['devices']:
-            dev = {'device': device['name']}
+            dev = {'name': device['name']}
             if 'path' in device:
                 dev['path'] = device['path']
             devices.append(dev)
@@ -219,16 +219,16 @@ def _prepare_job(tar, zapp, zapp_swift_url):
         So if the job looks like this::
 
             [{'exec': {'args': 'hello.py', 'path': 'file://python2.7:python'},
-              'devices': [{'device': 'python2.7'}, {'device': 'stdout'}],
+              'devices': [{'name': 'python2.7'}, {'name': 'stdout'}],
               'name': 'hello'}]
 
         the output will look like something like this::
 
             [{'exec': {u'args': 'hello.py', 'path': 'file://python2.7:python'},
               'devices': [
-                {'device': 'python2.7'},
-                {'device': 'stdout'},
-                {'device': 'image',
+                {'name': 'python2.7'},
+                {'name': 'stdout'},
+                {'name': 'image',
                  'path': 'swift://AUTH_abcdef123/test_container/hello.zapp'},
               ],
               'name': 'hello'}]
@@ -239,7 +239,7 @@ def _prepare_job(tar, zapp, zapp_swift_url):
     # NOTE(larsbutler): the `decode` is needed for python3
     # compatibility
     job = json.loads(fp.read().decode('utf-8'))
-    device = {'device': 'image', 'path': zapp_swift_url}
+    device = {'name': 'image', 'path': zapp_swift_url}
     for group in job:
         group['devices'].append(device)
 

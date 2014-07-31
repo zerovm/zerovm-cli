@@ -104,9 +104,9 @@ For testing, you can execute the job after it has been deployed::
    updated test/hello/hello.zapp succesfully
    job template:
    [{'exec': {'args': '/hello.py', 'path': u'file://python2.7:python'},
-     'devices': [{'device': u'python2.7'},
-                 {'device': u'stdout'},
-                 {'device': 'image',
+     'devices': [{'name': u'python2.7'},
+                 {'name': u'stdout'},
+                 {'name': 'image',
                   'path': u'swift://account/test/hello/hello.zapp'}],
      'name': u'hello'}]
    executing
