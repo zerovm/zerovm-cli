@@ -350,7 +350,6 @@ def _post_job(url, token, data, http_conn=None, response_dict=None,
     swiftclient.http_log((url, 'POST'), {'headers': headers}, resp, body)
     swiftclient.store_response(resp, response_dict)
 
-    LOG.debug('response status: %s' % resp.status)
     print(body)
 
 
@@ -375,6 +374,7 @@ class ZeroCloudConnection(swiftclient.Connection):
             ZeroCloud.
         """
         json_data = json.dumps(job)
+        LOG.debug('JOB: %s' % json_data)
         return self._retry(None, _post_job, json_data,
                            response_dict=response_dict)
 
@@ -637,7 +637,11 @@ def execute(args):
             else:
                 raise zpmlib.ZPMException(str(exc))
         job = json.loads(content)
-        conn.post_job(job)
+
+        resp = dict()
+        conn.post_job(job, response_dict=resp)
+        LOG.debug('RESP STATUS: %s %s', resp['status'], resp['reason'])
+        LOG.debug('RESP HEADERS: %s', resp['headers'])
     else:
         size = os.path.getsize(args.zapp)
         zapp_file = open(args.zapp, 'rb')
