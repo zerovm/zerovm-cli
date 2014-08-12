@@ -496,6 +496,84 @@ def _prepare_auth(version, args, conn):
     return auth
 
 
+def _guess_auth_version(args):
+    """Guess the auth version from first the command line args and/or envvars.
+
+    Command line arguments override environment variables, so we check those
+    first.
+
+    Auth v1 arguments:
+
+    * ``--auth``
+    * ``--user``
+    * ``--key``
+
+    Auth v2 arguments:
+
+    * ``--os-auth-url``
+    * ``--os-username``
+    * ``--os-password``
+    * ``--os-tenant-name``
+
+    If all of the v1 and v2 arguments are specified, default to 1.0 (this is
+    how ``python-swiftclient`` behaves).
+
+    If no auth version can be determined from the command line args, we check
+    environment variables.
+
+    Auth v1 vars:
+
+    * ``ST_AUTH``
+    * ``ST_USER``
+    * ``ST_KEY``
+
+    Auth v2 vars:
+
+    * ``OS_AUTH_URL``
+    * ``OS_USERNAME``
+    * ``OS_PASSWORD``
+    * ``OS_TENANT_NAME``
+
+    The same rule above applies; if both sets of variables are specified,
+    default to 1.0.
+
+    If no auth version can be determined, return `None`.
+
+    :param args:
+        :class:`argparse.Namespace`, representing the args specified on the
+        command line.
+    :returns: '1.0', '2.0', or ``None``
+    """
+    v1 = (args.auth, args.user, args.key)
+    v2 = (args.os_auth_url, args.os_username, args.os_password,
+          args.os_tenant_name)
+
+    if all(v1) and not all(v2):
+        return '1.0'
+    elif all(v2) and not all(v1):
+        return '2.0'
+    elif all(v1) and all(v2):
+        # All vars for v1 and v2 auth are set, so we follow the
+        # `python-swiftclient` behavior and default to 1.0.
+        return '1.0'
+    else:
+        # deduce from envvars
+        env = os.environ
+        v1_env = (env.get('ST_AUTH'), env.get('ST_USER'), env.get('ST_KEY'))
+        v2_env = (env.get('OS_AUTH_URL'), env.get('OS_USERNAME'),
+                  env.get('OS_PASSWORD'), env.get('OS_TENANT_NAME'))
+        if all(v1_env) and not all(v2_env):
+            return '1.0'
+        if all(v2_env) and not all(v1_env):
+            return '2.0'
+        elif all(v1_env) and all(v2_env):
+            # Same as above, if all v1 and v2 vars are set, default to 1.0.
+            return '1.0'
+        else:
+            # Insufficient auth details have been specified.
+            return None
+
+
 def deploy_project(args):
     ui_auth_version = args.auth_version
     conn = _get_zerocloud_conn(args)

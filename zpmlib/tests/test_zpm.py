@@ -597,3 +597,91 @@ def test__prepare_auth_v2():
         'password': 'secret',
     }
     assert zpm._prepare_auth(version, args, conn) == expected
+
+
+class TestGuessAuthVersion:
+
+    def setup_method(self, _method):
+        self.args = mock.Mock()
+        self.args.auth = None
+        self.args.user = None
+        self.args.key = None
+        self.args.os_auth_url = None
+        self.args.os_username = None
+        self.args.os_password = None
+        self.args.os_tenant_name = None
+
+    def test_args_v1(self):
+        args = self.args
+        args.auth = 'auth'
+        args.user = 'user'
+        args.key = 'key'
+        args.os_auth_url = 'authurl'
+        assert zpm._guess_auth_version(args) == '1.0'
+
+    def test_args_v2(self):
+        args = self.args
+        args.os_auth_url = 'authurl'
+        args.os_username = 'username'
+        args.os_password = 'password'
+        args.os_tenant_name = 'tenant'
+        args.auth = 'auth'
+        assert zpm._guess_auth_version(args) == '2.0'
+
+    def test_args_default(self):
+        args = self.args
+        args.auth = 'auth'
+        args.user = 'user'
+        args.key = 'key'
+        args.os_auth_url = 'authurl'
+        args.os_username = 'username'
+        args.os_password = 'password'
+        args.os_tenant_name = 'tenant'
+        assert zpm._guess_auth_version(args) == '1.0'
+
+    def test_env_v1(self):
+        env = dict(
+            ST_AUTH='auth',
+            ST_USER='user',
+            ST_KEY='key',
+            OS_AUTH_URL='',
+            OS_USERNAME='username',
+            OS_PASSWORD='',
+            OS_TENANT_NAME='',
+        )
+        with mock.patch.dict('os.environ', env):
+            assert zpm._guess_auth_version(self.args) == '1.0'
+
+    def test_env_v2(self):
+        env = dict(
+            ST_AUTH='',
+            ST_USER='user',
+            ST_KEY='',
+            OS_AUTH_URL='authurl',
+            OS_USERNAME='username',
+            OS_PASSWORD='password',
+            OS_TENANT_NAME='tenant',
+        )
+        with mock.patch.dict('os.environ', env):
+            assert zpm._guess_auth_version(self.args) == '2.0'
+
+    def test_env_default(self):
+        env = dict(
+            ST_AUTH='auth',
+            ST_USER='user',
+            ST_KEY='key',
+            OS_AUTH_URL='authurl',
+            OS_USERNAME='username',
+            OS_PASSWORD='password',
+            OS_TENANT_NAME='tenant',
+        )
+        with mock.patch.dict('os.environ', env):
+            assert zpm._guess_auth_version(self.args) == '1.0'
+
+    def test_none(self):
+        env = dict.fromkeys([
+            'ST_AUTH', 'ST_USER', 'ST_KEY',
+            'OS_AUTH_URL', 'OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_NAME',
+        ], '')
+        with mock.patch.dict('os.environ', env):
+            assert zpm._guess_auth_version(self.args) is None
