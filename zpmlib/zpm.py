@@ -497,14 +497,15 @@ def _prepare_auth(version, args, conn):
 
 
 def deploy_project(args):
-    version = args.auth_version
+    ui_auth_version = args.auth_version
     conn = _get_zerocloud_conn(args)
     conn.authenticate()
 
     # We can now reset the auth for the web UI, if needed
     if args.no_ui_auth:
-        version = '0.0'
-    auth = _prepare_auth(version, args, conn)
+        ui_auth_version = '0.0'
+
+    auth = _prepare_auth(ui_auth_version, args, conn)
     auth_opts = jinja2.Markup(json.dumps(auth))
 
     deploy_index = _deploy_zapp(conn, args.target, args.zapp, auth_opts)
