@@ -444,8 +444,8 @@ def _deploy_zapp(conn, target, zapp_path, auth_opts):
 
 def _generate_uploads(conn, target, zapp_path, auth_opts):
     """Generate sequence of (container-and-file-path, data, content-type)
-    tuples."""
-    # returns a list of triples: (container-and-file-path, data, content-type)
+    tuples.
+    """
     tar = tarfile.open(zapp_path, 'r:gz')
     zapp_config = yaml.safe_load(tar.extractfile('zapp.yaml'))
 
