@@ -453,8 +453,8 @@ print("Hello from ZeroVM!")
         assert uploads[3] == expected_uploads[3]
 
     def test__deploy_zapp(self):
-        with mock.patch('zpmlib.zpm._generate_uploads') as pu:
-            pu.return_value = iter([('x/a', 'b', None), ('x/c', 'd', None)])
+        with mock.patch('zpmlib.zpm._generate_uploads') as gu:
+            gu.return_value = iter([('x/a', 'b', None), ('x/c', 'd', None)])
             zpm._deploy_zapp(self.conn, self.target, self.zapp_path,
                              self.auth_opts)
 
