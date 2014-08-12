@@ -323,6 +323,25 @@ class TestGetZeroCloudConn:
         with pytest.raises(zpmlib.ZPMException):
             zpm._get_zerocloud_conn(self.v2_args)
 
+    def test_no_auth_details_given(self):
+        args = mock.Mock()
+        args.auth_version = None
+        args.auth = None
+        args.user = None
+        args.key = None
+        args.os_auth_url = None
+        args.os_username = None
+        args.os_password = None
+        args.os_tenant_name = None
+
+        env = dict.fromkeys([
+            'ST_AUTH', 'ST_USER', 'ST_KEY',
+            'OS_AUTH_URL', 'OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_NAME',
+        ], '')
+        with mock.patch.dict('os.environ', env):
+            with pytest.raises(zpmlib.ZPMException):
+                zpm._get_zerocloud_conn(args)
+
 
 class TestDeploy:
     """
