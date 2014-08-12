@@ -462,7 +462,8 @@ def _generate_uploads(conn, target, zapp_path, auth_opts):
         if path.endswith('.tmpl'):
             tmpl = jinja2.Template(output.decode('utf-8'))
             output = tmpl.render(auth_opts=auth_opts)
-            path = path[:-5]
+            # drop the .tmpl extension
+            path = os.path.splitext(path)[0]
 
         ui_path = '%s/%s' % (target, path)
         yield (ui_path, output, None)
