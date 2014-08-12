@@ -41,6 +41,18 @@ BUFFER_SIZE = 65536
 #: path/filename of the system.map (job description) in every zapp
 SYSTEM_MAP_ZAPP_PATH = 'boot/system.map'
 
+#: Message displayed if insufficient auth settings are specified, either on the
+#: command line or in environment variables. Shamelessly copied from
+#: ``python-swiftclient``.
+NO_AUTH_MSG = """\
+Auth version 1.0 requires ST_AUTH, ST_USER, and ST_KEY environment variables
+to be set or overridden with -A, -U, or -K.
+
+Auth version 2.0 requires OS_AUTH_URL, OS_USERNAME, OS_PASSWORD, and
+OS_TENANT_NAME OS_TENANT_ID to be set or overridden with --os-auth-url,
+--os-username, --os-password, --os-tenant-name or os-tenant-id. Note:
+adding "-V 2" is necessary for this."""
+
 
 def create_project(location):
     """
@@ -375,6 +387,10 @@ class ZeroCloudConnection(swiftclient.Connection):
 
 def _get_zerocloud_conn(args):
     version = args.auth_version
+    # no version was explicitly requested; try to guess it:
+    if version is None:
+        version = _guess_auth_version(args)
+
     if version == '1.0':
         if any([arg is None for arg in (args.auth, args.user, args.key)]):
             raise zpmlib.ZPMException(
@@ -383,7 +399,7 @@ def _get_zerocloud_conn(args):
             )
 
         conn = ZeroCloudConnection(args.auth, args.user, args.key)
-    else:
+    elif version == '2.0':
         if any([arg is None for arg in
                 (args.os_auth_url, args.os_username, args.os_tenant_name,
                  args.os_password)]):
@@ -397,6 +413,8 @@ def _get_zerocloud_conn(args):
                                    args.os_password,
                                    tenant_name=args.os_tenant_name,
                                    auth_version='2.0')
+    else:
+        raise zpmlib.ZPMException(NO_AUTH_MSG)
 
     return conn
 
@@ -575,9 +593,9 @@ def _guess_auth_version(args):
 
 
 def deploy_project(args):
-    ui_auth_version = args.auth_version
     conn = _get_zerocloud_conn(args)
     conn.authenticate()
+    ui_auth_version = conn.auth_version
 
     # We can now reset the auth for the web UI, if needed
     if args.no_ui_auth:

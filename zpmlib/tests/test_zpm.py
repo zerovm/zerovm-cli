@@ -529,6 +529,7 @@ print("Hello from ZeroVM!")
             ]
 
     def test_deploy_project_execute(self):
+        self.conn.auth_version = '1.0'
 
         parser = commands.set_up_arg_parser()
         args = parser.parse_args(['deploy', 'foo', self.zapp_path, '--exec'])
