@@ -234,6 +234,8 @@ def bundle(args):
 @arg('zapp', help='A ZeroVM application')
 @arg('--execute', action='store_true', help='Immediatedly '
      'execute the deployed Zapp (for testing)')
+@arg('--force', '-f', action='store_true',
+     help='Force deployment to a non-empty container')
 @login_args
 @arg('--no-ui-auth', action='store_true',
      help='Do not generate any authentication code for the web UI')

@@ -2,8 +2,9 @@
 Test bad --auth-version:
 
   $ zpm deploy --auth-version 1.5
-  usage: zpm deploy [-h] [--execute] [--auth-version {1.0,2.0}] [--auth AUTH]
-                    [--user USER] [--key KEY] [--os-auth-url OS_AUTH_URL]
+  usage: zpm deploy [-h] [--execute] [--force] [--auth-version {1.0,2.0}]
+                    [--auth AUTH] [--user USER] [--key KEY]
+                    [--os-auth-url OS_AUTH_URL]
                     [--os-tenant-name OS_TENANT_NAME]
                     [--os-username OS_USERNAME] [--os-password OS_PASSWORD]
                     [--no-ui-auth]
