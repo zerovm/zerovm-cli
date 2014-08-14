@@ -453,8 +453,8 @@ print("Hello from ZeroVM!")
         assert uploads[3] == expected_uploads[3]
 
     def test__deploy_zapp(self):
-        with mock.patch('zpmlib.zpm._generate_uploads') as pu:
-            pu.return_value = iter([('x/a', 'b', None), ('x/c', 'd', None)])
+        with mock.patch('zpmlib.zpm._generate_uploads') as gu:
+            gu.return_value = iter([('x/a', 'b', None), ('x/c', 'd', None)])
             zpm._deploy_zapp(self.conn, self.target, self.zapp_path,
                              self.auth_opts)
 
@@ -504,9 +504,26 @@ print("Hello from ZeroVM!")
             zpm._deploy_zapp(self.conn, 'target/dir1/dir2', None, None)
 
         assert str(exc.value) == (
-            "Target container ('target') must be empty to deploy this zapp"
+            "Target container ('target') is not empty.\n"
+            "Deploying to a non-empty container can cause consistency "
+            "problems with overwritten objects.\n"
+            "Specify the flag `--force/-f` to overwrite anyway."
         )
         assert self.conn.get_container.call_args_list == [mock.call('target')]
+
+    def test__deploy_zapp_container_not_empty_force(self):
+        self.conn.get_container.return_value = ({}, ['file1'])
+
+        with mock.patch('zpmlib.zpm._generate_uploads') as gu:
+            gu.return_value = iter([('x/a', 'b', None), ('x/c', 'd', None)])
+            zpm._deploy_zapp(self.conn, self.target, self.zapp_path,
+                             self.auth_opts, force=True)
+
+            put_object = self.conn.put_object
+            assert put_object.call_count == 2
+            assert put_object.call_args_list == [
+                mock.call('x', 'a', 'b', content_type=None),
+                mock.call('x', 'c', 'd', content_type=None)]
 
     def test__deploy_zapp_container_doesnt_exist(self):
         self.conn.get_container.side_effect = (

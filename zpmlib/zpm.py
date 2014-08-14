@@ -401,11 +401,16 @@ def _get_zerocloud_conn(args):
     return conn
 
 
-def _deploy_zapp(conn, target, zapp_path, auth_opts):
+def _deploy_zapp(conn, target, zapp_path, auth_opts, force=False):
     """Upload all of the necessary files for a zapp.
 
     Returns the name an uploaded index file, or the target if no
     index.html file was uploaded.
+
+    :param bool force:
+        Force deployment, even if the target container is not empty. This means
+        that files could be overwritten and could cause consistency problems
+        with these objects in Swift.
     """
     # NOTE(larsbutler): Due to eventual consistency in Swift, there are some
     # rules about deploying zapps.
@@ -421,11 +426,14 @@ def _deploy_zapp(conn, target, zapp_path, auth_opts):
     try:
         _, objects = conn.get_container(base_container)
         if not len(objects) == 0:
-            # container must be empty to deploy
-            raise zpmlib.ZPMException(
-                "Target container ('%s') must be empty to deploy this zapp"
-                % base_container
-            )
+            if not force:
+                raise zpmlib.ZPMException(
+                    "Target container ('%s') is not empty.\nDeploying to a "
+                    "non-empty container can cause consistency problems with "
+                    "overwritten objects.\nSpecify the flag `--force/-f` to "
+                    "overwrite anyway."
+                    % base_container
+                )
     except swiftclient.exceptions.ClientException:
         # container doesn't exist; create it
         LOG.info("Container '%s' not found. Creating it...", base_container)
@@ -508,7 +516,8 @@ def deploy_project(args):
     auth = _prepare_auth(version, args, conn)
     auth_opts = jinja2.Markup(json.dumps(auth))
 
-    deploy_index = _deploy_zapp(conn, args.target, args.zapp, auth_opts)
+    deploy_index = _deploy_zapp(conn, args.target, args.zapp, auth_opts,
+                                force=args.force)
 
     if args.execute:
         # for compatibility with the option name in 'zpm execute'
