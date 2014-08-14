@@ -444,8 +444,8 @@ def _deploy_zapp(conn, target, zapp_path, auth_opts):
 
 def _generate_uploads(conn, target, zapp_path, auth_opts):
     """Generate sequence of (container-and-file-path, data, content-type)
-    tuples."""
-    # returns a list of triples: (container-and-file-path, data, content-type)
+    tuples.
+    """
     tar = tarfile.open(zapp_path, 'r:gz')
     zapp_config = yaml.safe_load(tar.extractfile('zapp.yaml'))
 
@@ -462,7 +462,8 @@ def _generate_uploads(conn, target, zapp_path, auth_opts):
         if path.endswith('.tmpl'):
             tmpl = jinja2.Template(output.decode('utf-8'))
             output = tmpl.render(auth_opts=auth_opts)
-            path = path[:-5]
+            # drop the .tmpl extension
+            path = os.path.splitext(path)[0]
 
         ui_path = '%s/%s' % (target, path)
         yield (ui_path, output, None)
