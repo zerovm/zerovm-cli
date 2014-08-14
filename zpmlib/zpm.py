@@ -41,6 +41,18 @@ BUFFER_SIZE = 65536
 #: path/filename of the system.map (job description) in every zapp
 SYSTEM_MAP_ZAPP_PATH = 'boot/system.map'
 
+#: Message displayed if insufficient auth settings are specified, either on the
+#: command line or in environment variables. Shamelessly copied from
+#: ``python-swiftclient``.
+NO_AUTH_MSG = """\
+Auth version 1.0 requires ST_AUTH, ST_USER, and ST_KEY environment variables
+to be set or overridden with -A, -U, or -K.
+
+Auth version 2.0 requires OS_AUTH_URL, OS_USERNAME, OS_PASSWORD, and
+OS_TENANT_NAME OS_TENANT_ID to be set or overridden with --os-auth-url,
+--os-username, --os-password, --os-tenant-name or os-tenant-id. Note:
+adding "-V 2" is necessary for this."""
+
 
 def create_project(location):
     """
@@ -375,6 +387,10 @@ class ZeroCloudConnection(swiftclient.Connection):
 
 def _get_zerocloud_conn(args):
     version = args.auth_version
+    # no version was explicitly requested; try to guess it:
+    if version is None:
+        version = _guess_auth_version(args)
+
     if version == '1.0':
         if any([arg is None for arg in (args.auth, args.user, args.key)]):
             raise zpmlib.ZPMException(
@@ -383,7 +399,7 @@ def _get_zerocloud_conn(args):
             )
 
         conn = ZeroCloudConnection(args.auth, args.user, args.key)
-    else:
+    elif version == '2.0':
         if any([arg is None for arg in
                 (args.os_auth_url, args.os_username, args.os_tenant_name,
                  args.os_password)]):
@@ -397,6 +413,8 @@ def _get_zerocloud_conn(args):
                                    args.os_password,
                                    tenant_name=args.os_tenant_name,
                                    auth_version='2.0')
+    else:
+        raise zpmlib.ZPMException(NO_AUTH_MSG)
 
     return conn
 
@@ -505,15 +523,94 @@ def _prepare_auth(version, args, conn):
     return auth
 
 
+def _guess_auth_version(args):
+    """Guess the auth version from first the command line args and/or envvars.
+
+    Command line arguments override environment variables, so we check those
+    first.
+
+    Auth v1 arguments:
+
+    * ``--auth``
+    * ``--user``
+    * ``--key``
+
+    Auth v2 arguments:
+
+    * ``--os-auth-url``
+    * ``--os-username``
+    * ``--os-password``
+    * ``--os-tenant-name``
+
+    If all of the v1 and v2 arguments are specified, default to 1.0 (this is
+    how ``python-swiftclient`` behaves).
+
+    If no auth version can be determined from the command line args, we check
+    environment variables.
+
+    Auth v1 vars:
+
+    * ``ST_AUTH``
+    * ``ST_USER``
+    * ``ST_KEY``
+
+    Auth v2 vars:
+
+    * ``OS_AUTH_URL``
+    * ``OS_USERNAME``
+    * ``OS_PASSWORD``
+    * ``OS_TENANT_NAME``
+
+    The same rule above applies; if both sets of variables are specified,
+    default to 1.0.
+
+    If no auth version can be determined, return `None`.
+
+    :param args:
+        :class:`argparse.Namespace`, representing the args specified on the
+        command line.
+    :returns: '1.0', '2.0', or ``None``
+    """
+    v1 = (args.auth, args.user, args.key)
+    v2 = (args.os_auth_url, args.os_username, args.os_password,
+          args.os_tenant_name)
+
+    if all(v1) and not all(v2):
+        return '1.0'
+    elif all(v2) and not all(v1):
+        return '2.0'
+    elif all(v1) and all(v2):
+        # All vars for v1 and v2 auth are set, so we follow the
+        # `python-swiftclient` behavior and default to 1.0.
+        return '1.0'
+    else:
+        # deduce from envvars
+        env = os.environ
+        v1_env = (env.get('ST_AUTH'), env.get('ST_USER'), env.get('ST_KEY'))
+        v2_env = (env.get('OS_AUTH_URL'), env.get('OS_USERNAME'),
+                  env.get('OS_PASSWORD'), env.get('OS_TENANT_NAME'))
+        if all(v1_env) and not all(v2_env):
+            return '1.0'
+        if all(v2_env) and not all(v1_env):
+            return '2.0'
+        elif all(v1_env) and all(v2_env):
+            # Same as above, if all v1 and v2 vars are set, default to 1.0.
+            return '1.0'
+        else:
+            # Insufficient auth details have been specified.
+            return None
+
+
 def deploy_project(args):
-    version = args.auth_version
     conn = _get_zerocloud_conn(args)
     conn.authenticate()
+    ui_auth_version = conn.auth_version
 
     # We can now reset the auth for the web UI, if needed
     if args.no_ui_auth:
-        version = '0.0'
-    auth = _prepare_auth(version, args, conn)
+        ui_auth_version = '0.0'
+
+    auth = _prepare_auth(ui_auth_version, args, conn)
     auth_opts = jinja2.Markup(json.dumps(auth))
 
     deploy_index = _deploy_zapp(conn, args.target, args.zapp, auth_opts,

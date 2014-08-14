@@ -167,8 +167,8 @@ def group_args(accumulator):
 
 
 @group_args
-@arg('--auth-version', '-V', default='1.0', choices=['1.0', '2.0'],
-     help='Swift auth version')
+@arg('--auth-version', '-V', choices=['1.0', '2.0'],
+     help='Swift auth version (default: 1.0)')
 @arg('--auth', '-A', envvar='ST_AUTH',
      help='(Auth v1.0) URL for obtaining an auth token')
 @arg('--user', '-U', envvar='ST_USER',
