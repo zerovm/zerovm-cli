@@ -565,23 +565,37 @@ print("Hello from ZeroVM!")
             ]
 
     def test_deploy_project_execute(self):
+        job_path = 'boot/system.map'
+        job_json = self.job_json_contents.decode('utf-8')
+        job_dict = json.loads(job_json)
+
+        class FakeZeroCloudConnection(mock.Mock):
+            url = 'http://127.0.0.1'
+            token = 'abc123'
+
+            def post_job(self, job, response_dict=None):
+                response_dict['status'] = 200
+                response_dict['reason'] = 'OK'
+                response_dict['headers'] = {}
+                # Check the job is passed properly here
+                assert job == job_dict
+
+            def get_container(self, *args, **kwargs):
+                return {}, []
+
+        self.conn = FakeZeroCloudConnection()
         self.conn.auth_version = '1.0'
 
         parser = commands.set_up_arg_parser()
         args = parser.parse_args(['deploy', 'foo', self.zapp_path, '--exec'])
 
-        job_path = 'boot/system.map'
-        job_json = self.job_json_contents.decode('utf-8')
-        job = json.loads(job_json)
-
         with mock.patch('zpmlib.zpm._get_zerocloud_conn') as gzc:
             gzc.return_value = self.conn
+            self.conn.get_object = mock.Mock()
             get_object = self.conn.get_object
             get_object.return_value = ([], job_json)
-            post_job = self.conn.post_job
             zpm.deploy_project(args)
             assert get_object.call_args_list == [mock.call('foo', job_path)]
-            assert post_job.call_args_list == [mock.call(job)]
 
 
 def test__prepare_auth_v0():
