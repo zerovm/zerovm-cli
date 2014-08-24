@@ -308,11 +308,9 @@ if __name__ == '__main__':
                                      local_fs.list_account,
                                      local_fs.list_container)
         try:
-            add_user_image = False
-            if os.path.isfile(local_fs.image_path):
-                add_user_image = True
-            parser.parse(cluster_config, add_user_image,
-                         account_name='local', replica_count=1)
+            parser.parse(cluster_config,
+                         os.path.isfile(local_fs.image_path),
+                         account_name='local')
         except ClusterConfigParsingError, e:
             sys.stderr.write(str(e) + '\n')
             exit(1)
@@ -335,9 +333,8 @@ if __name__ == '__main__':
                 local_fs.create_temp_files(node_config['name'])
             manifest = parser.prepare_for_standalone(node_config, nvram_file,
                                                      nexe_path, None)
-            fd = open(manifest_file, 'wb')
-            fd.write(manifest)
-            fd.close()
+            with open(manifest_file, 'wb') as fd:
+                fd.write(manifest)
             command_line = ['zerovm', '-PQ', manifest_file]
             runner = AppRunner(command_line, report_file)
             threads[node_config['name']] = (report_file, node_config['id'],
