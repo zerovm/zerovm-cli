@@ -77,6 +77,10 @@ class AppArgs(ZvArgs):
                                  help='Save ZeroVM environment files into '
                                       'provided directory,\n'
                                       'directory will be created/re-created\n')
+        self.parser.add_argument('--dry-run',
+                                 help='Print the resulting job descriptions '
+                                      'and exit\n',
+                                 action='store_true')
 
 
 class ZvLocalFilesystem(object):
@@ -322,6 +326,9 @@ if __name__ == '__main__':
             for node in parser.node_list:
                 node.name_service = 'udp:%s:%d' % ('127.0.0.1', ns_server.port)
                 parser.build_connect_string(node)
+        if app_args.args.dry_run:
+            print json.dumps(parser.node_list, cls=NodeEncoder, indent=2)
+            exit(0)
         for node in parser.node_list:
             node_config = json.loads(json.dumps(node, cls=NodeEncoder))
 
