@@ -72,9 +72,9 @@ Test with non-existing command:
 Test default value shown when flag takes default from environment:
 
   $ zpm help deploy
-  usage: zpm deploy [-h] [--execute] [--force] [--auth-version {1.0,2.0}]
-                    [--auth AUTH] [--user USER] [--key KEY]
-                    [--os-auth-url OS_AUTH_URL]
+  usage: zpm deploy [-h] [--execute] [--summary] [--force]
+                    [--auth-version {1.0,2.0}] [--auth AUTH] [--user USER]
+                    [--key KEY] [--os-auth-url OS_AUTH_URL]
                     [--os-tenant-name OS_TENANT_NAME]
                     [--os-username OS_USERNAME] [--os-password OS_PASSWORD]
                     [--no-ui-auth]
@@ -96,6 +96,7 @@ Test default value shown when flag takes default from environment:
   optional arguments:
     -h, --help            show this help message and exit
     --execute             Immediately execute the deployed Zapp (for testing)
+    --summary, -s         Show execution summary table (use with `--execute`)
     --force, -f           Force deployment to a non-empty container
     --auth-version {1.0,2.0}, -V {1.0,2.0}
                           Swift auth version (default: 1.0)

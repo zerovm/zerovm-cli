@@ -576,7 +576,15 @@ print("Hello from ZeroVM!")
             def post_job(self, job, response_dict=None):
                 response_dict['status'] = 200
                 response_dict['reason'] = 'OK'
-                response_dict['headers'] = {}
+                response_dict['headers'] = {
+                    'x-nexe-system': 'node-1',
+                    'x-nexe-cdr-line': (
+                        '5.121, 4.993, 0.13 3.84 1025 75943662 23 735 8 399 0 '
+                        '0'
+                    ),
+                    'x-nexe-status': 'ok',
+                    'x-nexe-retcode': '0',
+                }
                 # Check the job is passed properly here
                 assert job == job_dict
 

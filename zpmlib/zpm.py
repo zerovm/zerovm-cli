@@ -636,12 +636,18 @@ def deploy_project(args):
     deploy_index = _deploy_zapp(conn, args.target, args.zapp, auth_opts,
                                 force=args.force)
 
+    print('app deployed to\n  %s/%s' % (conn.url, deploy_index))
+
     if args.execute:
         # for compatibility with the option name in 'zpm execute'
         args.container = args.target
-        execute(args)
+        resp = execute(args)
 
-    print('app deployed to\n  %s/%s' % (conn.url, deploy_index))
+        if args.summary:
+            total_time, exec_table = _get_exec_table(resp)
+            print('Execution summary:')
+            print(exec_table)
+            print('Total time: %s' % total_time)
 
 
 def _get_exec_table(resp):
@@ -724,8 +730,15 @@ def _get_exec_table_data(headers):
 
 
 def execute(args):
+    """Execute a zapp remotely on a ZeroCloud deployment.
+
+    :returns:
+        A `dict` with response data, including the keys 'status', 'reason', and
+        'headers'.
+    """
     conn = _get_zerocloud_conn(args)
 
+    resp = dict()
     if args.container:
         job_filename = SYSTEM_MAP_ZAPP_PATH
         try:
@@ -737,7 +750,6 @@ def execute(args):
                 raise zpmlib.ZPMException(str(exc))
         job = json.loads(content)
 
-        resp = dict()
         conn.post_job(job, response_dict=resp)
         LOG.debug('RESP STATUS: %s %s', resp['status'], resp['reason'])
         LOG.debug('RESP HEADERS: %s', resp['headers'])
@@ -745,8 +757,9 @@ def execute(args):
         size = os.path.getsize(args.zapp)
         zapp_file = open(args.zapp, 'rb')
         data_reader = iter(lambda: zapp_file.read(BUFFER_SIZE), b'')
-        conn.post_zapp(data_reader, content_length=size)
+        conn.post_zapp(data_reader, response_dict=resp, content_length=size)
         zapp_file.close()
+    return resp
 
 
 def auth(args):

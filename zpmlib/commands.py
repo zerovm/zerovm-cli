@@ -234,6 +234,8 @@ def bundle(args):
 @arg('zapp', help='A ZeroVM application')
 @arg('--execute', action='store_true', help='Immediately '
      'execute the deployed Zapp (for testing)')
+@arg('--summary', '-s', action='store_true',
+     help='Show execution summary table (use with `--execute`)')
 @arg('--force', '-f', action='store_true',
      help='Force deployment to a non-empty container')
 @login_args
@@ -260,12 +262,19 @@ def deploy(args):
 @command
 @with_logging
 @arg('--container', help='Swift container name (containing the zapp)')
+@arg('--summary', '-s', action='store_true',
+     help='Show execution summary table')
 @arg('zapp', help='Name of the zapp to execute')
 @login_args
 def execute(args):
     """Remotely execute a ZeroVM application.
     """
-    zpm.execute(args)
+    resp = zpm.execute(args)
+    if args.summary:
+        total_time, exec_table = zpm._get_exec_table(resp)
+        print('Execution summary:')
+        print(exec_table)
+        print('Total time: %s' % total_time)
 
 
 @command
