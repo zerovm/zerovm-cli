@@ -258,6 +258,7 @@ def deploy(args):
 
 
 @command
+@with_logging
 @arg('--container', help='Swift container name (containing the zapp)')
 @arg('zapp', help='Name of the zapp to execute')
 @login_args
