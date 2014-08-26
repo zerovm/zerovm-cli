@@ -15,13 +15,10 @@
 import fnmatch
 import glob
 import gzip
-import jinja2
 import json
 import os
 import shlex
 import tarfile
-import yaml
-import zpmlib
 try:
     import urlparse
 except ImportError:
@@ -31,8 +28,11 @@ try:
 except ImportError:
     from io import BytesIO
 
+import jinja2
 import swiftclient
+import yaml
 
+import zpmlib
 
 _DEFAULT_UI_TEMPLATES = ['index.html.tmpl', 'style.css', 'zerocloud.js']
 
