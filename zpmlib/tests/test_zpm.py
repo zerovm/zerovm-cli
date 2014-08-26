@@ -736,3 +736,80 @@ class TestGuessAuthVersion:
         ], '')
         with mock.patch.dict('os.environ', env):
             assert zpm._guess_auth_version(self.args) is None
+
+
+class TestExecSummaryTable:
+
+    def test__get_exec_table_data_1_row(self):
+        headers = {
+            'content-length': '20',
+            'content-type': 'text/html',
+            'date': 'Tue, 26 Aug 2014 09:27:08 GMT',
+            'etag': 'af0983cb8fef30642bae9ba0010e7a77',
+            'x-chain-total-time': '3.920',
+            'x-nexe-cdr-line': (
+                '3.920, 3.913, 0.11 3.37 1025 75943644 2 20 0 0 0 0'
+            ),
+            'x-nexe-etag': 'disabled',
+            'x-nexe-policy': 'Policy-0',
+            'x-nexe-retcode': '0',
+            'x-nexe-status': 'ok',
+            'x-nexe-system': 'hello',
+            'x-nexe-validation': '0',
+            'x-timestamp': '1409045228.85265',
+            'x-trans-id': 'tx1d61239ed02a56fbbfe5d-0053fc52e9',
+            'x-zerovm-device': 'stdout',
+        }
+
+        expected_total_t = '3.920'
+        expected_table = [
+            ['hello', 'ok', '0', '3.913', '0.11', '3.37', '1025', '75943644',
+             '2', '20', '0', '0', '0', '0']
+        ]
+        actual_total_t, actual_table = zpm._get_exec_table_data(headers)
+        assert actual_total_t == expected_total_t
+        assert actual_table == expected_table
+
+    def test__get_exec_table_data_many_rows(self):
+        cdr_line = (
+            '5.121, '
+            '4.993, 0.13 3.84 1025 75943662 23 735 8 399 0 0,'
+            '4.511, 0.12 4.00 1026 75943758 0 0 0 0 1 11,'
+            '4.468, 0.10 3.96 1026 75943758 0 0 0 0 1 11,'
+            '4.965, 0.18 4.20 1025 75943664 0 0 15 33 5 100,'
+            '4.962, 0.13 3.94 1025 75943664 0 0 15 33 5 100'
+        )
+
+        headers = {
+            'content-length': '0',
+            'content-type': 'application/x-gtar',
+            'date': 'Tue, 26 Aug 2014 09:29:44 GMT',
+            'etag': '753e7eac4298c4994a7a19c7c783bad5',
+            'x-chain-total-time': '5.121',
+            'x-nexe-cdr-line': cdr_line,
+            'x-nexe-etag': 'disabled,disabled,disabled,disabled,disabled',
+            'x-nexe-policy': 'Policy-0,Policy-0,Policy-0,Policy-0,Policy-0',
+            'x-nexe-retcode': '1,0,0,0,0',
+            'x-nexe-status': 'some error,ok,ok,ok,ok',
+            'x-nexe-system': 'combiner,mapper-1,mapper-2,reducer-1,reducer-2',
+            'x-nexe-validation': '1,0,0,0,0',
+            'x-timestamp': '1409045384.22744',
+            'x-trans-id': 'txa881f777891648f4834d6-0053fc5382',
+        }
+
+        expected_total_t = '5.121'
+        expected_table = [
+            ['combiner', 'some error', '1', '4.993', '0.13', '3.84', '1025',
+             '75943662', '23', '735', '8', '399', '0', '0'],
+            ['mapper-1', 'ok', '0', '4.511', '0.12', '4.00', '1026',
+             '75943758', '0', '0', '0', '0', '1', '11'],
+            ['mapper-2', 'ok', '0', '4.468', '0.10', '3.96', '1026',
+             '75943758', '0', '0', '0', '0', '1', '11'],
+            ['reducer-1', 'ok', '0', '4.965', '0.18', '4.20', '1025',
+             '75943664', '0', '0', '15', '33', '5', '100'],
+            ['reducer-2', 'ok', '0', '4.962', '0.13', '3.94', '1025',
+             '75943664', '0', '0', '15', '33', '5', '100'],
+        ]
+        actual_total_t, actual_table = zpm._get_exec_table_data(headers)
+        assert actual_total_t == expected_total_t
+        assert actual_table == expected_table
