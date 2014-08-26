@@ -232,7 +232,7 @@ def bundle(args):
 @command
 @arg('target', help='Deployment target (Swift container name)')
 @arg('zapp', help='A ZeroVM application')
-@arg('--execute', action='store_true', help='Immediatedly '
+@arg('--execute', action='store_true', help='Immediately '
      'execute the deployed Zapp (for testing)')
 @arg('--force', '-f', action='store_true',
      help='Force deployment to a non-empty container')

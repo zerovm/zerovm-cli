@@ -95,7 +95,7 @@ Test default value shown when flag takes default from environment:
   
   optional arguments:
     -h, --help            show this help message and exit
-    --execute             Immediatedly execute the deployed Zapp (for testing)
+    --execute             Immediately execute the deployed Zapp (for testing)
     --force, -f           Force deployment to a non-empty container
     --auth-version {1.0,2.0}, -V {1.0,2.0}
                           Swift auth version (default: 1.0)
