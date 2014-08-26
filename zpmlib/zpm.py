@@ -29,6 +29,8 @@ except ImportError:
     from io import BytesIO
 
 import jinja2
+import prettytable
+import six
 import swiftclient
 import yaml
 
@@ -52,6 +54,24 @@ Auth version 2.0 requires OS_AUTH_URL, OS_USERNAME, OS_PASSWORD, and
 OS_TENANT_NAME OS_TENANT_ID to be set or overridden with --os-auth-url,
 --os-username, --os-password, --os-tenant-name or os-tenant-id. Note:
 adding "-V 2" is necessary for this."""
+
+#: Column labels for the execution summary table
+EXEC_TABLE_HEADER = [
+    'Node',
+    'Status',
+    'Retcode',
+    'NodeT',
+    'SysT',
+    'UserT',
+    'DiskReads',
+    'DiskBytesR',
+    'DiskWrites',
+    'DiskBytesW',
+    'NetworkReads',
+    'NetworkBytesR',
+    'NetworkWrites',
+    'NetworkBytesW',
+]
 
 
 def create_project(location):
@@ -622,6 +642,85 @@ def deploy_project(args):
         execute(args)
 
     print('app deployed to\n  %s/%s' % (conn.url, deploy_index))
+
+
+def _get_exec_table(resp):
+    """Build an execution summary table from a job execution response.
+
+    :param dict resp:
+        Response dictionary from job execution. Must contain a ``headers`` key
+        at least (and will typically contain ``status`` and ``reason`` as
+        well).
+    :returns:
+        Tuple of total execution time (`str`),
+        ``prettytable.PrettyTable`` containing the summary of all node
+        executions in the job.
+    """
+    headers = resp['headers']
+    total_time, table_data = _get_exec_table_data(headers)
+
+    table = prettytable.PrettyTable(EXEC_TABLE_HEADER)
+
+    for row in table_data:
+        table.add_row(row)
+
+    return total_time, table
+
+
+def _get_exec_table_data(headers):
+    """Extract a stats table from execution HTTP response headers.
+
+    Stats include things like node name, execution time, number of
+    reads/writes, bytes read/written, etc.
+
+    :param dict headers:
+        `dict` of response headers from a job execution request. It must
+        contain at least ``x-nexe-system``, ``x-nexe-status``,
+        ``x-nexe-retcode``, ``x-nexe-cdr-line``.
+    :returns:
+        Tuple of two items. The first is the total time for the executed job
+        (as a `str`). The second is a table (2d `list`) of execution data
+        extracted from ``X-Nexe-System`` and ``X-Nexe-Cdr-Line`` headers.
+
+        Each row in the table consists of the following data:
+
+            * node name
+            * node time
+            * system time
+            * user time
+            * number of disk reads
+            * number of bytes read from disk
+            * number of disk writes
+            * number of bytes written to disk
+            * number of network reads
+            * number of bytes read from network
+            * number of network writes
+            * number of bytes written to network
+    """
+    node_names = iter(headers['x-nexe-system'].split(','))
+    statuses = iter(headers['x-nexe-status'].split(','))
+    retcodes = iter(headers['x-nexe-retcode'].split(','))
+
+    cdr = headers['x-nexe-cdr-line']
+    cdr_data = [x.strip() for x in cdr.split(',')]
+    total_time = cdr_data.pop(0)
+    cdr_data = iter(cdr_data)
+
+    adviter = lambda x: six.advance_iterator(x)
+
+    table_data = []
+    while True:
+        try:
+            node_name = adviter(node_names)
+            status = adviter(statuses)
+            retcode = adviter(retcodes)
+            node_time = adviter(cdr_data)
+            cdr = adviter(cdr_data).split()
+            row = [node_name, status, retcode, node_time] + cdr
+            table_data.append(row)
+        except StopIteration:
+            break
+    return total_time, table_data
 
 
 def execute(args):
