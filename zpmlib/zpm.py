@@ -648,3 +648,11 @@ def execute(args):
         data_reader = iter(lambda: zapp_file.read(BUFFER_SIZE), b'')
         conn.post_zapp(data_reader, content_length=size)
         zapp_file.close()
+
+
+def auth(args):
+    conn = _get_zerocloud_conn(args)
+    conn.authenticate()
+
+    print('Auth token: %s' % conn.token)
+    print('Storage URL: %s' % conn.url)

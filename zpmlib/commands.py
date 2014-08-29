@@ -287,3 +287,10 @@ def version(args):
     """Show the version number"""
     parser = set_up_arg_parser()
     parser.parse_args(['--version'])
+
+
+@command
+@login_args
+def auth(args):
+    """Get auth token and storage URL information"""
+    zpm.auth(args)
