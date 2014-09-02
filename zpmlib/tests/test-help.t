@@ -14,6 +14,7 @@ Main help text is shown when no command is given:
     available subcommands
   
     COMMAND
+      auth      Get auth token and storage URL information
       bundle    Bundle a ZeroVM application
       deploy    Deploy a ZeroVM application
       execute   Remotely execute a ZeroVM application.
@@ -58,6 +59,7 @@ Test with non-existing command:
     available subcommands
   
     COMMAND
+      auth      Get auth token and storage URL information
       bundle    Bundle a ZeroVM application
       deploy    Deploy a ZeroVM application
       execute   Remotely execute a ZeroVM application.
