@@ -642,8 +642,7 @@ class ZvArgs:
         )
         self.parser.add_argument(
             '--zvm-save-dir',
-            help=('Save ZeroVM environment files into provided directory,\n'
-                  'directory will be created/re-created\n'),
+            help=('Save ZeroVM environment files into provided directory'),
             action='store',
         )
         self.parser.add_argument(
