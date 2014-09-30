@@ -41,5 +41,4 @@ help:
 
 # Files to include in your zapp. Your can use glob patterns here, they
 # will be resolved relative to the location of this file.
-bundling:
-  - ""
+bundling: []
