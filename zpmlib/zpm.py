@@ -18,6 +18,7 @@ import gzip
 import json
 import os
 import shlex
+import shutil
 import tarfile
 try:
     import urlparse
@@ -37,6 +38,8 @@ import yaml
 import zpmlib
 
 _DEFAULT_UI_TEMPLATES = ['index.html.tmpl', 'style.css', 'zerocloud.js']
+_ZAPP_YAML = 'zapp.yaml'
+_ZAPP_WITH_UI_YAML = 'zapp-with-ui.yaml'
 
 LOG = zpmlib.get_logger(__name__)
 BUFFER_SIZE = 65536
@@ -74,10 +77,16 @@ EXEC_TABLE_HEADER = [
 ]
 
 
-def create_project(location):
+def create_project(location, with_ui=False):
     """
     Create a ZeroVM application project by writing a default `zapp.yaml` in the
     specified directory `location`.
+
+    :param location:
+            Directory location to place project files.
+    :param with_ui:
+        Defaults to `False`. If `True`, add basic UI template files as well to
+        ``location``.
 
     :returns: Full path to the created `zapp.yaml` file.
     """
@@ -87,33 +96,60 @@ def create_project(location):
             raise RuntimeError("Target `location` must be a directory")
     else:
         os.makedirs(location)
-    return _create_zapp_yaml(location)
+    return _create_project_files(location, with_ui=with_ui)
 
 
-def render_zapp_yaml(name):
+def render_zapp_yaml(name, template_name='zapp.yaml'):
     """Load and render the zapp.yaml template."""
     loader = jinja2.PackageLoader('zpmlib', 'templates')
     env = jinja2.Environment(loader=loader)
-    tmpl = env.get_template('zapp.yaml')
+    tmpl = env.get_template(template_name)
     return tmpl.render(name=name)
 
 
-def _create_zapp_yaml(location):
+def _create_project_files(location, with_ui=False):
     """
     Create a default `zapp.yaml` file in the specified directory `location`.
 
-    Raises a `RuntimeError` if the `location` already contains a `zapp.yaml`
-    file.
+    If `with_ui` is `True`, add template UI files to `location`.
+
+    Raises a `RuntimeError` if any files would be overwritten in `location`.
     """
-    filepath = os.path.join(location, 'zapp.yaml')
-    if os.path.exists(filepath):
-        raise RuntimeError("'%s' already exists!" % filepath)
+    template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+
+    # Collect a list of the target files
+    target_files = []
+    zapp_yaml_path = os.path.join(location, 'zapp.yaml')
+    target_files.append(zapp_yaml_path)
+    if with_ui:
+        for template in _DEFAULT_UI_TEMPLATES:
+            dest_path = os.path.join(location, template)
+            target_files.append(dest_path)
+
+    # Check that none of them already exists; we don't want to overwrite
+    # If any already exists, we don't write anything.
+    for f in target_files:
+        if os.path.exists(f):
+            raise RuntimeError("'%s' already exists!" % f)
+
+    # Add zapp.yaml template
+    if with_ui:
+        zapp_template = _ZAPP_WITH_UI_YAML
+    else:
+        zapp_template = _ZAPP_YAML
 
     with open(os.path.join(location, 'zapp.yaml'), 'w') as fp:
         name = os.path.basename(os.path.abspath(location))
-        fp.write(render_zapp_yaml(name))
+        fp.write(render_zapp_yaml(name, template_name=zapp_template))
 
-    return filepath
+    # Add UI template files, if specified
+    if with_ui:
+        for template in _DEFAULT_UI_TEMPLATES:
+            src_path = os.path.join(template_dir, template)
+            dest_path = os.path.join(location, template)
+            shutil.copyfile(src_path, dest_path)
+
+    return target_files
 
 
 def find_project_root():
@@ -316,9 +352,6 @@ def bundle_project(root):
             " the zapp.yaml matched anything."
         )
 
-    if not zapp.get('ui'):
-        _add_ui(tar, zapp)
-
     tar.close()
     print('created %s' % zapp_name)
 
@@ -450,16 +483,6 @@ def _deploy_zapp(conn, target, zapp_path, auth_opts, force=False):
         that files could be overwritten and could cause consistency problems
         with these objects in Swift.
     """
-    # NOTE(larsbutler): Due to eventual consistency in Swift, there are some
-    # rules about deploying zapps.
-    #
-    # if container exists:
-    #   if container is empty:
-    #     deploy
-    #   else:
-    #     error: container must be empty
-    # else:
-    #   container does't exist; create it
     base_container = target.split('/')[0]
     try:
         _, objects = conn.get_container(base_container)

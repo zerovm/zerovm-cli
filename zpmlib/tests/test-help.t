@@ -27,7 +27,8 @@ Main help text is shown when no command is given:
 Test with existing command:
 
   $ zpm help new
-  usage: zpm new [-h] [--log-level {debug,info,warning,error,critical}]
+  usage: zpm new [-h] [--with-ui]
+                 [--log-level {debug,info,warning,error,critical}]
                  [WORKING_DIR]
   
   Create a default ZeroVM application zapp.yaml specification in the target
@@ -39,6 +40,7 @@ Test with existing command:
   
   optional arguments:
     -h, --help            show this help message and exit
+    --with-ui, -u         Include user interface template files
     --log-level {debug,info,warning,error,critical}, -l {debug,info,warning,error,critical}
                           Defaults to 'warn' (default: warning)
 
