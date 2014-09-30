@@ -163,7 +163,7 @@ ZeroCloudClient.prototype.swiftPath = function (relativePath) {
  */
 function escapeArg (value) {
     function hexencode (match) {
-        return "\\x" + match.charCodeAt(0).toString(16)
+        return "\\x" + match.charCodeAt(0).toString(16);
     }
-    return value.replace(/[\\", \n]/g, hexencode)
+    return value.replace(/[\\", \n]/g, hexencode);
 }
