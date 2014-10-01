@@ -12,9 +12,7 @@
     <script type="text/javascript">
       $(document).ready(function () {
           client = new ZeroCloudClient();
-          {% raw %}
-              var opts = {{ auth_opts }};
-          {% endraw %}
+          var opts = {{ auth_opts }};
 
           $('#run').click(function () {
               client.auth(opts, function () {
