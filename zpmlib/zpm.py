@@ -531,6 +531,7 @@ def _prepare_auth(version, args, conn):
     :param conn:
         :class:`ZeroCloudConnection` instance.
     """
+    version = str(float(version))
     auth = {'version': version}
     if version == '0.0':
         auth['swiftUrl'] = conn.url

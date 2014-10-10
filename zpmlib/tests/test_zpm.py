@@ -665,6 +665,10 @@ def test__prepare_auth_v1():
         'password': 'secret',
     }
     assert zpm._prepare_auth(version, args, conn) == expected
+    # Make sure that we're robust enough to handle slightly varied version
+    # inputs.
+    version = '1'
+    assert zpm._prepare_auth(version, args, conn) == expected
 
 
 def test__prepare_auth_v2():
@@ -684,6 +688,10 @@ def test__prepare_auth_v2():
         'username': 'user1',
         'password': 'secret',
     }
+    assert zpm._prepare_auth(version, args, conn) == expected
+    # Make sure that we're robust enough to handle slightly varied version
+    # inputs.
+    version = '2'
     assert zpm._prepare_auth(version, args, conn) == expected
 
 
