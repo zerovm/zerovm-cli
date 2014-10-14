@@ -197,6 +197,8 @@ def all_commands():
 
 
 @command
+@arg('--with-ui', '-u', help='Include user interface template files',
+     action='store_true')
 @arg('dir', help='Non-existent or empty directory',
      metavar='WORKING_DIR', nargs='?',
      default='.')
@@ -210,11 +212,12 @@ def new(args):
     """
 
     try:
-        zappyaml = zpm.create_project(args.dir)
+        project_files = zpm.create_project(args.dir, with_ui=args.with_ui)
     except RuntimeError as err:
         print(err)
     else:
-        print("Created '%s'" % zappyaml)
+        for proj_file in project_files:
+            print("Created '%s'" % proj_file)
 
 
 @command
