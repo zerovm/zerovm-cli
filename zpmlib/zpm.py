@@ -356,12 +356,9 @@ def _add_file_to_tar(root, path, tar):
 
 
 def _find_ui_uploads(zapp, tar):
-    if 'ui' not in zapp:
-        return _DEFAULT_UI_TEMPLATES
-
     matches = set()
     names = tar.getnames()
-    for pattern in zapp['ui']:
+    for pattern in zapp.get('ui', []):
         matches.update(fnmatch.filter(names, pattern))
     return sorted(matches)
 

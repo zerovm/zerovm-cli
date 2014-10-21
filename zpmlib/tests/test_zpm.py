@@ -163,11 +163,7 @@ class TestFindUIUploads:
     Tests for :func:`zpmlib.zpm._find_ui_uploads`.
     """
 
-    def test_without_ui(self):
-        matches = zpm._find_ui_uploads({}, None)
-        assert matches == zpm._DEFAULT_UI_TEMPLATES
-
-    def test_with_ui(self):
+    def test_with_files(self):
         zapp = {'ui': ['x']}
         tar = mock.Mock(getnames=lambda: ['x', 'y'])
         matches = zpm._find_ui_uploads(zapp, tar)
