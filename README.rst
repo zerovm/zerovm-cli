@@ -85,13 +85,21 @@ Changelog
 
    * ``setup.py`` uses ``setuptools`` instead of ``distutils``.
 
-   * ``deploy``: show full URL to the deployed index.html.
-
    * ``deploy``: set correct content type for zapp files.
 
    * ``deploy``: better management of containers (automatically create
      containers if not existing, don't allow deployment to a non-empty
      container).
+
+   Issues closed since 0.2:
+
+   * `#105`_: ``zpm`` throws an ambiguous error if a deploy target
+     container does not exist.
+
+   * `#134`_: Show full URL to the deployed index.html.
+
+   * `#147`_: Installing ``zpm`` with ``python setup.py install`` was
+     broken.
 
 
 0.2 (2014-06-30):
@@ -120,11 +128,14 @@ Changelog
 .. _#20: https://github.com/zerovm/zpm/issues/20
 .. _#31: https://github.com/zerovm/zpm/issues/31
 .. _#37: https://github.com/zerovm/zpm/issues/37
+.. _#105: https://github.com/zerovm/zpm/issues/105
 .. _#109: https://github.com/zerovm/zpm/issues/109
 .. _#119: https://github.com/zerovm/zpm/issues/119
 .. _#122: https://github.com/zerovm/zpm/issues/122
 .. _#131: https://github.com/zerovm/zpm/issues/131
 .. _#132: https://github.com/zerovm/zpm/issues/132
+.. _#134: https://github.com/zerovm/zpm/issues/134
+.. _#147: https://github.com/zerovm/zpm/issues/147
 .. _#157: https://github.com/zerovm/zpm/issues/157
 .. _#158: https://github.com/zerovm/zpm/issues/158
 .. _#167: https://github.com/zerovm/zpm/issues/167
