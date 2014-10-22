@@ -350,9 +350,7 @@ def _add_file_to_tar(root, path, tar):
     """
     LOG.info('adding %s' % path)
     relpath = os.path.relpath(path, root)
-    info = tarfile.TarInfo(name=relpath)
-    info.size = os.path.getsize(path)
-    tar.addfile(info, open(path, 'rb'))
+    tar.add(relpath, arcname=relpath)
 
 
 def _find_ui_uploads(zapp, tar):
