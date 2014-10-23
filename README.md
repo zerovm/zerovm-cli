@@ -76,7 +76,7 @@ Let's run something more complex:
       small executable.  It provides minimalist replacements for most of the
       utilities you usually find in bzip2, coreutils, dhcp, diffutils, e2fsprogs,
       file, findutils, gawk, grep, inetutils, less, modutils, net-tools, procps,
-      sed, shadow, sysklogd, sysvinit, tar, util-linux, and vim.  The utilities
+      sed, shadow, sysklogd, sysvinit, tar, util-linux, and vim.
 
 What did it do?  
 We run "head" from inside ZeroVM and apply it to actual file on the host machine "path/to/README"  
