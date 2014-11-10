@@ -36,8 +36,7 @@ help:
 
   # Help for the command line arguments. Each entry is a two-tuple
   # with an option name and an option help text.
-  args:
-  - ["", ""]
+  args: []
 
 # Files to include in your zapp. Your can use glob patterns here, they
 # will be resolved relative to the location of this file.
