@@ -27,6 +27,7 @@ try:
         'python-swiftclient',
         'prettytable',
         'six',
+        'tox',
     ]
 except ImportError:
     import sys
