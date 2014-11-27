@@ -214,7 +214,10 @@ def new(args):
     """
 
     try:
-        project_files = zpm.create_project(args.dir, with_ui=args.with_ui)
+        project_files = zpm.create_project(
+            args.dir,
+            with_ui=args.with_ui,
+            template=args.template)
     except RuntimeError as err:
         print(err)
     else:
