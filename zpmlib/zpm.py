@@ -255,7 +255,8 @@ def bundle_project(root, refresh_deps=False):
 
     zapp_name = zapp['meta']['name'] + '.zapp'
 
-    tar = tarfile.open(zapp_name, 'w:gz')
+    zapp_tar_path = os.path.join(root, zapp_name)
+    tar = tarfile.open(zapp_tar_path, 'w:gz')
 
     job = _generate_job_desc(zapp)
     job_json = json.dumps(job)
@@ -314,11 +315,12 @@ def _add_file_to_tar(root, path, tar, arcname=None):
     """
     # TODO(larsbutler): document ``arcname``
     LOG.info('adding %s' % path)
+    path = os.path.join(root, path)
     relpath = os.path.relpath(path, root)
     if arcname is None:
         # In the archive, give the file the same name and path.
         arcname = relpath
-    tar.add(relpath, arcname=arcname)
+    tar.add(path, arcname=arcname)
 
 
 def _find_ui_uploads(zapp, tar):
