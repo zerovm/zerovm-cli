@@ -36,6 +36,7 @@ import yaml
 
 import zpmlib
 from zpmlib import util
+from zpmlib import zappbundler
 from zpmlib import zapptemplate
 
 _DEFAULT_UI_TEMPLATES = ['index.html.tmpl', 'style.css', 'zerocloud.js']
@@ -245,7 +246,7 @@ def _prepare_job(tar, zapp, zapp_swift_url):
     return job
 
 
-def bundle_project(root):
+def bundle_project(root, refresh_deps=False):
     """
     Bundle the project under root.
     """
@@ -296,11 +297,13 @@ def bundle_project(root):
             " the zapp.yaml matched anything."
         )
 
+    # Do template-specific bundling
+    zappbundler.bundle(root, zapp, tar, refresh_deps=refresh_deps)
     tar.close()
     print('created %s' % zapp_name)
 
 
-def _add_file_to_tar(root, path, tar):
+def _add_file_to_tar(root, path, tar, arcname=None):
     """
     :param root:
         Root working directory.
@@ -309,9 +312,13 @@ def _add_file_to_tar(root, path, tar):
     :param tar:
         Open :class:`tarfile.TarFile` object to add the ``files`` to.
     """
+    # TODO(larsbutler): document ``arcname``
     LOG.info('adding %s' % path)
     relpath = os.path.relpath(path, root)
-    tar.add(relpath, arcname=relpath)
+    if arcname is None:
+        # In the archive, give the file the same name and path.
+        arcname = relpath
+    tar.add(relpath, arcname=arcname)
 
 
 def _find_ui_uploads(zapp, tar):

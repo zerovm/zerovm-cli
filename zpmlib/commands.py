@@ -227,6 +227,9 @@ def new(args):
 
 @command
 @with_logging
+@arg('--refresh-deps', '-r',
+     help='Refresh/re-download locally cached dependencies',
+     action='store_true')
 def bundle(args):
     """Bundle a ZeroVM application
 
@@ -234,7 +237,7 @@ def bundle(args):
     The file is read from the project root.
     """
     root = zpm.find_project_root()
-    zpm.bundle_project(root)
+    zpm.bundle_project(root, refresh_deps=args.refresh_deps)
 
 
 @command
