@@ -218,7 +218,7 @@ def new(args):
             args.dir,
             with_ui=args.with_ui,
             template=args.template)
-    except RuntimeError as err:
+    except Exception as err:
         print(err)
     else:
         for proj_file in project_files:

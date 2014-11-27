@@ -18,7 +18,6 @@ import gzip
 import json
 import os
 import shlex
-import shutil
 import tarfile
 try:
     import urlparse
@@ -36,6 +35,7 @@ import swiftclient
 import yaml
 
 import zpmlib
+from zpmlib import util
 from zpmlib import zapptemplate
 
 _DEFAULT_UI_TEMPLATES = ['index.html.tmpl', 'style.css', 'zerocloud.js']
@@ -78,7 +78,7 @@ EXEC_TABLE_HEADER = [
 ]
 
 
-def create_project(location, with_ui=False):
+def create_project(location, with_ui=False, template=None):
     """
     Create a ZeroVM application project by writing a default `zapp.yaml` in the
     specified directory `location`.
@@ -88,8 +88,11 @@ def create_project(location, with_ui=False):
     :param with_ui:
         Defaults to `False`. If `True`, add basic UI template files as well to
         ``location``.
+    :param template:
+        Default: ``None``. If no template is specified, use the default project
+        template. (See `zpmlib.zapptemplate`.)
 
-    :returns: Full path to the created `zapp.yaml` file.
+    :returns: List of created project files.
     """
     if os.path.exists(location):
         if not os.path.isdir(location):
@@ -97,53 +100,17 @@ def create_project(location, with_ui=False):
             raise RuntimeError("Target `location` must be a directory")
     else:
         os.makedirs(location)
-    return _create_project_files(location, with_ui=with_ui)
 
-
-def _create_project_files(location, with_ui=False):
-    """
-    Create a default `zapp.yaml` file in the specified directory `location`.
-
-    If `with_ui` is `True`, add template UI files to `location`.
-
-    Raises a `RuntimeError` if any files would be overwritten in `location`.
-    """
-    template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-
-    # Collect a list of the target files
-    target_files = []
-    zapp_yaml_path = os.path.join(location, 'zapp.yaml')
-    target_files.append(zapp_yaml_path)
-    if with_ui:
-        for template in _DEFAULT_UI_TEMPLATES:
-            dest_path = os.path.join(location, template)
-            target_files.append(dest_path)
-
-    # Check that none of them already exists; we don't want to overwrite
-    # If any already exists, we don't write anything.
-    for f in target_files:
-        if os.path.exists(f):
-            raise RuntimeError("'%s' already exists!" % f)
-
-    # Add zapp.yaml template
-    if with_ui:
-        zapp_template = _ZAPP_WITH_UI_YAML
-    else:
-        zapp_template = _ZAPP_YAML
-
-    with open(os.path.join(location, 'zapp.yaml'), 'w') as fp:
-        name = os.path.basename(os.path.abspath(location))
-        fp.write(zapptemplate.render_zapp_yaml(name,
-                                               template_name=zapp_template))
-
-    # Add UI template files, if specified
-    if with_ui:
-        for template in _DEFAULT_UI_TEMPLATES:
-            src_path = os.path.join(template_dir, template)
-            dest_path = os.path.join(location, template)
-            shutil.copyfile(src_path, dest_path)
-
-    return target_files
+    # Run the template builder, and create additional files for the project by
+    # the type. If ``template`` is none, this is essientially a NOP.
+    # TODO: just use the afc._created_files
+    created_files = []
+    with util.AtomicFileCreator() as afc:
+        for file_type, path, contents in zapptemplate.template(
+                location, template, with_ui=with_ui):
+            afc.create_file(file_type, path, contents)
+            created_files.append(path)
+    return created_files
 
 
 def find_project_root():
