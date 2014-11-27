@@ -28,6 +28,16 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
 _DEFAULT_UI_TEMPLATES = ['index.html.tmpl', 'style.css', 'zerocloud.js']
 _PYTHON_ZAPP_YAML = 'python-zapp.yaml'
 _PYTHON_ZAPP_WITH_UI_YAML = 'python-zapp-with-ui.yaml'
+_PYTHON_TOX_INI_TEMPLATE = """\
+[tox]
+toxworkdir={toxinidir}/.zapp
+envlist = venv
+skipsdist = true
+
+[testenv:venv]
+deps = -r{toxinidir}/deps.txt
+"""
+
 
 _DEFAULT_TEMPLATE = 'python'
 
@@ -76,22 +86,12 @@ def python_template(location, with_ui=False):
     for triple in _create_basic_proj_files(location, with_ui=with_ui):
         yield triple
 
-    # TODO: abspath?
     dot_zapp_dir = os.path.join(location, '.zapp')
     yield ('dir', dot_zapp_dir, None)
 
     tox_ini_path = os.path.join(dot_zapp_dir, 'tox.ini')
-    tox_ini_template = """\
-[tox]
-toxworkdir={toxinidir}/.zapp
-envlist = venv
-skipsdist = true
 
-[testenv:venv]
-deps = -r{toxinidir}/deps.txt
-"""
-
-    yield ('file', tox_ini_path, tox_ini_template)
+    yield ('file', tox_ini_path, _PYTHON_TOX_INI_TEMPLATE)
 
 
 _TEMPLATES = {
