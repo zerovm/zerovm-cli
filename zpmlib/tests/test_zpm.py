@@ -35,6 +35,7 @@ except ImportError:
     from io import BytesIO
 
 from zpmlib import zpm, commands
+from zpmlib import zapptemplate
 
 
 class TestCreateProject:
@@ -103,7 +104,7 @@ class TestCreateProjectFiles:
             [zapp_yaml] = zpm._create_project_files(tempdir)
             assert os.path.exists(filepath)
             with open(filepath) as fp:
-                expected = yaml.load(zpm.render_zapp_yaml(name))
+                expected = yaml.load(zapptemplate.render_zapp_yaml(name))
                 assert expected == yaml.load(fp)
             assert os.path.abspath(filepath) == os.path.abspath(zapp_yaml)
         finally:
@@ -128,7 +129,7 @@ class TestCreateProjectFiles:
             # test the zapp.yaml contents
             zapp_yaml = created_files[0]
             with open(zapp_yaml) as fp:
-                expected = yaml.load(zpm.render_zapp_yaml(
+                expected = yaml.load(zapptemplate.render_zapp_yaml(
                     name, template_name='python-zapp-with-ui.yaml'
                 ))
                 assert expected == yaml.load(fp)
@@ -152,7 +153,7 @@ class TestCreateProjectFiles:
             zpm._create_project_files(tempdir)
             with open(filepath) as fp:
                 loaded = yaml.safe_load(fp)
-                tmpl = yaml.safe_load(zpm.render_zapp_yaml(''))
+                tmpl = yaml.safe_load(zapptemplate.render_zapp_yaml(''))
                 assert loaded.keys() == tmpl.keys()
         finally:
             shutil.rmtree(tempdir)

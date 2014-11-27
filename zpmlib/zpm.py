@@ -36,6 +36,7 @@ import swiftclient
 import yaml
 
 import zpmlib
+from zpmlib import zapptemplate
 
 _DEFAULT_UI_TEMPLATES = ['index.html.tmpl', 'style.css', 'zerocloud.js']
 _ZAPP_YAML = 'python-zapp.yaml'
@@ -99,14 +100,6 @@ def create_project(location, with_ui=False):
     return _create_project_files(location, with_ui=with_ui)
 
 
-def render_zapp_yaml(name, template_name='python-zapp.yaml'):
-    """Load and render the zapp.yaml template."""
-    loader = jinja2.PackageLoader('zpmlib', 'templates')
-    env = jinja2.Environment(loader=loader)
-    tmpl = env.get_template(template_name)
-    return tmpl.render(name=name)
-
-
 def _create_project_files(location, with_ui=False):
     """
     Create a default `zapp.yaml` file in the specified directory `location`.
@@ -140,7 +133,8 @@ def _create_project_files(location, with_ui=False):
 
     with open(os.path.join(location, 'zapp.yaml'), 'w') as fp:
         name = os.path.basename(os.path.abspath(location))
-        fp.write(render_zapp_yaml(name, template_name=zapp_template))
+        fp.write(zapptemplate.render_zapp_yaml(name,
+                                               template_name=zapp_template))
 
     # Add UI template files, if specified
     if with_ui:
