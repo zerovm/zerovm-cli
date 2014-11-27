@@ -24,6 +24,7 @@ of a 'dir').
 import os
 import jinja2
 
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
 _DEFAULT_UI_TEMPLATES = ['index.html.tmpl', 'style.css', 'zerocloud.js']
 _PYTHON_ZAPP_YAML = 'python-zapp.yaml'
 _PYTHON_ZAPP_WITH_UI_YAML = 'python-zapp-with-ui.yaml'
@@ -63,9 +64,8 @@ def _create_basic_proj_files(location, with_ui=False):
 
     # Add UI template files, if specified
     if with_ui:
-        template_dir = os.path.join(os.path.dirname(__file__), 'templates')
         for template in _DEFAULT_UI_TEMPLATES:
-            src_path = os.path.join(template_dir, template)
+            src_path = os.path.join(TEMPLATE_DIR, template)
             dest_path = os.path.join(location, template)
 
             with open(src_path) as fp:
