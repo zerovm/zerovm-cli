@@ -1,3 +1,7 @@
+# This describes the type of application. Bundling and deployment
+# behavior can vary between application types.
+project_type: python
+
 # This section describes the runtime behavior of your zapp: which
 # groups of nodes to create and which nexe to invoke for each.
 execution:
