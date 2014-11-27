@@ -199,6 +199,8 @@ def all_commands():
 @command
 @arg('--with-ui', '-u', help='Include user interface template files',
      action='store_true')
+@arg('--template', '-t', help='Template to use for creating a zapp project',
+     choices=['python'], default='python')
 @arg('dir', help='Non-existent or empty directory',
      metavar='WORKING_DIR', nargs='?',
      default='.')
