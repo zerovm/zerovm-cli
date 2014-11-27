@@ -129,7 +129,7 @@ class TestCreateProjectFiles:
             zapp_yaml = created_files[0]
             with open(zapp_yaml) as fp:
                 expected = yaml.load(zpm.render_zapp_yaml(
-                    name, template_name='zapp-with-ui.yaml'
+                    name, template_name='python-zapp-with-ui.yaml'
                 ))
                 assert expected == yaml.load(fp)
             assert os.path.abspath(filepath) == os.path.abspath(zapp_yaml)

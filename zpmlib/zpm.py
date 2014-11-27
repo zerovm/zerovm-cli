@@ -38,8 +38,8 @@ import yaml
 import zpmlib
 
 _DEFAULT_UI_TEMPLATES = ['index.html.tmpl', 'style.css', 'zerocloud.js']
-_ZAPP_YAML = 'zapp.yaml'
-_ZAPP_WITH_UI_YAML = 'zapp-with-ui.yaml'
+_ZAPP_YAML = 'python-zapp.yaml'
+_ZAPP_WITH_UI_YAML = 'python-zapp-with-ui.yaml'
 
 LOG = zpmlib.get_logger(__name__)
 BUFFER_SIZE = 65536
@@ -99,7 +99,7 @@ def create_project(location, with_ui=False):
     return _create_project_files(location, with_ui=with_ui)
 
 
-def render_zapp_yaml(name, template_name='zapp.yaml'):
+def render_zapp_yaml(name, template_name='python-zapp.yaml'):
     """Load and render the zapp.yaml template."""
     loader = jinja2.PackageLoader('zpmlib', 'templates')
     env = jinja2.Environment(loader=loader)
