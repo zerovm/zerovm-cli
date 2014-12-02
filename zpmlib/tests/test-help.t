@@ -27,7 +27,7 @@ Main help text is shown when no command is given:
 Test with existing command:
 
   $ zpm help new
-  usage: zpm new [-h] [--with-ui]
+  usage: zpm new [-h] [--with-ui] [--template {python}]
                  [--log-level {debug,info,warning,error,critical}]
                  [WORKING_DIR]
   
@@ -41,6 +41,9 @@ Test with existing command:
   optional arguments:
     -h, --help            show this help message and exit
     --with-ui, -u         Include user interface template files
+    --template {python}, -t {python}
+                          Template to use for creating a zapp project (default:
+                          python)
     --log-level {debug,info,warning,error,critical}, -l {debug,info,warning,error,critical}
                           Defaults to 'warn' (default: warning)
 

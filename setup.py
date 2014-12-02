@@ -20,8 +20,15 @@ kwargs = {}
 
 try:
     from setuptools import setup
-    kwargs['install_requires'] = ['requests', 'jinja2<2.7', 'pyyaml',
-                                  'python-swiftclient', 'prettytable', 'six']
+    kwargs['install_requires'] = [
+        'requests',
+        'jinja2<2.7',
+        'pyyaml',
+        'python-swiftclient',
+        'prettytable',
+        'six',
+        'tox',
+    ]
 except ImportError:
     import sys
     sys.stderr.write('warning: setuptools not found, you must '

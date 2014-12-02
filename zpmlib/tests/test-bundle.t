@@ -5,6 +5,7 @@ Test bundling with auto-generated UI:
   $ cd foo
   $ touch a.txt
   $ cat > zapp.yaml <<EOF
+  > project_type: python
   > execution:
   >   groups:
   >     - path: file://python2.7:python

@@ -199,6 +199,8 @@ def all_commands():
 @command
 @arg('--with-ui', '-u', help='Include user interface template files',
      action='store_true')
+@arg('--template', '-t', help='Template to use for creating a zapp project',
+     choices=['python'], default='python')
 @arg('dir', help='Non-existent or empty directory',
      metavar='WORKING_DIR', nargs='?',
      default='.')
@@ -212,8 +214,11 @@ def new(args):
     """
 
     try:
-        project_files = zpm.create_project(args.dir, with_ui=args.with_ui)
-    except RuntimeError as err:
+        project_files = zpm.create_project(
+            args.dir,
+            with_ui=args.with_ui,
+            template=args.template)
+    except Exception as err:
         print(err)
     else:
         for proj_file in project_files:
@@ -222,6 +227,9 @@ def new(args):
 
 @command
 @with_logging
+@arg('--refresh-deps', '-r',
+     help='Refresh/re-download locally cached dependencies',
+     action='store_true')
 def bundle(args):
     """Bundle a ZeroVM application
 
@@ -229,7 +237,7 @@ def bundle(args):
     The file is read from the project root.
     """
     root = zpm.find_project_root()
-    zpm.bundle_project(root)
+    zpm.bundle_project(root, refresh_deps=args.refresh_deps)
 
 
 @command

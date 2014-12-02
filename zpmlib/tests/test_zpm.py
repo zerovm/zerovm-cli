@@ -23,139 +23,13 @@ import shutil
 import swiftclient.exceptions
 import tarfile
 import tempfile
-import yaml
 import zpmlib
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
 try:
     from cStringIO import StringIO as BytesIO
 except ImportError:
     from io import BytesIO
 
 from zpmlib import zpm, commands
-
-
-class TestCreateProject:
-    """
-    Tests for :func:`zpmlib.zpm.create_project`.
-    """
-
-    def test_path_exists_not_dir(self):
-        # A RuntimeError should be thrown if the target path exists and is
-        # not a dir.
-        _, tf = tempfile.mkstemp()
-        with mock.patch('zpmlib.zpm._create_project_files') as czy:
-            with pytest.raises(RuntimeError):
-                zpm.create_project(tf)
-            assert czy.call_count == 0
-
-    def test_path_does_not_exist(self):
-        # If the path does not exist, `create_project` should create the
-        # directory (including intermediate directories) and bootstrap an empty
-        # project.
-        tempdir = tempfile.mkdtemp()
-        target_dir = os.path.join(tempdir, 'foo', 'bar')
-
-        try:
-            with mock.patch('zpmlib.zpm._create_project_files') as czy:
-                zpm.create_project(target_dir)
-                assert czy.call_count == 1
-        finally:
-            shutil.rmtree(tempdir)
-
-    def test_target_is_dir(self):
-        # In this case, the target is a dir and it exists already.
-        tempdir = tempfile.mkdtemp()
-        try:
-            with mock.patch('zpmlib.zpm._create_project_files') as czy:
-                zpm.create_project(tempdir)
-                assert czy.call_count == 1
-        finally:
-            shutil.rmtree(tempdir)
-
-
-class TestCreateProjectFiles:
-    """
-    Tests for :func:`zpmlib.zpm._create_project_files`.
-    """
-
-    def test_file_already_exists(self):
-        tempdir = tempfile.mkdtemp()
-        filepath = os.path.join(tempdir, 'zapp.yaml')
-        # "touch" the file
-        open(filepath, 'w').close()
-        try:
-            with pytest.raises(RuntimeError):
-                zpm._create_project_files(tempdir)
-        finally:
-            shutil.rmtree(tempdir)
-
-    def test_create_project_files(self):
-        # Test the creation of zapp.yaml.
-        tempdir = tempfile.mkdtemp()
-        filepath = os.path.join(tempdir, 'zapp.yaml')
-        name = os.path.basename(tempdir)
-
-        try:
-            assert not os.path.exists(filepath)
-            [zapp_yaml] = zpm._create_project_files(tempdir)
-            assert os.path.exists(filepath)
-            with open(filepath) as fp:
-                expected = yaml.load(zpm.render_zapp_yaml(name))
-                assert expected == yaml.load(fp)
-            assert os.path.abspath(filepath) == os.path.abspath(zapp_yaml)
-        finally:
-            shutil.rmtree(tempdir)
-
-    def test_create_project_files_with_ui(self):
-        # Test the creation of zapp.yaml and ui template files
-        tempdir = tempfile.mkdtemp()
-        expected_files = [
-            os.path.join(tempdir, x) for x in ('zapp.yaml', 'index.html.tmpl',
-                                               'style.css', 'zerocloud.js')
-        ]
-        filepath = os.path.join(tempdir, 'zapp.yaml')
-        name = os.path.basename(tempdir)
-
-        try:
-            assert not os.path.exists(filepath)
-            created_files = zpm._create_project_files(tempdir, with_ui=True)
-            for each in created_files:
-                assert os.path.exists(each)
-
-            # test the zapp.yaml contents
-            zapp_yaml = created_files[0]
-            with open(zapp_yaml) as fp:
-                expected = yaml.load(zpm.render_zapp_yaml(
-                    name, template_name='zapp-with-ui.yaml'
-                ))
-                assert expected == yaml.load(fp)
-            assert os.path.abspath(filepath) == os.path.abspath(zapp_yaml)
-
-            assert expected_files == created_files
-        finally:
-            shutil.rmtree(tempdir)
-
-    @mock.patch('yaml.constructor.SafeConstructor.construct_yaml_map')
-    def test_key_ordering(self, yaml_map):
-        # This makes yaml.safe_load use an OrderedDict instead of a
-        # normal dict when loading a YAML mapping.
-        yaml_map.__iter__.return_value = iter(OrderedDict())
-
-        # Test the creation of zapp.yaml.
-        tempdir = tempfile.mkdtemp()
-        filepath = os.path.join(tempdir, 'zapp.yaml')
-
-        try:
-            zpm._create_project_files(tempdir)
-            with open(filepath) as fp:
-                loaded = yaml.safe_load(fp)
-                tmpl = yaml.safe_load(zpm.render_zapp_yaml(''))
-                assert loaded.keys() == tmpl.keys()
-        finally:
-            shutil.rmtree(tempdir)
 
 
 class TestFindUIUploads:
