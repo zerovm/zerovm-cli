@@ -16,7 +16,6 @@ Test bad --auth-version:
 Test deploy with no credentials set:
 
   $ zpm deploy target zapp
-  
   Error:
   Auth version 1.0 requires ST_AUTH, ST_USER, and ST_KEY environment variables
   to be set or overridden with -A, -U, or -K.

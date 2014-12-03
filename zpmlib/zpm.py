@@ -18,6 +18,7 @@ import gzip
 import json
 import os
 import shlex
+import sys
 import tarfile
 try:
     import urlparse
@@ -332,7 +333,8 @@ def _find_ui_uploads(zapp, tar):
 
 
 def _post_job(url, token, data, http_conn=None, response_dict=None,
-              content_type='application/json', content_length=None):
+              content_type='application/json', content_length=None,
+              response_body_buffer=None):
     # Modelled after swiftclient.client.post_account.
     headers = {'X-Auth-Token': token,
                'X-Zerovm-Execute': '1.0',
@@ -351,7 +353,8 @@ def _post_job(url, token, data, http_conn=None, response_dict=None,
     swiftclient.http_log((url, 'POST'), {'headers': headers}, resp, body)
     swiftclient.store_response(resp, response_dict)
 
-    print(body)
+    if response_body_buffer is not None:
+        response_body_buffer.write(body)
 
 
 class ZeroCloudConnection(swiftclient.Connection):
@@ -367,7 +370,7 @@ class ZeroCloudConnection(swiftclient.Connection):
         """
         self.url, self.token = self.get_auth()
 
-    def post_job(self, job, response_dict=None):
+    def post_job(self, job, response_dict=None, response_body_buffer=None):
         """Start a ZeroVM job, using a pre-uploaded zapp
 
         :param object job:
@@ -377,13 +380,16 @@ class ZeroCloudConnection(swiftclient.Connection):
         json_data = json.dumps(job)
         LOG.debug('JOB: %s' % json_data)
         return self._retry(None, _post_job, json_data,
-                           response_dict=response_dict)
+                           response_dict=response_dict,
+                           response_body_buffer=response_body_buffer)
 
-    def post_zapp(self, data, response_dict=None, content_length=None):
+    def post_zapp(self, data, response_dict=None, content_length=None,
+                  response_body_buffer=None):
         return self._retry(None, _post_job, data,
                            response_dict=response_dict,
                            content_type='application/x-gzip',
-                           content_length=content_length)
+                           content_length=content_length,
+                           response_body_buffer=response_body_buffer)
 
 
 def _get_zerocloud_conn(args):
@@ -613,13 +619,20 @@ def deploy_project(args):
     if args.execute:
         # for compatibility with the option name in 'zpm execute'
         args.container = args.target
-        resp = execute(args)
+        resp_body_buffer = BytesIO()
+        resp = execute(args, response_body_buffer=resp_body_buffer)
+        resp_body_buffer.seek(0)
+
+        if resp['status'] < 200 or resp['status'] >= 300:
+            raise zpmlib.ZPMException(resp_body_buffer.read())
 
         if args.summary:
             total_time, exec_table = _get_exec_table(resp)
             print('Execution summary:')
             print(exec_table)
             print('Total time: %s' % total_time)
+
+        sys.stdout.write(resp_body_buffer.read())
 
 
 def _get_exec_table(resp):
@@ -701,7 +714,7 @@ def _get_exec_table_data(headers):
     return total_time, table_data
 
 
-def execute(args):
+def execute(args, response_body_buffer=None):
     """Execute a zapp remotely on a ZeroCloud deployment.
 
     :returns:
@@ -722,14 +735,16 @@ def execute(args):
                 raise zpmlib.ZPMException(str(exc))
         job = json.loads(content)
 
-        conn.post_job(job, response_dict=resp)
+        conn.post_job(job, response_dict=resp,
+                      response_body_buffer=response_body_buffer)
         LOG.debug('RESP STATUS: %s %s', resp['status'], resp['reason'])
         LOG.debug('RESP HEADERS: %s', resp['headers'])
     else:
         size = os.path.getsize(args.zapp)
         zapp_file = open(args.zapp, 'rb')
         data_reader = iter(lambda: zapp_file.read(BUFFER_SIZE), b'')
-        conn.post_zapp(data_reader, response_dict=resp, content_length=size)
+        conn.post_zapp(data_reader, response_dict=resp, content_length=size,
+                       response_body_buffer=response_body_buffer)
         zapp_file.close()
     return resp
 

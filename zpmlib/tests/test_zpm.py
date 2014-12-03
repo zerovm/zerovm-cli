@@ -472,7 +472,8 @@ print("Hello from ZeroVM!")
             url = 'http://127.0.0.1'
             token = 'abc123'
 
-            def post_job(self, job, response_dict=None):
+            def post_job(self, job, response_dict=None,
+                         response_body_buffer=None):
                 response_dict['status'] = 200
                 response_dict['reason'] = 'OK'
                 response_dict['headers'] = {
