@@ -29,5 +29,5 @@ if __name__ == "__main__":
     try:
         args.func(args)
     except zpmlib.ZPMException as err:
-        print("\nError:\n%s" % err)
+        print("Error:\n%s" % err)
         sys.exit(1)
