@@ -160,13 +160,17 @@ def _generate_job_desc(zapp):
         return ' '.join(escape(arg) for arg in args)
 
     for zgroup in zapp['execution']['groups']:
-        # Copy everything, but handle 'path' and 'args' specially:
+        # Copy everything, but handle 'env', 'path', and 'args' specially:
         jgroup = dict(zgroup)
         jgroup['exec'] = {
             'path': zgroup['path'],
             'args': translate_args(zgroup['args']),
         }
         del jgroup['path'], jgroup['args']
+
+        if 'env' in zgroup:
+            jgroup['exec']['env'] = zgroup['env']
+            del jgroup['env']
         job.append(jgroup)
     return job
 

@@ -141,6 +141,7 @@ def test__generate_job_desc():
                  ],
                  'name': 'mapper',
                  'connect': ['reducer'],
+                 'env': {'FOO': 'bar', 'BAZ': 5},
                  'path': 'file://python2.7:python'},
                 {'args': 'reducer.py',
                  'devices': [
@@ -168,7 +169,8 @@ def test__generate_job_desc():
          'connect': ['reducer'],
          'name': 'mapper',
          'exec': {'path': 'file://python2.7:python',
-                  'args': 'mapper.py foo\\x5c\\x2c\\x20\\x5cnbar'}},
+                  'args': 'mapper.py foo\\x5c\\x2c\\x20\\x5cnbar',
+                  'env': {'FOO': 'bar', 'BAZ': 5}}},
         {'devices': [
             {'name': 'python2.7'},
             {'name': 'stdout'}],
