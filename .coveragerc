@@ -1,2 +1,4 @@
 [run]
-omit = zvshlib/tests/*
+omit =
+    zvshlib/tests/*
+    zpmlib/tests/*

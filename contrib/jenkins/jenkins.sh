@@ -1,7 +1,8 @@
 #!/bin/bash
 
 WORKSPACE=$HOME/workspace
-DEPS="python-debian debhelper devscripts python-pip python-setuptools git"
+DEPS="python-debian debhelper devscripts python-pip python-setuptools"
+DEPS="$DEPS git mercurial"
 
 sudo apt-get update
 sudo apt-get install --yes $DEPS
