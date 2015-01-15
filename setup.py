@@ -13,12 +13,14 @@
 #  limitations under the License.
 
 """
-ZeroVM Shell
+ZeroVM Command Line Tools
 """
 
 import sys
 
+import zpmlib
 import zvmlib
+import zvshlib
 
 requires = []
 if sys.version_info < (2, 7):
@@ -28,6 +30,15 @@ kwargs = {}
 try:
     from setuptools import setup
     kwargs['install_requires'] = requires
+    kwargs['install_requires'].extend([
+        'requests',
+        'jinja2<2.7',
+        'pyyaml',
+        'python-swiftclient',
+        'prettytable',
+        'six',
+        'tox',
+    ])
 except ImportError:
     sys.stderr.write('warning: setuptools not found, you must '
                      'manually install dependencies!\n')
@@ -42,22 +53,32 @@ setup(
     maintainer='Rackspace ZeroVM Team',
     maintainer_email='zerovm@rackspace.com',
     url='https://github.com/zerovm/zerovm-cli',
-    description='ZeroVM Shell',
+    description='ZeroVM Command Line Tools',
     long_description=__doc__,
     platforms=['any'],
-    packages=['zvshlib', 'zvmlib'],
+    packages=['zvshlib', 'zvmlib', 'zpmlib'],
     license='Apache 2.0',
-    keywords='zvsh zerovm zvm',
+    keywords='zvsh zerovm zvm zpm',
+    package_data={'zpmlib': ['templates/*.html', 'templates/*.css',
+                             'templates/*.js', 'templates/*.yaml',
+                             'templates/*.tmpl']},
+    provides=['zpm (%s)' % zpmlib.__version__,
+              'zvm (%s)' % ZVM_VERSION,
+              'zvsh (%s)' % zvshlib.__version__],
     classifiers=(
         'Development Status :: 3 - Alpha',
         'License :: OSI Approved :: Apache Software License',
         'Intended Audience :: Developers',
         'Intended Audience :: Information Technology',
         'Operating System :: OS Independent',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
         'Topic :: Software Development :: Build Tools',
     ),
-    scripts=['zvsh', 'zvm'],
+    scripts=['zvsh', 'zvm', 'zpm'],
     **kwargs
 )

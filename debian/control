@@ -7,6 +7,6 @@ Standards-Version: 3.9.3
 
 Package: zerovm-cli
 Architecture: amd64
-Depends: zerovm, zpm (>= 0.2), python2.7, python (>= 2.7), python (<< 2.8)
+Depends: zerovm, python2.7, python (>= 2.7), python (<< 2.8), python-jinja2, python-prettytable, python-six, python-swiftclient, python-yaml
 Description: Command line tools for ZeroVM
  Installs command line tools and utilities for ZeroVM testing.

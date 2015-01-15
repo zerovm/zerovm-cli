@@ -1,0 +1,18 @@
+body {
+    font-family: sans;
+    margin: 1em;
+}
+
+#run {
+    padding: 1em;
+    font-weight: bold;
+}
+
+label {
+    display: inline-block;
+    width: 12em;
+}
+
+#stdout {
+    border: thin solid grey;
+}

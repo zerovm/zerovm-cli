@@ -15,7 +15,7 @@ Run standalone nexe
     $ zvsh path/to/busybox.nexe echo "Hello world"
     Hello world
 
-What did it do?  
+What did it do?
 Let's save all the intermediate files and look inside
 
     $ zvsh --zvm-save-dir /tmp/test path/to/busybox.nexe echo "Hello world"
@@ -42,7 +42,7 @@ and two FIFO pipes that will be attached to stderr and stdout of the running app
     Channel = /tmp/test/stdout.1,/dev/stdout,0,0,0,0,4294967296,4294967296
     Channel = /tmp/test/stderr.1,/dev/stderr,0,0,0,0,4294967296,4294967296
     Channel = /tmp/test/nvram.1,/dev/nvram,3,0,4294967296,4294967296,4294967296,4294967296
-    
+
 The main manifest configuration file contains all the real machine environment setup.
 The interesting parts are:
 - path to executable was converted to absolute full path
@@ -69,20 +69,20 @@ Let's run something more complex:
     $ zvsh --zvm-save-dir /tmp/test path/to/busybox.nexe head @path/to/README
     Please see the LICENSE file for details on copying and usage.
     Please refer to the INSTALL file for instructions on how to build.
-    
+
     What is busybox:
-    
+
       BusyBox combines tiny versions of many common UNIX utilities into a single
       small executable.  It provides minimalist replacements for most of the
       utilities you usually find in bzip2, coreutils, dhcp, diffutils, e2fsprogs,
       file, findutils, gawk, grep, inetutils, less, modutils, net-tools, procps,
       sed, shadow, sysklogd, sysvinit, tar, util-linux, and vim.
 
-What did it do?  
-We run "head" from inside ZeroVM and apply it to actual file on the host machine "path/to/README"  
+What did it do?
+We run "head" from inside ZeroVM and apply it to actual file on the host machine "path/to/README"
 Let's see how the manifest and nvram changed
 
-    $ cat /tmp/test/manifest.1 
+    $ cat /tmp/test/manifest.1
     Node = 1
     Version = 20130611
     Timeout = 50
@@ -93,11 +93,11 @@ Let's see how the manifest and nvram changed
     Channel = /tmp/test/stderr.1,/dev/stderr,0,0,0,0,4294967296,4294967296
     Channel = /absolute/path/to/README,/dev/1.README,3,0,4294967296,4294967296,4294967296,4294967296
     Channel = /tmp/test/nvram.1,/dev/nvram,3,0,4294967296,4294967296,4294967296,4294967296
-    
+
 Manifest now has entry for the host README file (take note that the path was also converted to absolute)
 and it was mapped to "/dev/1.README" device inside the VM
 
-    $ cat /tmp/test/nvram.1 
+    $ cat /tmp/test/nvram.1
     [args]
     args = busybox head /dev/1.README
     [mapping]
@@ -114,11 +114,11 @@ Now let's use image file
     $ echo "print 'Hello world'" | zvsh --zvm-save-dir /tmp/test --zvm-image path/to/python.tar python
     Hello world
 
-What did it do?  
-We run python interpreter inside VM and submit it a script "print 'Hello world'" through the host /dev/stdin  
+What did it do?
+We run python interpreter inside VM and submit it a script "print 'Hello world'" through the host /dev/stdin
 Let's see the configuration
 
-    $ cat /tmp/test/manifest.1 
+    $ cat /tmp/test/manifest.1
     Node = 1
     Version = 20130611
     Timeout = 50
@@ -149,10 +149,10 @@ We also see that the "Program" now points to "/tmp/test/boot.1" as this is a pat
     -rw-r--r-- pkit/pkit       14576 2013-12-03 20:15 share/man/man1/python2.7.1
     -rwxrwxr-x pkit/pkit    21011528 2013-12-03 20:15 python
 
-Python executable is at the end of python.tar archive and is just called "python" this is what we supplied in the command line, 
+Python executable is at the end of python.tar archive and is just called "python" this is what we supplied in the command line,
 and this is what will get extracted as "/tmp/test/boot.1"
 
-    $ cat /tmp/test/nvram.1 
+    $ cat /tmp/test/nvram.1
     [args]
     args = python
     [fstab]
@@ -161,15 +161,15 @@ and this is what will get extracted as "/tmp/test/boot.1"
     channel=/dev/stdout,mode=char
     channel=/dev/stderr,mode=char
 
-Here a new stanza "fstab" is added. It maps the image to the mount point "/", which means that files inside the tar will be mounted as a root file system.  
-Access to files is "read-only" and the tar is "not removable" (discussion about removable devices is out of the scope of this document).  
-The /dev/stdin is also not a "char" device anymore, because we connected it to a pipe at the moment (remember "echo .... | zvsh ...." ?).  
+Here a new stanza "fstab" is added. It maps the image to the mount point "/", which means that files inside the tar will be mounted as a root file system.
+Access to files is "read-only" and the tar is "not removable" (discussion about removable devices is out of the scope of this document).
+The /dev/stdin is also not a "char" device anymore, because we connected it to a pipe at the moment (remember "echo .... | zvsh ...." ?).
 
-How to create a tar image?  
-It's simple, really, just add all the files you want there and supply it to the zvsh as `--zvm-image` argument.  
-Any tar archive will be loaded and injected as a file system. You can supply several `--zvm-image` arguments to zvsh 
+How to create a tar image?
+It's simple, really, just add all the files you want there and supply it to the zvsh as `--zvm-image` argument.
+Any tar archive will be loaded and injected as a file system. You can supply several `--zvm-image` arguments to zvsh
 all images will be loaded and mounted.
-If you want your image to be "read-write" or you want to mount it to a different path than "/" 
+If you want your image to be "read-write" or you want to mount it to a different path than "/"
 just add it to the argument like this: `--zvm-image path/to/image.tar,/mount/point,rw`
 
 zvapp
@@ -188,9 +188,9 @@ Run servlet description file (JSON)
 
     $ zvapp --swift-account-path /home/user/swift job.json
 
-Here we run a JSON job description that references swift:// urls.  
+Here we run a JSON job description that references swift:// urls.
 Each url should be mapped to a local file/directory. Here we use `--swift-account-path` for that.
-It points to a local dir where all the files are placed in same hierarchy as in Swift account.  
+It points to a local dir where all the files are placed in same hierarchy as in Swift account.
 Example:
 
     /home/user/swift
@@ -205,7 +205,7 @@ Example:
 
 Note: any account name will point to the same /home/user/swift directory
 
-If we want to use directory per account, we can use `--swift-root-path` directive.  
+If we want to use directory per account, we can use `--swift-root-path` directive.
 Example:
 
     --swift-root-path /home/user/swift
@@ -228,5 +228,5 @@ Run from application root
 
     $ zvapp --swift-account-path /home/user/swift path/to/app/root
 
-Application root should have `boot/system.map` or `boot/cluster.map` file. The application job will be loaded from there.  
+Application root should have `boot/system.map` or `boot/cluster.map` file. The application job will be loaded from there.
 You can also reference any `swift://` URLs inside the job, as in any other job description file.

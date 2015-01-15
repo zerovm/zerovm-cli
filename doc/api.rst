@@ -7,3 +7,12 @@ ZeroVM CLI Core Functions
     :members:
     :private-members:
     :undoc-members:
+
+.. _zpm-core:
+
+ZPM Core Functions
+==================
+
+.. automodule:: zpmlib.zpm
+    :members:
+    :private-members:

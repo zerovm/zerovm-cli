@@ -13,6 +13,22 @@ API
    api
 
 
+ZPM: ZeroVM Package Manager
+===========================
+
+Contents:
+
+.. toctree::
+   :maxdepth: 2
+
+   intro
+   zerocloud-auth-config
+   commands
+   zapp-yaml
+   packaging
+   glossary
+
+
 Indices and tables
 ==================
 
