@@ -162,10 +162,30 @@ def _generate_job_desc(zapp):
     for zgroup in zapp['execution']['groups']:
         # Copy everything, but handle 'env', 'path', and 'args' specially:
         jgroup = dict(zgroup)
+
+        path = zgroup['path']
+        # if path is `file://image:exe`, exec->name is "exe"
+        # if path is `swift://~/container/obj`, exec->name is "obj"
+        exec_name = None
+        if path.startswith('file://'):
+            exec_name = path.split(':')[-1]
+        elif path.startswith('swift://'):
+            # If obj is a pseudo path, like foo/bar/obj, we need to
+            # handle this as well with a careful split.
+            # If the object path is something like `swift://~/container/obj`,
+            # then exec_name will be `obj`.
+            # If the object path is something like
+            # `swift://./container/foo/bar/obj`, then the exec_name will be
+            # `foo/bar/obj`.
+            exec_name = path.split('/', 4)[-1]
+
         jgroup['exec'] = {
             'path': zgroup['path'],
             'args': translate_args(zgroup['args']),
         }
+        if exec_name is not None:
+            jgroup['exec']['name'] = exec_name
+
         del jgroup['path'], jgroup['args']
 
         if 'env' in zgroup:

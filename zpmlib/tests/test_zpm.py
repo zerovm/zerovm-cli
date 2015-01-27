@@ -142,7 +142,19 @@ def test__generate_job_desc():
                  'name': 'mapper',
                  'connect': ['reducer'],
                  'env': {'FOO': 'bar', 'BAZ': 5},
-                 'path': 'file://python2.7:python'},
+                 'path': 'swift://./container/python'},
+                {'args': r'mapper.py "foo\\, \nbar"',
+                 'devices': [
+                     {'name': 'python2.7'},
+                     {'name': 'stdout'},
+                     {'name': 'input_swift_file',
+                      'path': 'swift://AUTH_abc123/foo/bar.txt'},
+                 ],
+                 'name': 'mapper',
+                 'connect': ['reducer'],
+                 'env': {'FOO': 'bar', 'BAZ': 5},
+                 'path': 'swift://~/container/path/to/python'},
+
                 {'args': 'reducer.py',
                  'devices': [
                      {'name': 'python2.7'},
@@ -168,14 +180,28 @@ def test__generate_job_desc():
              'path': 'swift://AUTH_abc123/foo/bar.txt'}],
          'connect': ['reducer'],
          'name': 'mapper',
-         'exec': {'path': 'file://python2.7:python',
+         'exec': {'path': 'swift://./container/python',
+                  'name': 'python',
+                  'args': 'mapper.py foo\\x5c\\x2c\\x20\\x5cnbar',
+                  'env': {'FOO': 'bar', 'BAZ': 5}}},
+        {'devices': [
+            {'name': 'python2.7'},
+            {'name': 'stdout'},
+            {'name': 'input_swift_file',
+             'path': 'swift://AUTH_abc123/foo/bar.txt'}],
+         'connect': ['reducer'],
+         'name': 'mapper',
+         'exec': {'path': 'swift://~/container/path/to/python',
+                  'name': 'path/to/python',
                   'args': 'mapper.py foo\\x5c\\x2c\\x20\\x5cnbar',
                   'env': {'FOO': 'bar', 'BAZ': 5}}},
         {'devices': [
             {'name': 'python2.7'},
             {'name': 'stdout'}],
          'name': 'reducer',
-         'exec': {'path': 'file://python2.7:python', 'args': 'reducer.py'}},
+         'exec': {'path': 'file://python2.7:python',
+                  'name': 'python',
+                  'args': 'reducer.py'}},
     ]
 
     actual_job = zpm._generate_job_desc(zapp_yaml_contents)
