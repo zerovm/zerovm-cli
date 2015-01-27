@@ -19,11 +19,11 @@ except ImportError:
 
 try:
     from zerocloud.configparser import ClusterConfigParser, \
-        ClusterConfigParsingError
-    from zerocloud.common import CLUSTER_CONFIG_FILENAME, \
-        NODE_CONFIG_FILENAME, NodeEncoder, \
-        parse_location, is_swift_path, is_image_path, \
-        ACCESS_WRITABLE, ACCESS_READABLE, ACCESS_CDR, ACCESS_NETWORK
+        ClusterConfigParsingError, NodeEncoder
+    from zerocloud.common import parse_location, \
+        CLUSTER_CONFIG_FILENAME, NODE_CONFIG_FILENAME, \
+        ACCESS_WRITABLE, ACCESS_READABLE, ACCESS_CDR, ACCESS_NETWORK, \
+        SwiftPath, ImagePath
     from zerocloud.proxyquery import NameService
 except ImportError:
     sys.stderr.write('Please install python-zerocloud before running %s\n'
@@ -161,13 +161,14 @@ class ZvLocalFilesystem(object):
             temp_file = self.create_temp_file()
             self.immediate_responses[node_name] = temp_file
             return temp_file
-        elif is_swift_path(loc):
+        elif isinstance(loc, SwiftPath):
             account_path = self.account_path
             if not account_path:
                 account_path = os.path.join(self.root_path, loc.account)
             local_path = os.path.join(account_path, loc.container, loc.obj)
             return local_path
-        elif is_image_path(loc) and access & (ACCESS_READABLE | ACCESS_CDR):
+        elif isinstance(loc, ImagePath) and access & (ACCESS_READABLE |
+                                                      ACCESS_CDR):
             if 'image' == loc.image:
                 if os.path.isdir(self.image_path):
                     return os.path.join(os.path.abspath(self.image_path),
