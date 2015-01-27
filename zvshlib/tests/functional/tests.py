@@ -573,14 +573,29 @@ def _reference_nvram(command_line, additional_channels=None, images=None):
             'mode': 'char',
             'channel': '/dev/stdin'
         })
+    else:
+        reference['mapping'].append({
+            'mode': 'file',
+            'channel': '/dev/stdin'
+        })
     if sys.stdout.isatty():
         reference['mapping'].append({
             'mode': 'char',
             'channel': '/dev/stdout'
         })
+    else:
+        reference['mapping'].append({
+            'mode': 'file',
+            'channel': '/dev/stdout'
+        })
     if sys.stderr.isatty():
         reference['mapping'].append({
             'mode': 'char',
+            'channel': '/dev/stderr'
+        })
+    else:
+        reference['mapping'].append({
+            'mode': 'file',
             'channel': '/dev/stderr'
         })
     if additional_channels:

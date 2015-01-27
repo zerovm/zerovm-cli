@@ -80,6 +80,8 @@ args = %(args)s
 [mapping]
 %(mapping)s"""
 
+CHANNEL_MAPPING_TEMPLATE = "channel=/dev/%s,mode=%s\n"
+
 MANIFEST_TEMPLATE = """\
 Node = %(node)s
 Version = %(version)s
@@ -825,13 +827,12 @@ class ZvShell(object):
                 nvram += ('channel=%s,mountpoint=%s,access=%s,removable=no\n'
                           % (channel, mp, access))
         mapping = ''
-        if sys.stdin.isatty() or sys.stdout.isatty() or sys.stderr.isatty():
-            if sys.stdin.isatty():
-                mapping += 'channel=/dev/stdin,mode=char\n'
-            if sys.stdout.isatty():
-                mapping += 'channel=/dev/stdout,mode=char\n'
-            if sys.stderr.isatty():
-                mapping += 'channel=/dev/stderr,mode=char\n'
+        for std_name in ('stdin', 'stdout', 'stderr'):
+            std_chan = getattr(sys, std_name)
+            if std_chan.isatty():
+                mapping += CHANNEL_MAPPING_TEMPLATE % (std_name, 'char')
+            else:
+                mapping += CHANNEL_MAPPING_TEMPLATE % (std_name, 'file')
         for dev in self.nvram_reg_files:
             mapping += 'channel=%s,mode=file\n' % dev
         if mapping:
