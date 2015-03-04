@@ -34,9 +34,9 @@ class SwiftLogFilter(logging.Filter):
         # In cases where this happens, we already deal with the exception,
         # so there's no need to constantly show spurious ERROR level messages
         # to the user.
-        if (record.levelname == 'ERROR'
-                and record.msg.msg == 'Container GET failed'
-                and record.msg.http_status == 404):
+        if (record.levelname == 'ERROR' and
+                record.msg.msg == 'Container GET failed' and
+                record.msg.http_status == 404):
             return False
         return True
 
