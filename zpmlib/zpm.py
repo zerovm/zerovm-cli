@@ -721,7 +721,8 @@ def _get_exec_table_data(headers):
     total_time = cdr_data.pop(0)
     cdr_data = iter(cdr_data)
 
-    adviter = lambda x: six.advance_iterator(x)
+    def adviter(x):
+        return six.advance_iterator(x)
 
     table_data = []
     while True:
